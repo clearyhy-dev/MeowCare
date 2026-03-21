@@ -6,6 +6,7 @@ load_dotenv()
 
 GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+THE_CAT_API_KEY = (os.getenv("THE_CAT_API_KEY") or "").strip()
 PORT = int(os.getenv("PORT", "8000"))
 ENV = (os.getenv("ENV") or "development").strip().lower()
 IS_PRODUCTION = ENV == "production"
@@ -26,5 +27,4 @@ SECRET_KEY = (_secret or "meowcare-admin-secret-change-in-production").strip() o
 # CORS: production 应从环境变量读取允许的源，如 CORS_ORIGINS=https://app.example.com,https://admin.example.com
 CORS_ORIGINS_RAW = os.getenv("CORS_ORIGINS", "").strip()
 CORS_ORIGINS = [o.strip() for o in CORS_ORIGINS_RAW.split(",") if o.strip()] if CORS_ORIGINS_RAW else []
-
 

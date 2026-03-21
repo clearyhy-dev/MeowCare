@@ -56,7 +56,13 @@ DEFAULT_CONTENT_GENERATION = {
     "enabled": True,
     "dailyCount": 5,
     "publishHourUtc": 1,
-    "topics": ["care", "health", "behavior", "feeding"],
+    "topics": [
+        "care", "behavior", "feeding", "health", "grooming",
+        "kitten", "senior_cat", "indoor_cat", "hydration", "litter_box",
+    ],
+    "useGemini": True,
+    "minContentLength": 400,
+    "imageRequired": False,
 }
 
 
