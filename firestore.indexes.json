@@ -1,0 +1,24 @@
+{
+  "indexes": [
+    {"collectionGroup": "breeds", "queryScope": "COLLECTION", "fields": [{"fieldPath": "enabled", "order": "ASCENDING"}, {"fieldPath": "order", "order": "ASCENDING"}]},
+    {"collectionGroup": "cats",
+ "queryScope": "COLLECTION", "fields": [{"fieldPath": "familyId", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
+    {"collectionGroup": "cats", "queryScope": "COLLECTION", "fields": [{"fieldPath": "ownerId", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
+    {"collectionGroup": "taskLogs", "queryScope": "COLLECTION", "fields": [{"fieldPath": "taskId", "order": "ASCENDING"}, {"fieldPath": "completedAt", "order": "DESCENDING"}]},
+    {"collectionGroup": "healthLogs", "queryScope": "COLLECTION", "fields": [{"fieldPath": "catId", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
+    {"collectionGroup": "aiRequests", "queryScope": "COLLECTION", "fields": [{"fieldPath": "uid", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
+    {"collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
+    {"collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "score", "order": "DESCENDING"}]},
+    {"collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "countryCode", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
+    {"collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "countryCode", "order": "ASCENDING"}, {"fieldPath": "score", "order": "DESCENDING"}]},
+
+    {"collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "breedIds", "arrayConfig": "CONTAINS"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
+    {"collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "topics", "arrayConfig": "CONTAINS"}, {"fieldPath": "score", "order": "DESCENDING"}]},
+    {"collectionGroup": "comments", "queryScope": "COLLECTION", "fields": [{"fieldPath": "postId", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
+    {"collectionGroup": "bookmarks", "queryScope": "COLLECTION", "fields": [{"fieldPath": "uid", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
+    {"collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "authorId", "order": "ASCENDING"}, {"fieldPath": "score", "order": "DESCENDING"}]}
+  ],
+
+  "fieldOverrides": []
+}
+

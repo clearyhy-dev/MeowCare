@@ -1,0 +1,173 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../core/utils/l10n_ext.dart';
+import '../../screens/ai/ai_screen.dart';
+import '../../screens/auth/login_screen.dart';
+import '../../screens/auth/register_screen.dart';
+import '../../screens/cats/cats_screen.dart';
+import '../../screens/family/create_family_screen.dart';
+import '../../screens/family/join_family_screen.dart';
+import '../../screens/feed/home_page.dart';
+import '../../screens/feed/post_detail_page.dart';
+import '../../screens/feed/create_post_page.dart';
+import '../../screens/cats/my_cats_page.dart';
+import '../../screens/cats/cat_edit_page.dart';
+import '../../screens/bookmark/bookmark_page.dart';
+import '../../screens/health/health_screen.dart';
+import '../../screens/plan/plan_page.dart';
+import '../../screens/reminder/reminder_page.dart';
+import '../../screens/settings/settings_screen.dart';
+import '../../screens/subscription/subscription_screen.dart';
+import '../../screens/tasks/tasks_screen.dart';
+
+class AppRouter {
+  AppRouter._();
+
+  static const String auth = '/auth';
+  static const String register = '/register';
+  static const String createFamily = '/family/create';
+  static const String joinFamily = '/family/join';
+  static const String home = '/';
+  static const String cats = '/cats';
+  static const String tasks = '/tasks';
+  static const String health = '/health';
+  static const String ai = '/ai';
+  static const String subscription = '/subscription';
+  static const String settings = '/settings';
+  static const String postDetail = '/post';
+  static const String postCreate = '/post/create';
+  static const String myCats = '/my-cats';
+  static const String catEdit = '/cat/edit';
+  static const String bookmarks = '/bookmarks';
+  static const String plan = '/plan';
+  static const String reminder = '/reminder';
+
+  static GoRouter createRouter(GoRouterRefreshNotifier refreshNotifier) {
+    return GoRouter(
+      refreshListenable: refreshNotifier,
+      initialLocation: home,
+      redirect: (context, state) {
+        final isLoading = refreshNotifier.isLoading;
+        final user = refreshNotifier.currentUser;
+        final location = state.uri.path;
+        final isAuthRoute = location == auth || location == register;
+
+        if (isLoading) return null;
+        if (user == null) {
+          return null;
+        }
+        if (user.familyId == null || user.familyId!.isEmpty) {
+          if (location == createFamily || location == joinFamily) return null;
+          return createFamily;
+        }
+        if (isAuthRoute || location == createFamily || location == joinFamily) {
+          return home;
+        }
+        return null;
+      },
+      routes: [
+        GoRoute(path: auth, builder: (context, state) => const LoginScreen()),
+        GoRoute(path: register, builder: (context, state) => const RegisterScreen()),
+        GoRoute(path: createFamily, builder: (context, state) => const CreateFamilyScreen()),
+        GoRoute(path: joinFamily, builder: (context, state) => const JoinFamilyScreen()),
+        GoRoute(
+          path: home,
+          builder: (context, state) => const MainShell(),
+          routes: [
+            GoRoute(path: 'cats', builder: (context, state) => const CatsScreen()),
+            GoRoute(path: 'tasks', builder: (context, state) => const TasksScreen()),
+            GoRoute(path: 'health', builder: (context, state) => const HealthScreen()),
+            GoRoute(path: 'ai', builder: (context, state) => const AIScreen()),
+            GoRoute(path: 'subscription', builder: (context, state) => const SubscriptionScreen()),
+            GoRoute(path: 'settings', builder: (context, state) => const SettingsScreen()),
+            GoRoute(path: 'post/create', builder: (context, state) => const CreatePostPage()),
+            GoRoute(path: 'post/:id', builder: (context, state) => PostDetailPage(postId: state.pathParameters['id']!)),
+            GoRoute(path: 'my-cats', builder: (context, state) => const MyCatsPage()),
+            GoRoute(path: 'cat/edit/:id', builder: (context, state) => CatEditPage(catId: state.pathParameters['id']!)),
+            GoRoute(path: 'bookmarks', builder: (context, state) => const BookmarkPage()),
+            GoRoute(path: 'plan', builder: (context, state) => const PlanPage()),
+            GoRoute(path: 'reminder', builder: (context, state) => const ReminderPage()),
+          ],
+        ),
+
+      ],
+    );
+  }
+}
+
+class GoRouterRefreshNotifier extends ChangeNotifier {
+  GoRouterRefreshNotifier();
+
+  AsyncValue<dynamic> _userState = const AsyncValue.loading();
+
+  void update(AsyncValue<dynamic> state) {
+    _userState = state;
+    notifyListeners();
+  }
+
+  bool get isLoading => _userState.isLoading;
+  dynamic get currentUser => _userState.valueOrNull;
+}
+
+
+class MainShell extends StatelessWidget {
+  const MainShell({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: const HomePage(),
+
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex(context),
+        onDestinationSelected: (i) => _onTap(context, i),
+        destinations: [
+          NavigationDestination(icon: const Icon(Icons.home), label: context.l10n.home),
+          NavigationDestination(icon: const Icon(Icons.pets), label: context.l10n.cats),
+          NavigationDestination(icon: const Icon(Icons.check_circle_outline), label: context.l10n.tasks),
+          NavigationDestination(icon: const Icon(Icons.favorite_border), label: context.l10n.health),
+          NavigationDestination(icon: const Icon(Icons.smart_toy_outlined), label: context.l10n.aiNavLabel),
+          NavigationDestination(icon: const Icon(Icons.settings), label: context.l10n.settings),
+        ],
+
+
+      ),
+    );
+  }
+
+  int _selectedIndex(BuildContext context) {
+    final path = GoRouterState.of(context).uri.path;
+    if (path.startsWith('/cats')) return 1;
+    if (path.startsWith('/tasks')) return 2;
+    if (path.startsWith('/health')) return 3;
+    if (path.startsWith('/ai')) return 4;
+    if (path.startsWith('/settings')) return 5;
+    return 0;
+  }
+
+  void _onTap(BuildContext context, int i) {
+    switch (i) {
+      case 0:
+        context.go(AppRouter.home);
+        break;
+      case 1:
+        context.go('${AppRouter.home}cats');
+        break;
+      case 2:
+        context.go('${AppRouter.home}tasks');
+        break;
+      case 3:
+        context.go('${AppRouter.home}health');
+        break;
+      case 4:
+        context.go('${AppRouter.home}ai');
+        break;
+      case 5:
+        context.go('${AppRouter.home}settings');
+        break;
+    }
+  }
+}
+

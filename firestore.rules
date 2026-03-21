@@ -1,0 +1,136 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function isFamilyMember(familyId) {
+      return exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid));
+    }
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    function catOwnerId(catId) {
+      return get(/databases/$(database)/documents/cats/$(catId)).data.ownerId;
+    }
+    function isCatOwner(catId) {
+      return isSignedIn() && catOwnerId(catId) == request.auth.uid;
+    }
+
+    match /users/{uid} {
+      allow read, write: if isSignedIn() && isOwner(uid);
+    }
+
+    match /families/{familyId} {
+      allow read: if isSignedIn() && isFamilyMember(familyId);
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+      match /members/{memberUid} {
+        allow read: if isSignedIn() && isFamilyMember(familyId);
+        allow create: if isSignedIn();
+        allow update, delete: if isSignedIn() && (
+          get(/databases/$(database)/documents/families/$(familyId)).data.ownerUid == request.auth.uid
+          || memberUid == request.auth.uid
+        );
+      }
+    }
+
+    match /cats/{catId} {
+      allow read: if isSignedIn() && (
+        resource.data.public == true
+        || resource.data.ownerId == request.auth.uid
+        || (resource.data.get('familyId', '') != '' && isFamilyMember(resource.data.familyId))
+      );
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid
+        || (resource.data.get('familyId', '') != '' && get(/databases/$(database)/documents/families/$(resource.data.familyId)).data.ownerUid == request.auth.uid)
+      );
+    }
+
+    match /catsPrivate/{catId} {
+      allow read, write: if isCatOwner(catId);
+    }
+
+    match /reminders/{reminderId} {
+      allow read, write: if isCatOwner(reminderId);
+    }
+
+    match /posts/{postId} {
+      allow read: if isSignedIn() && (
+        resource.data.status == 'published'
+        || resource.data.authorId == request.auth.uid
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.type == 'ugc'
+        && request.resource.data.status in ['draft', 'pending', 'published'];
+
+      allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+    }
+
+    match /comments/{commentId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+    }
+
+    match /likes/{likeId} {
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow read, update, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /bookmarks/{bookmarkId} {
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow read, update, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+
+    match /reports/{reportId} {
+      allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
+      allow read, update, delete: if isSignedIn() && (
+        resource.data.reporterId == request.auth.uid
+        || isAdmin()
+      );
+    }
+
+    match /breeds/{breedId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /admins/{adminUid} {
+      allow read, write: if false;
+    }
+
+    match /tasks/{taskId} {
+      allow read, write: if isSignedIn() && isFamilyMember(get(/databases/$(database)/documents/cats/$(resource.data.catId)).data.familyId);
+      allow create: if isSignedIn() && isFamilyMember(get(/databases/$(database)/documents/cats/$(request.resource.data.catId)).data.familyId);
+    }
+
+    match /taskLogs/{logId} {
+      allow read, write: if isSignedIn() && isFamilyMember(get(/databases/$(database)/documents/cats/$(resource.data.catId)).data.familyId);
+      allow create: if isSignedIn() && isFamilyMember(get(/databases/$(database)/documents/cats/$(request.resource.data.catId)).data.familyId);
+    }
+
+    match /healthLogs/{logId} {
+      allow read, write: if isSignedIn() && isFamilyMember(get(/databases/$(database)/documents/cats/$(resource.data.catId)).data.familyId);
+      allow create: if isSignedIn() && isFamilyMember(get(/databases/$(database)/documents/cats/$(request.resource.data.catId)).data.familyId);
+    }
+
+
+    match /aiRequests/{requestId} {
+      allow read, write: if isSignedIn() && isOwner(resource.data.uid);
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+    }
+  }
+}
+

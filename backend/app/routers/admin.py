@@ -1,0 +1,650 @@
+import base64
+import json
+import os
+import re
+from datetime import datetime, timedelta, timezone
+
+import httpx
+from fastapi import APIRouter, Depends, Request, HTTPException, status
+from fastapi.responses import HTMLResponse, Response
+
+from pydantic import BaseModel
+import jwt
+
+from firebase_admin import auth as firebase_auth, firestore
+
+from app.config import ADMIN_PASSWORD, ADMIN_USERNAME, SECRET_KEY
+from app.dependencies import get_identity, require_admin
+
+
+def _get_admin_creds():
+
+    """Return admin credentials from config (validated at startup in production)."""
+    return ADMIN_USERNAME, ADMIN_PASSWORD
+
+router = APIRouter()
+
+
+def _make_jwt():
+    payload = {"sub": "admin", "exp": datetime.now(timezone.utc) + timedelta(days=7)}
+    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+
+
+class LoginBody(BaseModel):
+    username: str
+    password: str
+
+
+@router.post("/login")
+async def login(body: LoginBody):
+    username = (body.username or "").strip()
+    password = body.password or ""
+    if username != ADMIN_USERNAME or password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
+
+    token = _make_jwt()
+    return {"token": token, "username": username}
+
+
+@router.get("/me")
+async def admin_me(identity: str = Depends(get_identity)):
+    if identity != "admin":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not admin")
+    return {"username": "admin"}
+
+
+def _admin_html(init_token: str | None = None, login_error: str | None = None) -> str:
+    # 用 data 属性 + base64 传 token/错误信息，避免直接写入脚本导致 SyntaxError（如 JWT 含特殊字符）
+    token_b64 = ""
+    if init_token:
+        token_b64 = base64.b64encode(init_token.encode("utf-8")).decode("ascii")
+    err_b64 = ""
+    if login_error:
+        err_b64 = base64.b64encode(login_error.encode("utf-8")).decode("ascii")
+    init_data_attrs = ""
+    if token_b64:
+        init_data_attrs += ' data-token-base64="' + token_b64 + '"'
+    if err_b64:
+        init_data_attrs += ' data-login-error-base64="' + err_b64 + '"'
+    return """<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MeowCare 后台管理</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; background: #e8ecf0; }
+    .container { max-width: 960px; margin: 0 auto; padding: 0; }
+    .header { background: #2c3e50; color: #fff; padding: 14px 24px; display: flex; align-items: center; flex-wrap: wrap; gap: 16px; border-radius: 10px 10px 0 0; }
+    .header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; }
+    .nav { display: flex; gap: 4px; flex-wrap: wrap; }
+    .nav a { color: rgba(255,255,255,0.9); text-decoration: none; padding: 8px 14px; border-radius: 6px; font-size: 14px; }
+    .nav a:hover { background: rgba(255,255,255,0.15); color: #fff; }
+    .nav a.active { background: rgba(255,255,255,0.25); color: #fff; font-weight: 500; }
+    .logout { margin-left: auto; color: rgba(255,255,255,0.8); }
+    .logout:hover { color: #fff; background: rgba(255,255,255,0.1); }
+    .main { padding: 24px; }
+    h1 { color: #333; }
+    .card { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    form { display: flex; flex-direction: column; gap: 12px; max-width: 320px; }
+    input { padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    button { padding: 10px 16px; background: #4A90D9; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    button:hover { background: #357ABD; }
+    button.danger { background: #c0392b; }
+    button.danger:hover { background: #a02818; }
+    button.primary { background: #27ae60; font-weight: 500; }
+    button.primary:hover { background: #219a52; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #eee; }
+    th { background: #f0f3f6; font-weight: 600; font-size: 13px; color: #444; }
+    tbody tr:nth-child(even) { background: #fafbfc; }
+    tbody tr:hover { background: #f0f7ff; }
+    td.empty { text-align: center; color: #888; padding: 24px; font-size: 14px; }
+    .badge { display: inline-block; padding: 2px 8px; font-size: 12px; background: #e8f5e9; color: #2e7d32; border-radius: 4px; }
+    .err { color: #c0392b; margin-top: 8px; }
+    .loading { color: #666; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+    .card-head h2 { margin: 0; font-size: 1.1rem; color: #333; }
+    .toolbar { margin-bottom: 12px; }
+    .toolbar button { margin-right: 8px; }
+  </style>
+
+</head>
+<body>
+  <div class="container">
+  <div id="init-admin-data" style="display:none" """ + init_data_attrs + """></div>
+    <div id="noAuthCard" class="card">
+      <h1>MeowCare 后台管理</h1>
+      <p>请使用账号密码登录。</p>
+      <p id="loginErr" class="err"></p>
+      <form id="loginForm">
+        <input type="text" name="username" placeholder="用户名" required />
+        <input type="password" name="password" placeholder="密码" required />
+        <button type="submit">登录</button>
+      </form>
+    </div>
+    <div id="dashboard" style="display:none;">
+
+      <h1>后台管理</h1>
+      <div class="nav">
+        <a href="#" data-page="breeds">品种</a>
+        <a href="#" data-page="ugc">待审内容</a>
+        <a href="#" data-page="reports">举报</a>
+        <a href="#" class="logout" id="logout">退出</a>
+      </div>
+      <div id="content"></div>
+    </div>
+  </div>
+  <script>
+    const API = '';
+    (function() {
+      var params = new URLSearchParams(location.search);
+      var urlUser = params.get('username');
+      var urlPass = params.get('password');
+      if (urlUser != null && urlPass != null) {
+        try {
+          document.querySelector('input[name="username"]').value = decodeURIComponent(urlUser);
+          document.querySelector('input[name="password"]').value = decodeURIComponent(urlPass);
+          if (history.replaceState) history.replaceState({}, '', location.pathname);
+          setTimeout(function() { document.getElementById('loginForm').requestSubmit(); }, 150);
+        } catch (e) {}
+      }
+    })();
+    function token() { return localStorage.getItem('adminToken'); }
+
+    function setToken(t) { if (t) localStorage.setItem('adminToken', t); else localStorage.removeItem('adminToken'); }
+    function headers() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token() }; }
+    function show(el, show) { el.style.display = show ? 'block' : 'none'; }
+    function showLogin(show) { show(document.getElementById('loginCard'), show); show(document.getElementById('dashboard'), !show); }
+    document.getElementById('loginForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const err = document.getElementById('loginErr');
+      err.textContent = '';
+      try {
+        const r = await fetch(API + '/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: fd.get('username'), password: fd.get('password') }) });
+        const data = await r.json();
+        if (!r.ok) { err.textContent = data.detail || '登录失败'; return; }
+        setToken(data.token);
+        showLogin(false);
+        loadPage('breeds');
+      } catch (e) { err.textContent = e.message || '请求失败'; }
+    };
+    document.getElementById('logout').onclick = () => { setToken(null); showLogin(true); document.getElementById('content').innerHTML = ''; };
+    document.getElementById('loginForm').onsubmit = async function(e) {
+      e.preventDefault();
+      var fd = new FormData(e.target);
+      var errEl = document.getElementById('loginErr');
+      errEl.textContent = '';
+      try {
+        var r = await fetch(API + '/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: (fd.get('username') || '').trim(), password: fd.get('password') || '' }) });
+        var data = await r.json().catch(function() { return {}; });
+        if (r.ok && data.token) { setToken(data.token); showLogin(false); loadPage('posts'); } else { errEl.textContent = data.detail || '登录失败，请重试'; }
+      } catch (err) { errEl.textContent = err.message || '网络错误'; }
+    };
+
+    document.querySelectorAll('.nav a[data-page]').forEach(a => { a.onclick = (e) => { e.preventDefault(); loadPage(a.dataset.page); }; });
+    async function loadPage(page) {
+      const content = document.getElementById('content');
+      const errEl = document.getElementById('loginErr');
+      if (!token()) { errEl.textContent = ''; showLogin(true); return; }
+      content.innerHTML = '<p class="loading">加载中…</p>';
+      try {
+        var r, list, url;
+        if (page === 'breeds') {
+          url = API + '/breeds';
+          r = await fetch(url, { headers: headers() });
+          if (r.status === 401) { setToken(null); errEl.textContent = '登录已过期或无效，请重新登录'; showLogin(true); return; }
+          if (!r.ok) { content.innerHTML = '<p class="err">请求失败 ' + r.status + '</p>'; return; }
+          list = await r.json().catch(function() { return []; });
+          if (!Array.isArray(list)) list = [];
+          content.innerHTML = '<div class="card"><div class="card-head"><h2>品种列表</h2><button type="button" id="btnSeedBreeds">一键添加常用品种</button> <button type="button" id="btnAddBreed" class="primary">+ 添加品种</button></div><div id="breedFormCard" class="card" style="display:none;"><h3>添加品种</h3><form id="formAddBreed"><label>名称 <input type="text" name="name" placeholder="如：英国短毛猫" required /></label><label>排序 <input type="number" name="order" value="0" /></label><label><input type="checkbox" name="enabled" checked /> 启用</label><button type="submit">保存</button> <button type="button" id="btnCancelBreed">取消</button></form></div><table><thead><tr><th>编号</th><th>名称</th><th>启用状态</th><th>排序</th><th>操作</th></tr></thead><tbody>' + (list.length === 0 ? '<tr><td colspan="5" class="empty">暂无品种，请点击上方「添加品种」。</td></tr>' : (list.map(b => '<tr><td>' + (b.breedId || b.id) + '</td><td>' + (b.name || '') + '</td><td>' + (b.enabled !== false ? '是' : '否') + '</td><td>' + (b.order ?? '') + '</td><td><button onclick="toggleBreedEnabled(\\\'' + (b.breedId || b.id) + '\\\', ' + (b.enabled !== false ? 'false' : 'true') + ')">' + (b.enabled !== false ? '禁用' : '启用') + '</button> <button class="danger" onclick="deleteBreed(\\\'' + (b.breedId || b.id) + '\\\')">删除</button></td></tr>').join(''))) + '</tbody></table></div>';
+
+          document.getElementById('btnAddBreed').onclick = function() { document.getElementById('breedFormCard').style.display = 'block'; };
+          document.getElementById('btnCancelBreed').onclick = function() { document.getElementById('breedFormCard').style.display = 'none'; };
+          document.getElementById('formAddBreed').onsubmit = function(e) { e.preventDefault(); addBreed(e.target); };
+        }
+
+        } else if (page === 'ugc') {
+          url = API + '/ugc/pending';
+          r = await fetch(url, { headers: headers() });
+          if (r.status === 401) { setToken(null); errEl.textContent = '登录已过期或无效，请重新登录'; showLogin(true); return; }
+          if (!r.ok) { content.innerHTML = '<p class="err">请求失败 ' + r.status + '</p>'; return; }
+          list = await r.json().catch(function() { return []; });
+          if (!Array.isArray(list)) list = [];
+          content.innerHTML = '<div class="card"><h2>待审 UGC</h2><table><thead><tr><th>postId</th><th>title</th><th>操作</th></tr></thead><tbody>' + (list.map(p => '<tr><td>' + (p.postId || p.id) + '</td><td>' + (p.title || '') + '</td><td><button onclick="approve(\\\'' + (p.postId || p.id) + '\\\')">通过</button> <button class="danger" onclick="reject(\\\'' + (p.postId || p.id) + '\\\')">拒绝</button></td></tr>').join(''))) + '</tbody></table></div>';
+        } else if (page === 'reports') {
+          url = API + '/reports/open';
+          r = await fetch(url, { headers: headers() });
+          if (r.status === 401) { setToken(null); errEl.textContent = '登录已过期或无效，请重新登录'; showLogin(true); return; }
+          if (!r.ok) { content.innerHTML = '<p class="err">请求失败 ' + r.status + '</p>'; return; }
+          list = await r.json().catch(function() { return []; });
+          if (!Array.isArray(list)) list = [];
+          content.innerHTML = '<div class="card"><h2>待处理举报</h2><table><thead><tr><th>举报 ID</th><th>帖子 ID</th><th>原因</th><th>操作</th></tr></thead><tbody>' + (list.length === 0 ? '<tr><td colspan="4" class="empty">暂无待处理举报。</td></tr>' : (list.map(rr => '<tr><td>' + (rr.reportId || rr.id) + '</td><td>' + (rr.postId || '') + '</td><td>' + (rr.reason || '') + '</td><td><button onclick="resolveReport(\\\'' + (rr.reportId || rr.id) + '\\\')">已处理</button></td></tr>').join(''))) + '</tbody></table></div>';
+
+
+        }
+      } catch (e) { content.innerHTML = '<p class="err">加载失败: ' + (e.message || '') + '</p>'; }
+      document.querySelectorAll('.nav a[data-page]').forEach(function(a){ a.classList.toggle('active', a.dataset.page === page); });
+    }
+
+
+    async function approve(postId) {
+      try {
+        const r = await fetch(API + '/ugc/' + postId + '/approve', { method: 'POST', headers: headers() });
+        if (r.ok) loadPage('ugc'); else alert((await r.json()).detail || '操作失败');
+  replace_all: true
+      } catch (e) { alert(e.message); }
+    }
+    async function reject(postId) {
+      try {
+        const r = await fetch(API + '/ugc/' + postId + '/reject', { method: 'POST', headers: headers() });
+        if (r.ok) loadPage('ugc'); else alert((await r.json()).detail || '失败');
+      } catch (e) { alert(e.message); }
+    }
+    async function resolveReport(reportId) {
+      try {
+        const r = await fetch(API + '/reports/' + reportId + '/resolve', { method: 'POST', headers: headers(), body: JSON.stringify({ adminNote: '已处理' }) });
+        if (r.ok) loadPage('reports'); else alert((await r.json()).detail || '操作失败');
+      } catch (e) { alert(e.message); }
+    }
+    async function seedBreeds() {
+      try {
+        const r = await fetch(API + '/breeds/seed', { method: 'POST', headers: headers() });
+        const data = await r.json().catch(function() { return {}; });
+        if (r.ok) { alert('已添加 ' + (data.added || 0) + ' 个常用品种，前台 App 会直接显示。'); loadPage('breeds'); } else alert(data.detail || '操作失败');
+      } catch (e) { alert(e.message); }
+    }
+    async function addBreed(form) {
+      try {
+        const fd = new FormData(form);
+        const body = { name: (fd.get('name') || '').trim(), order: parseInt(fd.get('order'), 10) || 0, enabled: fd.get('enabled') === 'on', localeNames: {} };
+        const r = await fetch(API + '/breeds', { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+        if (r.ok) { document.getElementById('breedFormCard').style.display = 'none'; form.reset(); loadPage('breeds'); } else alert((await r.json()).detail || '添加失败，请重试');
+      } catch (e) { alert(e.message); }
+    }
+
+    async function toggleBreedEnabled(breedId, enabled) {
+      try {
+        const r = await fetch(API + '/breeds/' + breedId, { method: 'PUT', headers: headers(), body: JSON.stringify({ enabled: enabled }) });
+        if (r.ok) loadPage('breeds'); else alert((await r.json()).detail || '操作失败');
+  replace_all: true
+      } catch (e) { alert(e.message); }
+    }
+    async function deleteBreed(breedId) {
+      if (!confirm('确定删除该品种？')) return;
+      try {
+        const r = await fetch(API + '/breeds/' + breedId, { method: 'DELETE', headers: headers() });
+        if (r.ok) loadPage('breeds'); else alert((await r.json()).detail || '失败');
+      } catch (e) { alert(e.message); }
+    }
+    if (token()) { showLogin(false); loadPage('breeds'); }
+
+
+  </script>
+
+</body>
+</html>
+"""
+
+
+def _verify_token_from_cookie(cookie_token: str) -> str | None:
+    try:
+        payload = jwt.decode(cookie_token, SECRET_KEY, algorithms=["HS256"])
+        if payload.get("sub") == "admin":
+            return cookie_token
+    except Exception:
+        pass
+    return None
+
+
+_db = firestore.client()
+
+
+@router.get("/cats")
+async def admin_list_cats(uid: str = Depends(require_admin)):
+    """管理员：分页拉取宠物列表。"""
+    docs = list(_db.collection("cats").limit(200).stream())
+    items = []
+    for d in docs:
+        data = d.to_dict() or {}
+        items.append({
+            "catId": d.id,
+            "name": data.get("name", ""),
+            "ownerId": data.get("ownerId", ""),
+            "familyId": data.get("familyId", ""),
+        })
+    return {"items": items}
+
+
+@router.delete("/cats/{cat_id}")
+async def admin_delete_cat(cat_id: str, uid: str = Depends(require_admin)):
+    """管理员：删除宠物。"""
+    ref = _db.collection("cats").document(cat_id.strip())
+    if not ref.get().exists:
+        raise HTTPException(status_code=404, detail="Not found")
+    ref.delete()
+    return {"ok": True}
+
+
+@router.get("/users")
+async def admin_list_users(uid: str = Depends(require_admin)):
+    """管理员：拉取用户列表（Firestore users 集合）。"""
+    docs = list(_db.collection("users").limit(200).stream())
+    items = []
+    for d in docs:
+        data = d.to_dict() or {}
+        items.append({
+            "uid": d.id,
+            "email": data.get("email", ""),
+            "displayName": data.get("displayName", ""),
+            "familyId": data.get("familyId", ""),
+        })
+    return {"items": items}
+
+
+@router.delete("/users/{user_uid}")
+async def admin_delete_user(user_uid: str, uid: str = Depends(require_admin)):
+    """管理员：删除用户（Firestore 文档 + Firebase Auth 账号）。"""
+    user_uid = user_uid.strip()
+    ref = _db.collection("users").document(user_uid)
+    if ref.get().exists:
+        ref.delete()
+    try:
+        firebase_auth.delete_user(user_uid)
+    except firebase_auth.UserNotFoundError:
+        pass
+    return {"ok": True}
+
+
+REDDIT_SUBREDDITS = ["cats", "catcare", "CatAdvice", "AskVet", "kittens", "catpics"]
+REDDIT_LIMIT = 25
+REDDIT_USER_AGENT_DEFAULT = "MeowCare:meowcare-admin:1.0 (by /u/meowcare_app)"
+
+# In-memory cache for Reddit OAuth token (client_credentials)
+_reddit_token: str | None = None
+_reddit_token_expires_at: datetime | None = None
+
+
+def _reddit_oauth_configured() -> bool:
+    cid = (os.environ.get("REDDIT_CLIENT_ID") or "").strip()
+    secret = (os.environ.get("REDDIT_CLIENT_SECRET") or "").strip()
+    return bool(cid and secret)
+
+
+def _reddit_headers(access_token: str | None = None) -> dict[str, str]:
+    user_agent = (os.environ.get("REDDIT_USER_AGENT") or "").strip() or REDDIT_USER_AGENT_DEFAULT
+    headers = {"User-Agent": user_agent}
+    if access_token:
+        headers["Authorization"] = f"Bearer {access_token}"
+    return headers
+
+
+def _reddit_url(subreddit: str, sort: str, use_oauth: bool = False) -> str:
+    """Build Reddit listing URL. sort: new | hot | top_day | top_week."""
+    host = "https://oauth.reddit.com" if use_oauth else "https://www.reddit.com"
+    base = f"{host}/r/{subreddit.strip() or 'CatAdvice'}"
+    if sort == "hot":
+        return f"{base}/hot.json"
+    if sort == "top_day":
+        return f"{base}/top.json?t=day"
+    if sort == "top_week":
+        return f"{base}/top.json?t=week"
+    return f"{base}/new.json"
+
+
+async def _get_reddit_token() -> str:
+    """Get Reddit OAuth token (client_credentials). Uses in-memory cache until ~60s before expiry."""
+    global _reddit_token, _reddit_token_expires_at
+    now = datetime.now(timezone.utc)
+    if _reddit_token and _reddit_token_expires_at and (now + timedelta(seconds=60)) < _reddit_token_expires_at:
+        return _reddit_token
+    cid = (os.environ.get("REDDIT_CLIENT_ID") or "").strip()
+    secret = (os.environ.get("REDDIT_CLIENT_SECRET") or "").strip()
+    if not cid or not secret:
+        raise ValueError("REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET must be set for OAuth")
+    basic = base64.b64encode(f"{cid}:{secret}".encode()).decode()
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        r = await client.post(
+            "https://www.reddit.com/api/v1/access_token",
+            headers={
+                "Authorization": f"Basic {basic}",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": _reddit_headers()["User-Agent"],
+            },
+            data={"grant_type": "client_credentials"},
+        )
+    r.raise_for_status()
+    data = r.json()
+    _reddit_token = data.get("access_token")
+    expires_in = int(data.get("expires_in", 3600))
+    if not _reddit_token:
+        raise ValueError("Reddit token response missing access_token")
+    _reddit_token_expires_at = now + timedelta(seconds=expires_in)
+    return _reddit_token
+
+
+async def _fetch_reddit_children(subreddit: str = "CatAdvice", sort: str = "new"):
+    """请求 Reddit API，返回 children 列表。已配置 OAuth 时使用 oauth.reddit.com + Bearer，否则 www.reddit.com；403 时返回明确提示。"""
+    use_oauth = _reddit_oauth_configured()
+    url = _reddit_url(subreddit, sort, use_oauth=use_oauth)
+    if "?" in url:
+        url += f"&limit={REDDIT_LIMIT}"
+    else:
+        url += f"?limit={REDDIT_LIMIT}"
+
+    if use_oauth:
+        token = await _get_reddit_token()
+        headers = _reddit_headers(access_token=token)
+    else:
+        headers = _reddit_headers(access_token=None)
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        r = await client.get(url, headers=headers)
+
+    if r.status_code == 403:
+        if use_oauth:
+            raise HTTPException(
+                status_code=502,
+                detail="Reddit 返回 403。请确认 Reddit 应用 client_id/secret 正确，且请求已发往 oauth.reddit.com。",
+            )
+        raise HTTPException(
+            status_code=503,
+            detail="Reddit 已拦截未认证请求（403）。请在 Cloud Run 配置环境变量 REDDIT_CLIENT_ID 与 REDDIT_CLIENT_SECRET（Reddit 应用见 https://www.reddit.com/prefs/apps），并重新部署服务。",
+        )
+
+    r.raise_for_status()
+    data = r.json()
+    return (data.get("data") or {}).get("children") or []
+
+
+
+
+def _reddit_item_to_preview(item: dict) -> dict | None:
+    """从 Reddit 单项提取预览：id, title, summary, score, thumbnail, created_utc, permalink, alreadyImported 由调用方填。"""
+    d = (item.get("data") or {})
+    reddit_id = d.get("id") or ""
+    if not reddit_id or d.get("stickied"):
+        return None
+    title = (d.get("title") or "").strip()
+    if not title:
+        return None
+    selftext = (d.get("selftext") or "").strip()
+    summary = (selftext[:200] + "…") if len(selftext) > 200 else selftext
+    summary = re.sub(r"\s+", " ", summary).strip()
+    score = int(d.get("score") or 0)
+    created_utc = int(d.get("created_utc") or 0)
+    permalink = (d.get("permalink") or "").strip()
+    if permalink and not permalink.startswith("http"):
+        permalink = "https://www.reddit.com" + permalink
+    thumbnail = d.get("thumbnail") or ""
+    return {
+        "id": reddit_id,
+        "title": title[:200],
+        "summary": summary[:300],
+        "score": score,
+        "thumbnail": thumbnail if (thumbnail and thumbnail.startswith("http")) else "",
+        "created_utc": created_utc,
+        "permalink": permalink,
+    }
+
+
+@router.get("/reddit/fetch")
+async def admin_reddit_fetch(
+    subreddit: str = "CatAdvice",
+    sort: str = "new",
+    uid: str = Depends(require_admin),
+):
+    """拉取指定 subreddit 的列表，供后台勾选后选择性导入。sort: new | hot | top_day | top_week。"""
+    if sort not in ("new", "hot", "top_day", "top_week"):
+        sort = "new"
+    try:
+        children = await _fetch_reddit_children(subreddit=subreddit, sort=sort)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Reddit 请求失败: {e}")
+
+    imported_coll = _db.collection("reddit_imported")
+    items = []
+    for item in children:
+        preview = _reddit_item_to_preview(item)
+        if not preview:
+            continue
+        reddit_id = preview["id"]
+        preview["alreadyImported"] = imported_coll.document(reddit_id).get().exists
+        items.append(preview)
+    return {"ok": True, "items": items, "subreddit": subreddit, "sort": sort}
+
+
+class RedditImportBody(BaseModel):
+    reddit_ids: list[str] = []
+    subreddit: str = "CatAdvice"
+    sort: str = "new"
+
+
+@router.post("/reddit/import")
+async def admin_reddit_import(body: RedditImportBody, uid: str = Depends(require_admin)):
+    """仅导入指定的 Reddit 帖子 ID；需传 subreddit+sort 以便再拉一次完整 data 并写入 redditPermalink。"""
+    if not body.reddit_ids:
+        return {"ok": True, "imported": 0, "skipped": 0, "total": 0}
+    if body.sort not in ("new", "hot", "top_day", "top_week"):
+        body = RedditImportBody(reddit_ids=body.reddit_ids, subreddit=body.subreddit, sort="new")
+    try:
+        children = await _fetch_reddit_children(subreddit=body.subreddit, sort=body.sort)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Reddit 请求失败: {e}")
+    want = set(body.reddit_ids)
+    posts_coll = _db.collection("posts")
+    imported_coll = _db.collection("reddit_imported")
+    imported = 0
+    skipped = 0
+    for item in children:
+        d = (item.get("data") or {})
+        reddit_id = d.get("id") or ""
+        if reddit_id not in want:
+            continue
+        if not reddit_id or d.get("stickied"):
+            skipped += 1
+            continue
+        if imported_coll.document(reddit_id).get().exists:
+            skipped += 1
+            continue
+        title = (d.get("title") or "").strip()
+        selftext = (d.get("selftext") or "").strip()
+        if not title:
+            skipped += 1
+            continue
+        permalink = (d.get("permalink") or "").strip()
+        if permalink and not permalink.startswith("http"):
+            permalink = "https://www.reddit.com" + permalink
+        else:
+            permalink = permalink or ""
+        summary = (selftext[:300] + "…") if len(selftext) > 300 else selftext
+        summary = re.sub(r"\s+", " ", summary).strip()
+        score = float(d.get("score") or 0)
+        created_utc = int(d.get("created_utc") or 0)
+        created_dt = datetime.fromtimestamp(created_utc, tz=timezone.utc) if created_utc else datetime.now(timezone.utc)
+        thumbnail = d.get("thumbnail") or ""
+        cover_url = thumbnail if (thumbnail and thumbnail.startswith("http")) else ""
+        ref = posts_coll.document()
+        ref.set({
+            "type": "official",
+            "status": "published",
+            "title": title[:200],
+            "summary": summary[:500],
+            "content": selftext[:50000],
+            "coverUrl": cover_url[:2000],
+            "breedIds": [],
+            "topics": ["care"],
+            "authorId": "reddit",
+            "likeCount": 0,
+            "commentCount": 0,
+            "score": score,
+            "countryCode": "US",
+            "redditId": reddit_id,
+            "redditPermalink": permalink[:2000],
+            "createdAt": created_dt,
+            "updatedAt": datetime.now(timezone.utc),
+        })
+        imported_coll.document(reddit_id).set({"postId": ref.id})
+        imported += 1
+    return {"ok": True, "imported": imported, "skipped": skipped, "total": len(body.reddit_ids)}
+
+
+
+
+@router.get("")
+
+async def admin_page(request: Request) -> Response:
+
+    # 1) URL 带账号密码且校验通过：302 重定向到 /admin 并设置 Cookie，避免首屏 HTML 被缓存导致 token 不生效
+    username = request.query_params.get("username")
+    password = request.query_params.get("password")
+    if username is not None and password is not None:
+        u = (username or "").strip()
+        p = (password or "").strip()
+        admin_user, admin_pass = _get_admin_creds()
+        if u == admin_user and p == admin_pass:
+            token = _make_jwt()
+            if isinstance(token, bytes):
+                token = token.decode("utf-8")
+            base = str(request.base_url).rstrip("/")
+            if base.startswith("http://"):
+                base = "https://" + base[7:]
+            redirect_url = f"{base}/admin"
+
+            resp = RedirectResponse(url=redirect_url, status_code=302)
+            resp.set_cookie(key="admin_token", value=token, httponly=True, secure=True, samesite="lax", path="/", max_age=60)
+            resp.headers["X-Admin-Login"] = "ok"
+            resp.headers["X-Admin-Action"] = "redirect"
+            resp.headers["Cache-Control"] = "no-store, no-cache"
+            return resp
+
+        return Response(
+            content=_admin_html(login_error="账号或密码错误，请确认 URL 或环境变量 ADMIN_USERNAME / ADMIN_PASSWORD"),
+            media_type="text/html",
+            headers={"X-Admin-Login": "fail"},
+        )
+    # 2) 请求带 Cookie admin_token：从 Cookie 取 token 注入页面，然后清除 Cookie（一次性）
+    cookie_token = request.cookies.get("admin_token")
+    if cookie_token and _verify_token_from_cookie(cookie_token):
+        html = _admin_html(init_token=cookie_token)
+        resp = Response(content=html, media_type="text/html")
+        resp.delete_cookie(key="admin_token", path="/")
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["X-Admin-Action"] = "cookie-login"
+        return resp
+    # 2) 无有效 Cookie：显示登录页（表单需 POST /admin/login 获取 token）
+    return Response(content=_admin_html(), media_type="text/html", headers={"X-Admin-Action": "form"})
+
+
+
+
+
+
+
+

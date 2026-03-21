@@ -1,0 +1,11 @@
+# 部署时不要上传凭据与本地配置（Cloud Run 使用 ADC，不需本机密钥）
+.env
+.env.*
+!.env.example
+serviceAccountKey.json
+__pycache__
+*.pyc
+.venv
+venv
+
+

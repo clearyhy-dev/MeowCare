@@ -1,0 +1,13 @@
+[
+  {"breedId": "british_shorthair", "name": "British Shorthair", "localeNames": {"en": "British Shorthair", "zh": "英国短毛猫", "ja": "ブリティッシュショートヘア"}, "enabled": true, "order": 1},
+  {"breedId": "american_shorthair", "name": "American Shorthair", "localeNames": {"en": "American Shorthair", "zh": "美国短毛猫", "ja": "アメリカンショートヘア"}, "enabled": true, "order": 2},
+  {"breedId": "maine_coon", "name": "Maine Coon", "localeNames": {"en": "Maine Coon", "zh": "缅因猫", "ja": "メインクーン"}, "enabled": true, "order": 3},
+  {"breedId": "persian", "name": "Persian", "localeNames": {"en": "Persian", "zh": "波斯猫", "ja": "ペルシャ"}, "enabled": true, "order": 4},
+  {"breedId": "ragdoll", "name": "Ragdoll", "localeNames": {"en": "Ragdoll", "zh": "布偶猫", "ja": "ラグドール"}, "enabled": true, "order": 5},
+  {"breedId": "siamese", "name": "Siamese", "localeNames": {"en": "Siamese", "zh": "暹罗猫", "ja": "シャム"}, "enabled": true, "order": 6},
+  {"breedId": "scottish_fold", "name": "Scottish Fold", "localeNames": {"en": "Scottish Fold", "zh": "苏格兰折耳猫", "ja": "スコティッシュフォールド"}, "enabled": true, "order": 7},
+  {"breedId": "abyssinian", "name": "Abyssinian", "localeNames": {"en": "Abyssinian", "zh": "阿比西尼亚猫", "ja": "アビシニアン"}, "enabled": true, "order": 8},
+  {"breedId": "bengal", "name": "Bengal", "localeNames": {"en": "Bengal", "zh": "孟加拉豹猫", "ja": "ベンガル"}, "enabled": true, "order": 9},
+  {"breedId": "mixed", "name": "Mixed", "localeNames": {"en": "Mixed", "zh": "混种", "ja": "ミックス"}, "enabled": true, "order": 99}
+]
+

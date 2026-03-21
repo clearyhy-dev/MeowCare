@@ -1,0 +1,10 @@
+# 复制此文件为 key.properties 并填入真实值。勿将 key.properties 提交到 Git。
+# 生成 keystore 命令（在项目根目录执行）：
+#   cd android/app
+#   keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+# 按提示输入密码、姓名等。生成后 upload-keystore.jks 在 android/app/ 下。
+
+storePassword=你的密钥库密码
+keyPassword=你的密钥密码
+keyAlias=upload
+storeFile=upload-keystore.jks
