@@ -114,6 +114,10 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
     .daily-form label { display: block; margin-top: 12px; font-weight: 500; font-size: 13px; color: #444; }
     .daily-form label.daily-check { display: flex; align-items: center; gap: 10px; margin-top: 0; flex-direction: row; }
     .daily-form input[type="text"], .daily-form input[type="number"] { width: 100%; max-width: 400px; }
+    .daily-form select { padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; max-width: 320px; }
+    .daily-topic-grid { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 8px; max-width: 720px; }
+    .daily-topic-item { display: inline-flex; align-items: center; gap: 8px; font-weight: 400; font-size: 13px; color: #333; margin-top: 0; }
+    .daily-section-title { margin: 16px 0 6px; font-size: 13px; font-weight: 600; color: #555; }
   </style>
 
 </head>
@@ -290,14 +294,43 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
         } else if (page === 'daily-content') {
           content.innerHTML = '<section id="tab-daily-content"><h2 style="margin-top:0;color:#333;">每日内容生成</h2>' +
             '<div class="card daily-form">' +
-            '<label class="daily-check">自动生成 <input type="checkbox" id="dailyEnabled" /></label>' +
-            '<label>每日生成条数</label><input type="number" id="dailyCount" min="1" max="20" value="5" />' +
-            '<label>生成时间（UTC小时）</label><input type="number" id="publishHourUtc" min="0" max="23" value="1" />' +
-            '<label>主题（逗号分隔）</label><input type="text" id="dailyTopics" value="care,health,behavior,feeding" />' +
-            '<div class="toolbar" style="margin-top:16px;"><button type="button" onclick="saveDailySettings()">保存设置</button> ' +
-            '<button type="button" onclick="generateNow(1)">立即生成1条</button> ' +
-            '<button type="button" onclick="generateNow(3)">立即生成3条</button></div></div>' +
-            '<div class="card"><h3>今日生成记录</h3><table id="dailyContentTable"><thead><tr><th>ID</th><th>标题</th><th>状态</th><th>时间</th></tr></thead><tbody></tbody></table></div></section>';
+            '<p style="margin:0 0 8px;color:#666;font-size:14px;">配置写入 Firestore <code>settings/content_generation</code>，并与定时任务、立即生成接口一致。</p>' +
+            '<label class="daily-check">启用自动生成（定时） <input type="checkbox" id="dailyEnabled" /></label>' +
+            '<label>默认语言</label>' +
+            '<select id="dailyLanguage">' +
+            '<option value="en">en — English</option>' +
+            '<option value="zh">zh — 简体中文</option>' +
+            '<option value="ja">ja — 日本語</option>' +
+            '<option value="es">es — Español</option>' +
+            '<option value="fr">fr — Français</option>' +
+            '<option value="de">de — Deutsch</option>' +
+            '<option value="pt">pt — Português</option>' +
+            '<option value="ru">ru — Русский</option>' +
+            '<option value="ko">ko — 한국어</option>' +
+            '</select>' +
+            '<div class="daily-section-title">分类（多选）</div>' +
+            '<div class="daily-topic-grid">' +
+            '<label class="daily-topic-item"><input type="checkbox" id="topic_care" value="care" /> care</label>' +
+            '<label class="daily-topic-item"><input type="checkbox" id="topic_behavior" value="behavior" /> behavior</label>' +
+            '<label class="daily-topic-item"><input type="checkbox" id="topic_feeding" value="feeding" /> feeding</label>' +
+            '<label class="daily-topic-item"><input type="checkbox" id="topic_health" value="health" /> health</label>' +
+            '<label class="daily-topic-item"><input type="checkbox" id="topic_grooming" value="grooming" /> grooming</label>' +
+            '<label class="daily-topic-item"><input type="checkbox" id="topic_kitten" value="kitten" /> kitten</label>' +
+            '<label class="daily-topic-item"><input type="checkbox" id="topic_senior_cat" value="senior_cat" /> senior_cat</label>' +
+            '<label class="daily-topic-item"><input type="checkbox" id="topic_indoor_cat" value="indoor_cat" /> indoor_cat</label>' +
+            '<label class="daily-topic-item"><input type="checkbox" id="topic_hydration" value="hydration" /> hydration</label>' +
+            '<label class="daily-topic-item"><input type="checkbox" id="topic_litter_box" value="litter_box" /> litter_box</label>' +
+            '</div>' +
+            '<label>每日生成条数（定时任务）</label><input type="number" id="dailyCount" min="1" max="20" value="5" />' +
+            '<label>生成时间（UTC 小时 0–23）</label><input type="number" id="publishHourUtc" min="0" max="23" value="1" />' +
+            '<label class="daily-check">使用 Gemini 生成正文 <input type="checkbox" id="dailyUseGemini" checked /></label>' +
+            '<label class="daily-check">必须有图片（无图则存为草稿） <input type="checkbox" id="dailyImageRequired" /></label>' +
+            '<div class="toolbar" style="margin-top:16px;">' +
+            '<button type="button" class="primary" onclick="saveDailySettings()">保存设置</button> ' +
+            '<button type="button" onclick="generateNow(1)">生成 1 条</button> ' +
+            '<button type="button" onclick="generateNow(3)">生成 3 条</button>' +
+            '</div></div>' +
+            '<div class="card"><h3 style="margin-top:0;">今日生成记录（UTC）</h3><table id="dailyContentTable"><thead><tr><th>ID</th><th>标题</th><th>状态</th><th>时间</th></tr></thead><tbody></tbody></table></div></section>';
           loadDailySettings();
           loadLatestPosts();
         } else if (page === 'reddit') {
@@ -352,6 +385,18 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
       if (ndc) ndc.classList.toggle('active', page === 'daily-content');
     }
 
+    var DAILY_TOPIC_IDS = ['care','behavior','feeding','health','grooming','kitten','senior_cat','indoor_cat','hydration','litter_box'];
+    var DAILY_LANGS = ['en','zh','ja','es','fr','de','pt','ru','ko'];
+
+    function dailyCollectTopics() {
+      var topics = [];
+      DAILY_TOPIC_IDS.forEach(function(id) {
+        var el = document.getElementById('topic_' + id);
+        if (el && el.checked) topics.push(id);
+      });
+      return topics;
+    }
+
     async function loadDailySettings() {
       try {
         var res = await fetch(API + '/content-jobs/settings', { headers: authHeaders() });
@@ -363,17 +408,40 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
         if (dc) dc.value = data.dailyCount || 5;
         var ph = document.getElementById('publishHourUtc');
         if (ph) ph.value = (data.publishHourUtc !== undefined && data.publishHourUtc !== null) ? data.publishHourUtc : 1;
-        var top = document.getElementById('dailyTopics');
-        if (top) top.value = (data.topics || []).join(',');
+        var langSel = document.getElementById('dailyLanguage');
+        if (langSel) {
+          var lv = (data.language || 'en').toLowerCase();
+          langSel.value = (DAILY_LANGS.indexOf(lv) >= 0) ? lv : 'en';
+        }
+        var savedTopics = data.topics || [];
+        DAILY_TOPIC_IDS.forEach(function(id) {
+          var el = document.getElementById('topic_' + id);
+          if (el) el.checked = savedTopics.indexOf(id) >= 0;
+        });
+        if (savedTopics.length === 0) {
+          ['care','behavior','feeding','health'].forEach(function(id) {
+            var el = document.getElementById('topic_' + id);
+            if (el) el.checked = true;
+          });
+        }
+        var ug = document.getElementById('dailyUseGemini');
+        if (ug) ug.checked = (data.useGemini !== false);
+        var ir = document.getElementById('dailyImageRequired');
+        if (ir) ir.checked = !!data.imageRequired;
       } catch (e) {}
     }
 
     async function saveDailySettings() {
+      var topics = dailyCollectTopics();
+      if (topics.length === 0) { alert('请至少选择一个分类'); return; }
       var body = {
         enabled: document.getElementById('dailyEnabled').checked,
         dailyCount: parseInt(document.getElementById('dailyCount').value || '5', 10),
         publishHourUtc: parseInt(document.getElementById('publishHourUtc').value || '1', 10),
-        topics: document.getElementById('dailyTopics').value.split(',').map(function(s) { return s.trim(); }).filter(Boolean),
+        language: (document.getElementById('dailyLanguage') && document.getElementById('dailyLanguage').value) || 'en',
+        topics: topics,
+        useGemini: document.getElementById('dailyUseGemini').checked,
+        imageRequired: document.getElementById('dailyImageRequired').checked,
       };
       var res = await fetch(API + '/content-jobs/settings', {
         method: 'POST',
@@ -385,11 +453,18 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
     }
 
     async function generateNow(count) {
-      var topics = document.getElementById('dailyTopics').value.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+      var topics = dailyCollectTopics();
+      if (topics.length === 0) { alert('请至少选择一个分类'); return; }
       var res = await fetch(API + '/content-jobs/generate-now', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token() },
-        body: JSON.stringify({ count: count, topics: topics }),
+        body: JSON.stringify({
+          count: count,
+          topics: topics,
+          language: (document.getElementById('dailyLanguage') && document.getElementById('dailyLanguage').value) || 'en',
+          useGemini: document.getElementById('dailyUseGemini').checked,
+          imageRequired: document.getElementById('dailyImageRequired').checked,
+        }),
       });
       var data = await res.json().catch(function() { return {}; });
       if (!res.ok) { alert(data.detail || '生成失败'); return; }

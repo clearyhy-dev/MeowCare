@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/router/app_router.dart';
-import '../../core/theme/app_theme.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/topic_l10n.dart';
 import '../../models/post_model.dart';
@@ -80,7 +81,6 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
           if (user != null)
             IconButton(icon: const Icon(Icons.add), onPressed: () => context.push('${AppRouter.home}post/create')),
         ],
-
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(100),
           child: Column(
@@ -111,7 +111,6 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                       allLabel: context.l10n.allBreeds,
                       value: _selectedBreedId,
                       options: breedsAsync.valueOrNull?.map((b) => MapEntry(b.breedId, b.displayName(locale))).toList() ?? [],
-
                       onSelected: (id) {
                         setState(() {
                           _selectedBreedId = id;
@@ -151,7 +150,6 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                     style: TextStyle(color: Theme.of(context).colorScheme.error),
                     textAlign: TextAlign.center,
                   ),
-
                   const SizedBox(height: 16),
                   TextButton.icon(
                     onPressed: () {
@@ -186,55 +184,51 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                   ),
                 )
               : RefreshIndicator(
-
-
-              onRefresh: () async {
-                ref.invalidate(redditTrendingProvider);
-                final country = ref.read(appCountryProvider).valueOrNull;
-                await ref.read(feedProvider.notifier).loadFirst(
-                  orderByCreated: _tabController.index == 0,
-                  topic: _selectedTopic,
-                  countryCode: country,
-                  breedId: _selectedBreedId,
-                );
-              },
-
-
-              child: ListView.builder(
-                padding: const EdgeInsets.all(8),
-                itemCount: 1 + feedState.posts.length + (feedState.hasMore ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _RedditTrendingBlock(
-                        onTapPost: (postId) => context.push('${AppRouter.postDetail}/$postId'),
-                      ),
+                  onRefresh: () async {
+                    ref.invalidate(redditTrendingProvider);
+                    final country = ref.read(appCountryProvider).valueOrNull;
+                    await ref.read(feedProvider.notifier).loadFirst(
+                      orderByCreated: _tabController.index == 0,
+                      topic: _selectedTopic,
+                      countryCode: country,
+                      breedId: _selectedBreedId,
                     );
-                  }
-                  final postIndex = index - 1;
-                  final postCount = feedState.posts.length;
-                  if (postIndex >= postCount) {
-                    if (postIndex == postCount) {
-                      ref.read(feedProvider.notifier).loadMore();
-                    }
-                    return const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  if (postIndex < 0 || postIndex >= postCount) {
-                    return const SizedBox.shrink();
-                  }
-                  final post = feedState.posts[postIndex];
-                  final postId = post.postId;
-                  return _PostCard(
-                    post: post,
-                    onTap: () => context.push('${AppRouter.postDetail}/$postId'),
-                  );
-                },
-              ),
-            ),
+                  },
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+                    itemCount: 1 + feedState.posts.length + (feedState.hasMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                          child: _RedditTrendingBlock(
+                            onTapPost: (postId) => context.push('${AppRouter.postDetail}/$postId'),
+                          ),
+                        );
+                      }
+                      final postIndex = index - 1;
+                      final postCount = feedState.posts.length;
+                      if (postIndex >= postCount) {
+                        if (postIndex == postCount) {
+                          ref.read(feedProvider.notifier).loadMore();
+                        }
+                        return const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      if (postIndex < 0 || postIndex >= postCount) {
+                        return const SizedBox.shrink();
+                      }
+                      final post = feedState.posts[postIndex];
+                      final postId = post.postId;
+                      return _PostCard(
+                        post: post,
+                        onTap: () => context.push('${AppRouter.postDetail}/$postId'),
+                      );
+                    },
+                  ),
+                ),
     );
   }
 }
@@ -271,9 +265,14 @@ class _RedditTrendingBlock extends ConsumerWidget {
                     width: 200,
                     child: Card(
                       margin: EdgeInsets.zero,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.35)),
+                      ),
                       child: InkWell(
                         onTap: () => onTapPost(post.postId),
-                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        borderRadius: BorderRadius.circular(12),
                         child: Padding(
                           padding: const EdgeInsets.all(10),
                           child: Column(
@@ -302,7 +301,7 @@ class _RedditTrendingBlock extends ConsumerWidget {
                 },
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
           ],
         );
       },
@@ -313,7 +312,6 @@ class _RedditTrendingBlock extends ConsumerWidget {
 }
 
 class _FilterChip extends StatelessWidget {
-
   const _FilterChip({
     required this.label,
     required this.allLabel,
@@ -348,68 +346,168 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
+/// Reddit 风格紧凑 Feed 卡片：信息优先、小图、轻分割。
 class _PostCard extends StatelessWidget {
   const _PostCard({required this.post, required this.onTap});
 
   final PostModel post;
   final VoidCallback onTap;
 
+  static const double _imageHeight = 160;
+  static const double _imageRadius = 12;
+
+  static const Map<String, String> _languageChipLabels = {
+    'en': 'EN',
+    'zh': '中文',
+    'ja': '日本語',
+    'es': 'ES',
+    'fr': 'FR',
+    'de': 'DE',
+    'pt': 'PT',
+    'ru': 'RU',
+    'ko': '한국어',
+  };
+
+  static String _languageChipText(String code) {
+    final c = code.trim().toLowerCase();
+    if (c.isEmpty) return 'EN';
+    return _languageChipLabels[c] ?? c.toUpperCase();
+  }
+
+  static String _formatTime(DateTime? t) {
+    if (t == null) return '';
+    final now = DateTime.now();
+    final diff = now.difference(t);
+    if (diff.inMinutes < 1) return 'now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+    if (diff.inHours < 24) return '${diff.inHours}h';
+    if (diff.inDays < 7) return '${diff.inDays}d';
+    return DateFormat.MMMd().format(t);
+  }
+
+  static String _categoryText(BuildContext context, PostModel post) {
+    if (post.topics.isEmpty) return 'General';
+    return feedTopicCategoryLabel(context, post.topics.first);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final titleStyle = theme.textTheme.titleMedium ?? theme.textTheme.bodyLarge;
-    final coverUrl = post.coverUrl;
-    final title = post.title;
-    final summary = post.summary;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+    final scheme = theme.colorScheme;
+    final onSurfaceVariant = scheme.onSurfaceVariant;
+    final titleStyle = theme.textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.w600,
+      height: 1.25,
+      fontSize: (theme.textTheme.titleMedium?.fontSize ?? 16) + 0.5,
+    );
+    final summary = post.summary.trim();
+    final langText = _languageChipText(post.language);
+    final categoryText = _categoryText(context, post);
+    final timeText = _formatTime(post.createdAt);
+
+    return Material(
+      color: scheme.surface,
       child: InkWell(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 10, 10, 8),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.45)),
+            ),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (coverUrl.isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    coverUrl,
-                    height: 160,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      final total = progress.expectedTotalBytes;
-                      return SizedBox(
-                        height: 160,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            value: total != null && total > 0 ? progress.cumulativeBytesLoaded / total : null,
-                          ),
-                        ),
-                      );
-                    },
-
-
-                    errorBuilder: (context, error, stackTrace) => SizedBox(height: 160, child: Center(child: Icon(Icons.broken_image, size: 48, color: theme.colorScheme.outline))),
-                  ),
-                )
-              else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _FeedChip(text: langText),
+                  const SizedBox(width: 6),
+                  _FeedChip(text: categoryText),
+                  const Spacer(),
+                  if (timeText.isNotEmpty)
+                    Text(
+                      timeText,
+                      style: theme.textTheme.labelSmall?.copyWith(color: onSurfaceVariant, fontSize: 12),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(post.title, style: titleStyle),
+              if (post.shouldShowImage) ...[
                 const SizedBox(height: 8),
-              const SizedBox(height: 8),
-              Text(title, style: titleStyle),
-              if (summary.isNotEmpty) ...[const SizedBox(height: 4), Text(summary, maxLines: 2, overflow: TextOverflow.ellipsis)],
-              const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(_imageRadius),
+                  child: SizedBox(
+                    height: _imageHeight,
+                    width: double.infinity,
+                    child: Image.network(
+                      post.displayImageUrl,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        final total = progress.expectedTotalBytes;
+                        return ColoredBox(
+                          color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                          child: Center(
+                            child: SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                value: total != null && total > 0 ? progress.cumulativeBytesLoaded / total : null,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (_, __, ___) => ColoredBox(
+                        color: scheme.surfaceContainerHighest,
+                        child: Center(child: Icon(Icons.broken_image_outlined, size: 28, color: onSurfaceVariant)),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              if (summary.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  summary,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: onSurfaceVariant,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 6),
               Row(
                 children: [
-                  Icon(Icons.favorite_border, size: 16, color: theme.colorScheme.outline),
+                  Icon(Icons.favorite_border, size: 18, color: onSurfaceVariant),
                   const SizedBox(width: 4),
-                  Text('${post.likeCount}'),
-                  const SizedBox(width: 16),
-                  Icon(Icons.chat_bubble_outline, size: 16, color: theme.colorScheme.outline),
+                  Text('${post.likeCount}', style: theme.textTheme.labelMedium?.copyWith(color: onSurfaceVariant)),
+                  const SizedBox(width: 18),
+                  Icon(Icons.chat_bubble_outline, size: 17, color: onSurfaceVariant),
                   const SizedBox(width: 4),
-                  Text('${post.commentCount}'),
+                  Text('${post.commentCount}', style: theme.textTheme.labelMedium?.copyWith(color: onSurfaceVariant)),
+                  const Spacer(),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    tooltip: context.l10n.share,
+                    icon: Icon(Icons.share_outlined, size: 20, color: onSurfaceVariant),
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      final body = summary.isNotEmpty ? '$summary\n\n' : '';
+                      Share.share(
+                        '${post.title}\n\n$body${context.l10n.shareFromMeowCare}',
+                      );
+                    },
+                  ),
                 ],
               ),
             ],
@@ -420,4 +518,29 @@ class _PostCard extends StatelessWidget {
   }
 }
 
+class _FeedChip extends StatelessWidget {
+  const _FeedChip({required this.text});
 
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 11,
+              letterSpacing: 0.2,
+              color: scheme.onSurfaceVariant,
+            ),
+      ),
+    );
+  }
+}

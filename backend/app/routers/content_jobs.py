@@ -12,6 +12,7 @@ from app.services.daily_generator import (
     content_generation_doc_defaults,
     generate_daily_posts,
     normalize_content_topics,
+    normalize_language,
 )
 
 router = APIRouter()
@@ -38,6 +39,8 @@ async def update_settings(body: dict[str, Any], _uid: str = Depends(require_admi
         current["publishHourUtc"] = max(0, min(int(body["publishHourUtc"]), 23))
     if "topics" in body:
         current["topics"] = normalize_content_topics(body["topics"])
+    if "language" in body:
+        current["language"] = normalize_language(body["language"])
     if "useGemini" in body:
         current["useGemini"] = bool(body["useGemini"])
     if "minContentLength" in body:
@@ -55,6 +58,8 @@ async def generate_now(body: dict[str, Any], _uid: str = Depends(require_admin))
     snap = db.collection("settings").document("content_generation").get()
     base = content_generation_doc_defaults(snap.to_dict() if snap.exists else {})
     cfg = dict(base)
+    if "language" in body:
+        cfg["language"] = normalize_language(body["language"])
     if "useGemini" in body:
         cfg["useGemini"] = bool(body["useGemini"])
     if "minContentLength" in body:

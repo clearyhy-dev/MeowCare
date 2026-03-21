@@ -13,30 +13,61 @@ CAT_API_BASE = "https://api.thecatapi.com/v1"
 USER_AGENT = "MeowCare/1.0 (content; contact: app)"
 
 
-async def fetch_cat_image() -> dict:
-    """Random image with breed metadata when available."""
+def _http_url(url: str) -> str:
+    u = (url or "").strip()
+    return u if u.startswith("http") else ""
+
+
+async def _fetch_images_search(params: dict[str, str]) -> list[dict]:
     headers = {"User-Agent": USER_AGENT}
     if THE_CAT_API_KEY:
         headers["x-api-key"] = THE_CAT_API_KEY
-    url = f"{CAT_API_BASE}/images/search?has_breeds=1"
+    q = urllib.parse.urlencode(params)
+    url = f"{CAT_API_BASE}/images/search?{q}"
     async with httpx.AsyncClient(timeout=25.0) as client:
         r = await client.get(url, headers=headers)
         r.raise_for_status()
-        data = r.json()
-    if not data:
-        return {
-            "image_url": "",
-            "breed_name": "猫",
-            "temperament": "",
-            "origin": "",
-            "description": "",
-            "wikipedia_url": "",
-        }
-    row = data[0]
+        return r.json() or []
+
+
+async def fetch_cat_image() -> dict:
+    """
+    Prefer images with breed metadata; if URL missing, retry without has_breeds filter
+    to improve cover image availability.
+    """
+    empty = {
+        "image_url": "",
+        "breed_name": "Cat",
+        "temperament": "",
+        "origin": "",
+        "description": "",
+        "wikipedia_url": "",
+    }
+
+    data = await _fetch_images_search({"has_breeds": "1"})
+    row = data[0] if data else None
+
+    if not row:
+        data = await _fetch_images_search({})
+        row = data[0] if data else None
+
+    if not row:
+        return empty
+
     breed = (row.get("breeds") or [{}])[0]
+    img = _http_url(str(row.get("url") or ""))
+    if not img and data:
+        for cand in data:
+            u = _http_url(str(cand.get("url") or ""))
+            if u:
+                row = cand
+                breed = (cand.get("breeds") or [{}])[0]
+                img = u
+                break
+
     return {
-        "image_url": (row.get("url") or "").strip(),
-        "breed_name": (breed.get("name") or "猫").strip() or "猫",
+        "image_url": img,
+        "breed_name": (breed.get("name") or "Cat").strip() or "Cat",
         "temperament": (breed.get("temperament") or "").strip(),
         "origin": (breed.get("origin") or "").strip(),
         "description": (breed.get("description") or "").strip(),
@@ -75,7 +106,5 @@ async def fetch_wiki_summary_and_thumbnail(cat: dict, breed: str) -> tuple[str, 
         data = r.json()
     extract = (data.get("extract") or "").strip()
     thumb = (data.get("thumbnail") or {}).get("source") or ""
-    thumb = str(thumb).strip()
-    if thumb and not thumb.startswith("http"):
-        thumb = ""
+    thumb = _http_url(str(thumb))
     return extract, thumb
