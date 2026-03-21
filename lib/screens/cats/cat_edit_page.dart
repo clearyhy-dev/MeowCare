@@ -12,8 +12,6 @@ import '../../data/upload/storage_repository.dart';
 import '../../widgets/network_avatar.dart';
 
 import '../../models/cat_model.dart';
-import '../../providers/breed_provider.dart';
-import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
 import 'my_cats_page.dart';
 
@@ -32,7 +30,6 @@ class CatEditPage extends ConsumerStatefulWidget {
 class _CatEditPageState extends ConsumerState<CatEditPage> {
   final _nameController = TextEditingController();
   final _ownerNotesController = TextEditingController();
-  String _breedId = '';
   String _avatarUrl = '';
   bool _isPublic = false;
   bool _loading = false;
@@ -58,7 +55,6 @@ class _CatEditPageState extends ConsumerState<CatEditPage> {
       setState(() {
         _existing = cat;
         _nameController.text = cat.name;
-        _breedId = cat.breedId;
         _ownerNotesController.text = cat.ownerNotes;
         _avatarUrl = cat.avatarUrl;
         _isPublic = cat.isPublic;
@@ -100,7 +96,7 @@ class _CatEditPageState extends ConsumerState<CatEditPage> {
         catId: catId,
         ownerId: user.uid,
         name: name,
-        breedId: _breedId.trim(),
+        breedId: _existing?.breedId ?? '',
         avatarUrl: _avatarUrl,
         isPublic: _isPublic,
         ownerNotes: _ownerNotesController.text.trim(),
@@ -120,8 +116,6 @@ class _CatEditPageState extends ConsumerState<CatEditPage> {
 
   @override
   Widget build(BuildContext context) {
-    final breedsAsync = ref.watch(breedsFutureProvider);
-
     return Scaffold(
       appBar: AppBar(
         title: Text(_existing == null ? context.l10n.addCatLabel : context.l10n.editCatLabel),
@@ -148,34 +142,6 @@ class _CatEditPageState extends ConsumerState<CatEditPage> {
             TextField(
               controller: _nameController,
               decoration: InputDecoration(labelText: context.l10n.name, border: const OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            Text(context.l10n.breeds, style: Theme.of(context).textTheme.titleSmall),
-            breedsAsync.when(
-              data: (breeds) => DropdownButton<String>(
-                value: _breedId.isEmpty ? null : _breedId,
-                isExpanded: true,
-                hint: Text(context.l10n.selectBreed),
-                items: [
-                  DropdownMenuItem(value: '', child: Text(context.l10n.noneOption)),
-                  ...breeds.map((b) => DropdownMenuItem(value: b.breedId, child: Text(b.displayName(ref.watch(effectiveUILanguageCodeProvider))))),
-                ],
-                onChanged: (v) => setState(() => _breedId = v ?? ''),
-              ),
-              loading: () => const SizedBox(height: 40),
-              error: (_, __) => Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(context.l10n.failedToLoadBreeds, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                  const SizedBox(height: 8),
-                  TextButton.icon(
-                    onPressed: () => ref.invalidate(breedsFutureProvider),
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: Text(context.l10n.retry),
-                  ),
-                ],
-              ),
             ),
             const SizedBox(height: 16),
             SwitchListTile(

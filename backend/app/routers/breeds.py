@@ -5,7 +5,12 @@ from firebase_admin import firestore
 
 from app.dependencies import is_admin, require_admin, require_uid
 
-router = APIRouter()
+# Compatibility-only router:
+# kept to avoid breaking old clients/admin scripts, but no longer part of
+# primary product flow.
+router = APIRouter(
+    deprecated=True,
+)
 db = firestore.client()
 
 ALLOWED_BREED_UPDATE_KEYS = frozenset({"name", "localeNames", "enabled", "order"})
@@ -47,6 +52,7 @@ def _sort_breeds(items: list[dict]) -> list[dict]:
 
 @router.get("")
 async def list_breeds(uid: str = Depends(require_uid)):
+    """Compatibility endpoint (deprecated)."""
     # 管理员看全部品种，普通用户只看 enabled；不用 order_by 避免未部署复合索引时 500
     if is_admin(uid):
         ref = db.collection("breeds")
@@ -61,6 +67,7 @@ async def list_breeds(uid: str = Depends(require_uid)):
 
 @router.post("")
 async def create_breed(body: dict[str, Any], uid: str = Depends(require_admin)):
+    """Compatibility endpoint (deprecated)."""
     ref = db.collection("breeds").document()
     ref.set({"name": body.get("name", ""), "localeNames": body.get("localeNames", {}), "enabled": body.get("enabled", True), "order": body.get("order", 0)})
     return {"breedId": ref.id}
@@ -68,6 +75,7 @@ async def create_breed(body: dict[str, Any], uid: str = Depends(require_admin)):
 
 @router.put("/{breed_id}")
 async def update_breed(breed_id: str, body: dict[str, Any], uid: str = Depends(require_admin)):
+    """Compatibility endpoint (deprecated)."""
     ref = _get_breed_ref(breed_id)
     upd = {k: v for k, v in body.items() if k in ALLOWED_BREED_UPDATE_KEYS}
     if not upd:
@@ -78,6 +86,7 @@ async def update_breed(breed_id: str, body: dict[str, Any], uid: str = Depends(r
 
 @router.delete("/{breed_id}")
 async def delete_breed(breed_id: str, uid: str = Depends(require_admin)):
+    """Compatibility endpoint (deprecated)."""
     ref = _get_breed_ref(breed_id)
     ref.delete()
     return {"ok": True}
@@ -86,7 +95,7 @@ async def delete_breed(breed_id: str, uid: str = Depends(require_admin)):
 
 @router.post("/seed")
 async def seed_default_breeds(uid: str = Depends(require_admin)):
-    """一键添加常用品种到 Firestore，App 从 Firestore 直接读取故前台立即可见。"""
+    """Compatibility endpoint (deprecated)."""
     coll = db.collection("breeds")
     added = 0
     for b in DEFAULT_BREEDS:

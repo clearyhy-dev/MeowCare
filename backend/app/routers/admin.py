@@ -144,7 +144,6 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
           <a href="#" data-page="cats">宠物管理</a>
           <a href="#" data-page="users">用户管理</a>
           <a href="#" id="navDailyContent" onclick="event.preventDefault(); showTab('daily-content');">每日内容</a>
-          <a href="#" data-page="breeds">品种</a>
           <a href="#" data-page="reddit" class="reddit-nav">Reddit 导入</a>
         </div>
         <a href="#" class="logout" id="logout">退出</a>
@@ -245,18 +244,6 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
           content.innerHTML = '<div class="card"><div class="card-head"><h2>最新 / 热门 帖子</h2><div class="toolbar"><button type="button" id="btnPostsLatest"' + (ord !== 'hot' ? ' class="primary"' : '') + '>最新</button><button type="button" id="btnPostsHot"' + (ord === 'hot' ? ' class="primary"' : '') + '>热门</button></div></div><table><thead><tr><th>ID</th><th>标题</th><th>状态</th><th>分数</th><th>操作</th></tr></thead><tbody>' + (items.length === 0 ? '<tr><td colspan="5" class="empty">暂无数据。</td></tr>' : rows) + '</tbody></table></div>';
           document.getElementById('btnPostsLatest').onclick = function() { window._postsOrder = 'latest'; loadPage('posts'); };
           document.getElementById('btnPostsHot').onclick = function() { window._postsOrder = 'hot'; loadPage('posts'); };
-        } else if (page === 'breeds') {
-          url = API + '/breeds';
-          r = await fetch(url, { headers: headers() });
-          if (authFail(r)) return;
-          if (!r.ok) { content.innerHTML = '<p class="err">请求失败 ' + r.status + '</p>'; return; }
-          list = await r.json().catch(function() { return []; });
-          if (!Array.isArray(list)) list = [];
-          content.innerHTML = '<div class="card"><div class="card-head"><h2>品种列表</h2><button type="button" id="btnSeedBreeds">一键添加常用品种</button> <button type="button" id="btnAddBreed" class="primary">+ 添加品种</button></div><div id="breedFormCard" class="card" style="display:none;"><h3>添加品种</h3><form id="formAddBreed"><label>名称 <input type="text" name="name" placeholder="如：英国短毛猫" required /></label><label>排序 <input type="number" name="order" value="0" /></label><label><input type="checkbox" name="enabled" checked /> 启用</label><button type="submit">保存</button> <button type="button" id="btnCancelBreed">取消</button></form></div><table><thead><tr><th>编号</th><th>名称</th><th>启用状态</th><th>排序</th><th>操作</th></tr></thead><tbody>' + (list.length === 0 ? '<tr><td colspan="5" class="empty">暂无品种，请点击上方「添加品种」。</td></tr>' : (list.map(function(b) { var bid = b.breedId || b.id; return '<tr><td>' + escHtml(bid) + '</td><td>' + escHtml(b.name) + '</td><td>' + (b.enabled !== false ? '是' : '否') + '</td><td>' + escHtml(b.order) + '</td><td><button onclick="toggleBreedEnabled(\\\'' + bid + '\\\', ' + (b.enabled !== false ? 'false' : 'true') + ')">' + (b.enabled !== false ? '禁用' : '启用') + '</button> <button class="danger" onclick="deleteBreed(\\\'' + bid + '\\\')">删除</button></td></tr>'; }).join(''))) + '</tbody></table></div>';
-          document.getElementById('btnSeedBreeds').onclick = function() { seedBreeds(); };
-          document.getElementById('btnAddBreed').onclick = function() { document.getElementById('breedFormCard').style.display = 'block'; };
-          document.getElementById('btnCancelBreed').onclick = function() { document.getElementById('breedFormCard').style.display = 'none'; };
-          document.getElementById('formAddBreed').onsubmit = function(e) { e.preventDefault(); addBreed(e.target); };
         } else if (page === 'ugc') {
           url = API + '/ugc/pending';
           r = await fetch(url, { headers: headers() });
@@ -518,28 +505,6 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
         if (r.ok) loadPage('reports'); else alert((await r.json()).detail || '操作失败');
       } catch (e) { alert(e.message); }
     }
-    async function seedBreeds() {
-      try {
-        const r = await fetch(API + '/breeds/seed', { method: 'POST', headers: headers() });
-        const data = await r.json().catch(function() { return {}; });
-        if (r.ok) { alert('已添加 ' + (data.added || 0) + ' 个常用品种，前台 App 会直接显示。'); loadPage('breeds'); } else alert(data.detail || '操作失败');
-      } catch (e) { alert(e.message); }
-    }
-    async function addBreed(form) {
-      try {
-        const fd = new FormData(form);
-        const body = { name: (fd.get('name') || '').trim(), order: parseInt(fd.get('order'), 10) || 0, enabled: fd.get('enabled') === 'on', localeNames: {} };
-        const r = await fetch(API + '/breeds', { method: 'POST', headers: headers(), body: JSON.stringify(body) });
-        if (r.ok) { document.getElementById('breedFormCard').style.display = 'none'; form.reset(); loadPage('breeds'); } else alert((await r.json()).detail || '添加失败，请重试');
-      } catch (e) { alert(e.message); }
-    }
-
-    async function toggleBreedEnabled(breedId, enabled) {
-      try {
-        const r = await fetch(API + '/breeds/' + breedId, { method: 'PUT', headers: headers(), body: JSON.stringify({ enabled: enabled }) });
-        if (r.ok) loadPage('breeds'); else alert((await r.json()).detail || '操作失败');
-      } catch (e) { alert(e.message); }
-    }
     async function unpublishPost(postId) {
       try {
         const r = await fetch(API + '/posts/' + encodeURIComponent(postId) + '/unpublish', { method: 'POST', headers: headers() });
@@ -565,13 +530,6 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
       try {
         const r = await fetch(API + '/admin/users/' + encodeURIComponent(uid), { method: 'DELETE', headers: headers() });
         if (r.ok) loadPage('users'); else alert((await r.json()).detail || '操作失败');
-      } catch (e) { alert(e.message); }
-    }
-    async function deleteBreed(breedId) {
-      if (!confirm('确定删除该品种？')) return;
-      try {
-        const r = await fetch(API + '/breeds/' + breedId, { method: 'DELETE', headers: headers() });
-        if (r.ok) loadPage('breeds'); else alert((await r.json()).detail || '失败');
       } catch (e) { alert(e.message); }
     }
     (function bootstrapAdminPage() {

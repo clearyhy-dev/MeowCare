@@ -5,7 +5,6 @@ import '../../core/router/app_router.dart';
 import '../../core/utils/app_feedback.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/topic_l10n.dart';
-import '../../providers/breed_provider.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
@@ -23,7 +22,6 @@ class HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String? _selectedTopic;
-  String? _selectedBreedId;
   static const _topics = ['care', 'health', 'feeding', 'behavior'];
 
   @override
@@ -32,7 +30,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
     _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final country = ref.read(appCountryProvider).valueOrNull;
-      ref.read(feedProvider.notifier).loadFirst(orderByCreated: true, countryCode: country, breedId: _selectedBreedId);
+      ref.read(feedProvider.notifier).loadFirst(orderByCreated: true, countryCode: country);
     });
   }
 
@@ -48,15 +46,12 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
       orderByCreated: _tabController.index == 0,
       topic: _selectedTopic,
       countryCode: country,
-      breedId: _selectedBreedId,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final feedState = ref.watch(feedProvider);
-    final breedsAsync = ref.watch(breedsFutureProvider);
-    final locale = ref.watch(effectiveUILanguageCodeProvider);
     final user = ref.watch(currentUserAsyncProvider).valueOrNull;
     ref.listen<AsyncValue<String?>>(appCountryProvider, (prev, next) {
       if (!next.hasValue) return;
@@ -66,7 +61,6 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
         orderByCreated: _tabController.index == 0,
         topic: _selectedTopic,
         countryCode: nextCountry,
-        breedId: _selectedBreedId,
       );
     });
 
@@ -90,7 +84,6 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                   final country = ref.read(appCountryProvider).valueOrNull;
                   ref.read(feedProvider.notifier).loadFirst(
                     orderByCreated: i == 0,
-                    breedId: _selectedBreedId,
                     topic: _selectedTopic,
                     countryCode: country,
                   );
@@ -106,21 +99,6 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                 child: Row(
                   children: [
                     _FilterChip(
-                      label: context.l10n.breeds,
-                      allLabel: context.l10n.allBreeds,
-                      value: _selectedBreedId,
-                      options: breedsAsync.valueOrNull?.map((b) => MapEntry(b.breedId, b.displayName(locale))).toList() ?? [],
-                      onSelected: (id) {
-                        AppFeedback.selection();
-                        setState(() {
-                          _selectedBreedId = id;
-                          _selectedTopic = null;
-                        });
-                        _onFilterChanged();
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
                       label: context.l10n.topics,
                       allLabel: context.l10n.allTopics,
                       value: _selectedTopic,
@@ -129,7 +107,6 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                         AppFeedback.selection();
                         setState(() {
                           _selectedTopic = id;
-                          _selectedBreedId = null;
                         });
                         _onFilterChanged();
                       },
@@ -159,7 +136,6 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                         orderByCreated: _tabController.index == 0,
                         topic: _selectedTopic,
                         countryCode: country,
-                        breedId: _selectedBreedId,
                       );
                     },
                     icon: const Icon(Icons.refresh, size: 18),
@@ -180,7 +156,6 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                       orderByCreated: _tabController.index == 0,
                       topic: _selectedTopic,
                       countryCode: country,
-                      breedId: _selectedBreedId,
                     );
                   },
                   child: ListView.builder(

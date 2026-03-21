@@ -16,7 +16,6 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/utils/app_feedback.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/topic_l10n.dart';
-import '../../providers/breed_provider.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
@@ -35,7 +34,6 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
   final _contentController = TextEditingController();
   final _topicsInputController = TextEditingController();
   List<String> _topics = [];
-  List<String> _breedIds = [];
   File? _coverFile;
   bool _loading = false;
   static const _topicOptions = ['care', 'health', 'feeding', 'behavior'];
@@ -180,7 +178,7 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
             title: title,
             content: _contentController.text.trim(),
             coverUrl: '',
-            breedIds: _breedIds,
+            breedIds: const [],
             topics: _topics,
             status: 'published',
             countryCode: countryCode,
@@ -219,8 +217,6 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
 
   @override
   Widget build(BuildContext context) {
-    final breedsAsync = ref.watch(breedsFutureProvider);
-    final locale = ref.watch(effectiveUILanguageCodeProvider);
     final scheme = Theme.of(context).colorScheme;
     final divider = Theme.of(context).dividerColor.withValues(alpha: 0.35);
 
@@ -329,46 +325,6 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppSectionHeader(title: context.l10n.breeds),
-                  const SizedBox(height: 8),
-                  breedsAsync.when(
-                    data: (breeds) => Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      children: breeds
-                          .map(
-                            (b) => FilterChip(
-                              label: Text(b.displayName(locale), style: const TextStyle(fontSize: 13)),
-                              selected: _breedIds.contains(b.breedId),
-                              onSelected: (v) {
-                                setState(() {
-                                  if (v) {
-                                    _breedIds = [..._breedIds, b.breedId];
-                                  } else {
-                                    _breedIds = _breedIds.where((id) => id != b.breedId).toList();
-                                  }
-                                });
-                              },
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    loading: () => const SizedBox(height: 36, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
-                    error: (_, __) => Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(context.l10n.failedToLoadBreeds, style: TextStyle(color: scheme.error)),
-                        const SizedBox(height: 8),
-                        TextButton.icon(
-                          onPressed: () => ref.invalidate(breedsFutureProvider),
-                          icon: const Icon(Icons.refresh, size: 18),
-                          label: Text(context.l10n.retry),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
                   AppSectionHeader(title: context.l10n.topics),
                   const SizedBox(height: 8),
                   TextField(
