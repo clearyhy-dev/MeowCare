@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/router/app_router.dart';
@@ -15,6 +17,7 @@ import '../../providers/feed_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
 
+/// Reddit 风发帖：标题突出、可选配图（Firebase Storage → coverUrl）、正文与标签紧凑。
 class CreatePostPage extends ConsumerStatefulWidget {
   const CreatePostPage({super.key});
 
@@ -28,9 +31,11 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
   final _contentController = TextEditingController();
   List<String> _topics = [];
   List<String> _breedIds = [];
-  final String _coverUrl = '';
+  File? _coverFile;
   bool _loading = false;
   static const _topicOptions = ['care', 'health', 'feeding', 'behavior'];
+  static const double _previewHeight = 120;
+  static const double _previewRadius = 10;
 
   @override
   void dispose() {
@@ -38,6 +43,27 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
     _summaryController.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickCoverImage() async {
+    try {
+      final xFile = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 2048,
+        maxHeight: 2048,
+        imageQuality: 88,
+      );
+      if (xFile == null) return;
+      setState(() => _coverFile = File(xFile.path));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.postImagePickFailed)));
+      }
+    }
+  }
+
+  void _removeCoverImage() {
+    setState(() => _coverFile = null);
   }
 
   Future<void> _onAiRewrite() async {
@@ -92,7 +118,6 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
         );
       }
     } catch (e) {
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.l10n.errorWithMessage(e.toString()))),
@@ -104,7 +129,6 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
   }
 
   Future<void> _submit() async {
-
     final title = _titleController.text.trim();
     if (title.isEmpty) return;
     final user = ref.read(currentUserAsyncProvider).valueOrNull;
@@ -112,20 +136,42 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
     setState(() => _loading = true);
     try {
       final countryCode = ref.read(appCountryProvider).valueOrNull ?? '';
-      await ref.read(postRepositoryProvider).createPost(
+      final lang = Localizations.localeOf(context).languageCode;
+      final post = await ref.read(postRepositoryProvider).createPost(
             authorId: user.uid,
             title: title,
             summary: _summaryController.text.trim(),
             content: _contentController.text.trim(),
-            coverUrl: _coverUrl,
+            coverUrl: '',
             breedIds: _breedIds,
             topics: _topics,
             status: 'published',
             countryCode: countryCode,
+            language: lang,
           );
 
+      if (_coverFile != null) {
+        try {
+          final url = await ref.read(storageRepositoryProvider).uploadPostCover(post.postId, _coverFile!);
+          await ref.read(postRepositoryProvider).updatePostCover(postId: post.postId, coverUrl: url);
+        } catch (_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(context.l10n.postImageUploadFailed)),
+            );
+          }
+        }
+      }
+
+      ref.invalidate(feedProvider);
       if (mounted) {
         context.go(AppRouter.home);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.errorWithMessage(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -136,63 +182,168 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
   Widget build(BuildContext context) {
     final breedsAsync = ref.watch(breedsFutureProvider);
     final locale = Localizations.localeOf(context).languageCode;
+    final scheme = Theme.of(context).colorScheme;
+    final divider = Theme.of(context).dividerColor.withValues(alpha: 0.45);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(context.l10n.createPost),
         actions: [
           TextButton(
             onPressed: _loading ? null : _submit,
-            child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(context.l10n.postButton),
-
+            child: _loading
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: scheme.primary),
+                  )
+                : Text(
+                    context.l10n.postButton,
+                    style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary, fontSize: 15),
+                  ),
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
               controller: _titleController,
-              decoration: InputDecoration(labelText: context.l10n.title, border: const OutlineInputBorder()),
+              decoration: InputDecoration(
+                hintText: context.l10n.title,
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+                hintStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.45),
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
+                  ),
+              textCapitalization: TextCapitalization.sentences,
+              maxLines: 3,
+              minLines: 1,
             ),
-            const SizedBox(height: 12),
+            Divider(height: 20, thickness: 0.7, color: divider),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.image_outlined, size: 20),
+              label: Text(context.l10n.postAddImage),
+              style: OutlinedButton.styleFrom(
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: _loading ? null : _pickCoverImage,
+            ),
+            if (_coverFile != null) ...[
+              const SizedBox(height: 10),
+              Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(_previewRadius),
+                    child: SizedBox(
+                      height: _previewHeight,
+                      width: double.infinity,
+                      child: Image.file(
+                        _coverFile!,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                      ),
+                    ),
+                  ),
+                  Material(
+                    color: Colors.black54,
+                    shape: const CircleBorder(),
+                    child: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                      tooltip: context.l10n.postRemoveImage,
+                      onPressed: _removeCoverImage,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            Divider(height: 22, thickness: 0.7, color: divider),
+            Text(
+              context.l10n.summary,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 6),
             TextField(
               controller: _summaryController,
-              decoration: InputDecoration(labelText: context.l10n.summary, border: const OutlineInputBorder()),
+              decoration: const InputDecoration(
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 0),
+                border: InputBorder.none,
+              ),
               maxLines: 2,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
-            const SizedBox(height: 12),
+            Divider(height: 20, thickness: 0.7, color: divider),
+            Text(
+              context.l10n.content,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 6),
             TextField(
               controller: _contentController,
-              decoration: InputDecoration(labelText: context.l10n.content, border: const OutlineInputBorder()),
-              maxLines: 6,
+              decoration: const InputDecoration(
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+                border: InputBorder.none,
+                alignLabelWithHint: true,
+              ),
+              maxLines: 10,
+              minLines: 4,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.4),
             ),
             const SizedBox(height: 16),
-            Text(context.l10n.breeds, style: Theme.of(context).textTheme.titleSmall),
+            Text(
+              context.l10n.breeds,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
             breedsAsync.when(
               data: (breeds) => Wrap(
                 spacing: 8,
-                children: breeds.map((b) => FilterChip(
-                  label: Text(b.displayName(locale)),
-                  selected: _breedIds.contains(b.breedId),
-                  onSelected: (v) {
-                    setState(() {
-                      if (v) {
-                        _breedIds = [..._breedIds, b.breedId];
-                      } else {
-                        _breedIds = _breedIds.where((id) => id != b.breedId).toList();
-                      }
-                    });
-                  },
-                )).toList(),
+                runSpacing: 6,
+                children: breeds
+                    .map(
+                      (b) => FilterChip(
+                        label: Text(b.displayName(locale), style: const TextStyle(fontSize: 13)),
+                        selected: _breedIds.contains(b.breedId),
+                        visualDensity: VisualDensity.compact,
+                        onSelected: (v) {
+                          setState(() {
+                            if (v) {
+                              _breedIds = [..._breedIds, b.breedId];
+                            } else {
+                              _breedIds = _breedIds.where((id) => id != b.breedId).toList();
+                            }
+                          });
+                        },
+                      ),
+                    )
+                    .toList(),
               ),
-              loading: () => const SizedBox(height: 32, child: Center(child: CircularProgressIndicator())),
+              loading: () => const SizedBox(height: 36, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
               error: (_, __) => Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(context.l10n.failedToLoadBreeds, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                  Text(context.l10n.failedToLoadBreeds, style: TextStyle(color: scheme.error)),
                   const SizedBox(height: 8),
                   TextButton.icon(
                     onPressed: () => ref.invalidate(breedsFutureProvider),
@@ -201,39 +352,48 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
                   ),
                 ],
               ),
-
             ),
-            const SizedBox(height: 16),
-            Text(context.l10n.topics, style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 14),
+            Text(
+              context.l10n.topics,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 8,
-              children: _topicOptions.map((t) => FilterChip(
-                label: Text(topicLabel(context, t)),
-                selected: _topics.contains(t),
-
-                onSelected: (v) {
-                  setState(() {
-                    if (v) {
-                      _topics = [..._topics, t];
-                    } else {
-                      _topics = _topics.where((x) => x != t).toList();
-                    }
-                  });
-                },
-              )).toList(),
+              runSpacing: 6,
+              children: _topicOptions
+                  .map(
+                    (t) => FilterChip(
+                      label: Text(topicLabel(context, t), style: const TextStyle(fontSize: 13)),
+                      selected: _topics.contains(t),
+                      visualDensity: VisualDensity.compact,
+                      onSelected: (v) {
+                        setState(() {
+                          if (v) {
+                            _topics = [..._topics, t];
+                          } else {
+                            _topics = _topics.where((x) => x != t).toList();
+                          }
+                        });
+                      },
+                    ),
+                  )
+                  .toList(),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 18),
             OutlinedButton.icon(
-              icon: const Icon(Icons.auto_awesome),
+              icon: const Icon(Icons.auto_awesome, size: 20),
               label: Text(context.l10n.aiRewriteLabel),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
               onPressed: _loading ? null : _onAiRewrite,
             ),
-
-
           ],
         ),
       ),
     );
   }
 }
-

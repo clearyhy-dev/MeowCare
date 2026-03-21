@@ -3,14 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:share_plus/share_plus.dart';
-
 import '../../core/router/app_router.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../core/utils/meow_share.dart';
 import '../../core/utils/topic_l10n.dart';
 import '../../models/post_model.dart';
+import '../../providers/bookmark_provider.dart';
 import '../../providers/breed_provider.dart';
 import '../../providers/feed_provider.dart';
+import '../../providers/like_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
 
@@ -224,7 +225,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                       final postId = post.postId;
                       return _PostCard(
                         post: post,
-                        onTap: () => context.push('${AppRouter.postDetail}/$postId'),
+                        onOpenPost: () => context.push('${AppRouter.postDetail}/$postId'),
                       );
                     },
                   ),
@@ -346,15 +347,15 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-/// Reddit 风格紧凑 Feed 卡片：信息优先、小图、轻分割。
-class _PostCard extends StatelessWidget {
-  const _PostCard({required this.post, required this.onTap});
+/// Reddit 风格紧凑 Feed 卡片：信息优先、小图、轻分割；支持点赞、评论跳转、分享、收藏。
+class _PostCard extends ConsumerWidget {
+  const _PostCard({required this.post, required this.onOpenPost});
 
   final PostModel post;
-  final VoidCallback onTap;
+  final VoidCallback onOpenPost;
 
-  static const double _imageHeight = 160;
-  static const double _imageRadius = 12;
+  static const double _imageHeight = 148;
+  static const double _imageRadius = 11;
 
   static const Map<String, String> _languageChipLabels = {
     'en': 'EN',
@@ -385,35 +386,36 @@ class _PostCard extends StatelessWidget {
     return DateFormat.MMMd().format(t);
   }
 
-  static String _categoryText(BuildContext context, PostModel post) {
-    if (post.topics.isEmpty) return 'General';
-    return feedTopicCategoryLabel(context, post.topics.first);
-  }
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final onSurfaceVariant = scheme.onSurfaceVariant;
     final titleStyle = theme.textTheme.titleMedium?.copyWith(
-      fontWeight: FontWeight.w600,
-      height: 1.25,
-      fontSize: (theme.textTheme.titleMedium?.fontSize ?? 16) + 0.5,
+      fontWeight: FontWeight.w700,
+      height: 1.22,
+      fontSize: (theme.textTheme.titleMedium?.fontSize ?? 16) + 1,
     );
     final summary = post.summary.trim();
     final langText = _languageChipText(post.language);
-    final categoryText = _categoryText(context, post);
     final timeText = _formatTime(post.createdAt);
+    final hasCategory = post.topics.isNotEmpty;
+    final categoryText = hasCategory ? feedTopicCategoryLabel(context, post.topics.first) : '';
+    final likedAsync = ref.watch(isLikedProvider(post.postId));
+    final savedAsync = ref.watch(isBookmarkedProvider(post.postId));
+    final isLiked = likedAsync.valueOrNull == true;
+    final isSaved = savedAsync.valueOrNull == true;
 
     return Material(
       color: scheme.surface,
       child: InkWell(
-        onTap: onTap,
+        onTap: onOpenPost,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 10, 10, 8),
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(12, 8, 6, 6),
           decoration: BoxDecoration(
             border: Border(
-              bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.45)),
+              bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.4)),
             ),
           ),
           child: Column(
@@ -423,20 +425,22 @@ class _PostCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   _FeedChip(text: langText),
-                  const SizedBox(width: 6),
-                  _FeedChip(text: categoryText),
+                  if (hasCategory) ...[
+                    const SizedBox(width: 6),
+                    _FeedChip(text: categoryText),
+                  ],
                   const Spacer(),
                   if (timeText.isNotEmpty)
                     Text(
                       timeText,
-                      style: theme.textTheme.labelSmall?.copyWith(color: onSurfaceVariant, fontSize: 12),
+                      style: theme.textTheme.labelSmall?.copyWith(color: onSurfaceVariant, fontSize: 11.5),
                     ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(post.title, style: titleStyle),
               if (post.shouldShowImage) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(_imageRadius),
                   child: SizedBox(
@@ -472,45 +476,130 @@ class _PostCard extends StatelessWidget {
                 ),
               ],
               if (summary.isNotEmpty) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: 5),
                 Text(
                   summary,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: onSurfaceVariant,
-                    height: 1.35,
+                    height: 1.32,
+                    fontSize: 13,
                   ),
                 ),
               ],
-              const SizedBox(height: 6),
+              const SizedBox(height: 2),
               Row(
                 children: [
-                  Icon(Icons.favorite_border, size: 18, color: onSurfaceVariant),
-                  const SizedBox(width: 4),
-                  Text('${post.likeCount}', style: theme.textTheme.labelMedium?.copyWith(color: onSurfaceVariant)),
-                  const SizedBox(width: 18),
-                  Icon(Icons.chat_bubble_outline, size: 17, color: onSurfaceVariant),
-                  const SizedBox(width: 4),
-                  Text('${post.commentCount}', style: theme.textTheme.labelMedium?.copyWith(color: onSurfaceVariant)),
+                  _PostActionIcon(
+                    icon: isLiked ? Icons.favorite : Icons.favorite_border,
+                    label: '${post.likeCount}',
+                    color: isLiked ? scheme.primary : onSurfaceVariant,
+                    tooltip: context.l10n.likes,
+                    onPressed: () async {
+                      final user = ref.read(currentUserAsyncProvider).valueOrNull;
+                      if (user == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(context.l10n.signInForFullFeatures)),
+                        );
+                        return;
+                      }
+                      await toggleLike(ref, post.postId);
+                      ref.invalidate(feedProvider);
+                    },
+                  ),
+                  _PostActionIcon(
+                    icon: Icons.chat_bubble_outline,
+                    label: '${post.commentCount}',
+                    color: onSurfaceVariant,
+                    tooltip: context.l10n.comments,
+                    onPressed: onOpenPost,
+                  ),
                   const Spacer(),
                   IconButton(
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
                     tooltip: context.l10n.share,
-                    icon: Icon(Icons.share_outlined, size: 20, color: onSurfaceVariant),
+                    icon: Icon(Icons.share_outlined, size: 19, color: onSurfaceVariant),
                     onPressed: () {
                       HapticFeedback.lightImpact();
-                      final body = summary.isNotEmpty ? '$summary\n\n' : '';
-                      Share.share(
-                        '${post.title}\n\n$body${context.l10n.shareFromMeowCare}',
+                      MeowShare.sharePost(
+                        context,
+                        postId: post.postId,
+                        title: post.title,
+                        summary: post.summary,
                       );
+                    },
+                  ),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                    tooltip: context.l10n.save,
+                    icon: Icon(
+                      isSaved ? Icons.bookmark : Icons.bookmark_border,
+                      size: 20,
+                      color: isSaved ? scheme.primary : onSurfaceVariant,
+                    ),
+                    onPressed: () async {
+                      final user = ref.read(currentUserAsyncProvider).valueOrNull;
+                      if (user == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(context.l10n.signInForFullFeatures)),
+                        );
+                        return;
+                      }
+                      await toggleBookmark(ref, post.postId);
                     },
                   ),
                 ],
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PostActionIcon extends StatelessWidget {
+  const _PostActionIcon({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: Tooltip(
+        message: tooltip,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 18, color: color),
+                const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(color: color, fontSize: 13),
+                ),
+              ],
+            ),
           ),
         ),
       ),

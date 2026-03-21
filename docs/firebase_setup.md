@@ -17,8 +17,8 @@
 
 1. 打开 **Build → Authentication**，如未启用则先“Get started”。
 2. **Sign-in method** 中启用：
-   - **Google**：用于“Sign in with Google”。
-   - **Email/Password**：用于邮箱注册/登录。
+   - **Google**：Flutter 用户端唯一登录方式（“Sign in with Google”）。
+   - **Email/Password**（可选）：应用已不再提供邮箱注册入口；若需兼容历史邮箱账号可保持开启，否则可在控制台关闭。
 3. 若使用 Google 登录，在 [Google Cloud Console](https://console.cloud.google.com) 同一项目中配置 OAuth 同意屏幕和凭据（Web 应用类型的客户端 ID 等），并按 Firebase 文档填写 SHA-1（可选，用于 Google Sign-In）。
 
 ### 2. Firestore Database（「同步资料失败」多半是这里没创建对）
@@ -203,7 +203,7 @@ flutter build apk --release
    若设备开了 VPN 或处于受限网络，可能无法访问 Firestore。可关闭 VPN、换 Wi‑Fi 或移动网络后**重试登录**。
 
 3. **重试**  
-   应用已对 Firestore 的「unavailable」做自动重试（最多 3 次）。若仍报错，隔几秒再点一次「Sign in with Google」或邮箱登录。
+   应用已对 Firestore 的「unavailable」做自动重试（最多 3 次）。若仍报错，隔几秒再点一次「Sign in with Google」。
 
 4. **规则与区域**  
    确保 Firestore 规则已发布且允许已登录用户读写自己的 `users/{uid}` 文档（见 `firestore.rules`）。若 Firestore 所在区域与用户距离过远，偶发延迟也会触发 unavailable，多试几次即可。

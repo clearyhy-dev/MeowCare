@@ -1,11 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/utils/l10n_ext.dart';
+import '../../models/user_model.dart';
 import '../../screens/ai/ai_screen.dart';
 import '../../screens/auth/login_screen.dart';
-import '../../screens/auth/register_screen.dart';
 import '../../screens/cats/cats_screen.dart';
 import '../../screens/family/create_family_screen.dart';
 import '../../screens/family/join_family_screen.dart';
@@ -25,8 +26,10 @@ import '../../screens/tasks/tasks_screen.dart';
 class AppRouter {
   AppRouter._();
 
+  static const String splash = '/splash';
   static const String auth = '/auth';
-  static const String register = '/register';
+  /// 旧版邮箱注册链接，重定向到 [auth]。
+  static const String registerLegacy = '/register';
   static const String createFamily = '/family/create';
   static const String joinFamily = '/family/join';
   static const String home = '/';
@@ -47,29 +50,46 @@ class AppRouter {
   static GoRouter createRouter(GoRouterRefreshNotifier refreshNotifier) {
     return GoRouter(
       refreshListenable: refreshNotifier,
-      initialLocation: home,
+      initialLocation: splash,
       redirect: (context, state) {
-        final isLoading = refreshNotifier.isLoading;
-        final user = refreshNotifier.currentUser;
         final location = state.uri.path;
-        final isAuthRoute = location == auth || location == register;
+        if (location == registerLegacy) return auth;
 
-        if (isLoading) return null;
-        if (user == null) {
-          return null;
+        if (refreshNotifier.isLoading) {
+          if (location == splash) return null;
+          return splash;
         }
-        if (user.familyId == null || user.familyId!.isEmpty) {
+
+        if (location == splash) {
+          final fbu = refreshNotifier.firebaseUser;
+          if (fbu == null) return auth;
+          final user = refreshNotifier.profile;
+          if (user == null || user.familyId == null || user.familyId!.isEmpty) {
+            return createFamily;
+          }
+          return home;
+        }
+
+        final fbu = refreshNotifier.firebaseUser;
+        if (fbu == null) {
+          if (location == auth) return null;
+          return auth;
+        }
+
+        final user = refreshNotifier.profile;
+        if (user == null || user.familyId == null || user.familyId!.isEmpty) {
           if (location == createFamily || location == joinFamily) return null;
           return createFamily;
         }
-        if (isAuthRoute || location == createFamily || location == joinFamily) {
+
+        if (location == auth || location == createFamily || location == joinFamily) {
           return home;
         }
         return null;
       },
       routes: [
+        GoRoute(path: splash, builder: (context, state) => const _AuthSplashPage()),
         GoRoute(path: auth, builder: (context, state) => const LoginScreen()),
-        GoRoute(path: register, builder: (context, state) => const RegisterScreen()),
         GoRoute(path: createFamily, builder: (context, state) => const CreateFamilyScreen()),
         GoRoute(path: joinFamily, builder: (context, state) => const JoinFamilyScreen()),
         GoRoute(
@@ -97,18 +117,53 @@ class AppRouter {
   }
 }
 
+class _AuthSplashPage extends StatelessWidget {
+  const _AuthSplashPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              context.l10n.appTitle,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 24),
+            const SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class GoRouterRefreshNotifier extends ChangeNotifier {
   GoRouterRefreshNotifier();
 
-  AsyncValue<dynamic> _userState = const AsyncValue.loading();
+  AsyncValue<fb.User?> _authState = const AsyncValue.loading();
+  AsyncValue<UserModel?> _profileState = const AsyncValue.loading();
 
-  void update(AsyncValue<dynamic> state) {
-    _userState = state;
+  void update(AsyncValue<fb.User?> auth, AsyncValue<UserModel?> profile) {
+    _authState = auth;
+    _profileState = profile;
     notifyListeners();
   }
 
-  bool get isLoading => _userState.isLoading;
-  dynamic get currentUser => _userState.valueOrNull;
+  bool get isLoading {
+    if (_authState.isLoading) return true;
+    if (_authState.valueOrNull != null && _profileState.isLoading) return true;
+    return false;
+  }
+
+  fb.User? get firebaseUser => _authState.valueOrNull;
+  UserModel? get profile => _profileState.valueOrNull;
 }
 
 

@@ -47,9 +47,9 @@ class HealthScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                FilledButton.icon(
-                  icon: const Icon(Icons.login),
-                  label: Text(context.l10n.signIn),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.account_circle_outlined),
+                  label: Text(context.l10n.signInWithGoogle),
                   onPressed: () => context.push(AppRouter.auth),
                 ),
               ],

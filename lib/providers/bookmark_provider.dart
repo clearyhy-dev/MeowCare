@@ -30,6 +30,6 @@ Future<void> toggleBookmark(WidgetRef ref, String postId) async {
   } else {
     await repo.addBookmark(uid: uid, postId: postId);
   }
-  ref.invalidate(isBookmarkedProvider);
+  ref.invalidate(isBookmarkedProvider(postId));
 }
 

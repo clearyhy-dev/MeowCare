@@ -5,7 +5,7 @@ Flutter 家庭养猫护理应用：Feed、猫档案、任务与健康提醒、7 
 ## 1. Firebase 配置
 
 1. **创建项目**：在 [Firebase Console](https://console.firebase.google.com) 创建项目，启用 **Authentication**、**Firestore**、**Storage**。
-2. **认证**：在 Authentication 中启用 **Google** 与 **Email/Password** 登录。
+2. **认证**：在 Authentication 中启用 **Google** 登录（Flutter 用户端仅使用 Google；Email/Password 可在控制台关闭，不影响 FastAPI 管理页账号密码）。
 3. **应用**：为 Android/iOS/Web 添加应用，下载 `google-services.json`（Android）与 `GoogleService-Info.plist`（iOS），放入项目对应位置。
 4. **详细步骤**：见 [docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md)。
 
@@ -56,6 +56,10 @@ flutter run --dart-define=MEOWCARE_BACKEND_URL=http://10.0.2.2:8000
 
 （Android 模拟器用 `10.0.2.2` 表示本机；iOS 模拟器可用 `http://localhost:8000`。）
 
+分享功能使用 `share_plus`；应用下载链接与帖子 Web 链接可在构建时覆盖：
+
+- `MEOWCARE_APP_URL`：默认 Google Play 包名链接；
+- `MEOWCARE_POST_WEB_BASE`：默认 `https://meowcare.app/post`（占位，有正式站点后替换）。
 
 ## 6. FastAPI 后台运行
 

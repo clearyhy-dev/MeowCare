@@ -848,6 +848,30 @@ abstract class AppLocalizations {
   /// **'Post'**
   String get postButton;
 
+  /// No description provided for @postAddImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Add image'**
+  String get postAddImage;
+
+  /// No description provided for @postRemoveImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove image'**
+  String get postRemoveImage;
+
+  /// No description provided for @postImagePickFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not pick image.'**
+  String get postImagePickFailed;
+
+  /// No description provided for @postImageUploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Image upload failed. The post may be published without a cover.'**
+  String get postImageUploadFailed;
+
   /// No description provided for @submit.
   ///
   /// In en, this message translates to:
@@ -1045,6 +1069,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'From MeowCare – cat care made simple'**
   String get shareFromMeowCare;
+
+  /// No description provided for @shareAppMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Share MeowCare'**
+  String get shareAppMenu;
+
+  /// No description provided for @shareAppSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'MeowCare — cat care & community'**
+  String get shareAppSubject;
+
+  /// No description provided for @shareAppBody.
+  ///
+  /// In en, this message translates to:
+  /// **'MeowCare — cat care reminders, family sharing, and a friendly cat feed.\n\nGet the app:\n{url}'**
+  String shareAppBody(String url);
+
+  /// No description provided for @sharePostLinkLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Open post (link placeholder):\n{url}'**
+  String sharePostLinkLine(String url);
 
   /// No description provided for @sourceReddit.
   ///

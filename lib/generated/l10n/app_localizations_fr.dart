@@ -395,6 +395,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get postButton => 'Publier';
 
   @override
+  String get postAddImage => 'Add image';
+
+  @override
+  String get postRemoveImage => 'Remove image';
+
+  @override
+  String get postImagePickFailed => 'Could not pick image.';
+
+  @override
+  String get postImageUploadFailed =>
+      'Image upload failed. The post may be published without a cover.';
+
+  @override
   String get submit => 'Envoyer';
 
   @override
@@ -495,6 +508,22 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get shareFromMeowCare => 'From MeowCare – cat care made simple';
+
+  @override
+  String get shareAppMenu => 'Share MeowCare';
+
+  @override
+  String get shareAppSubject => 'MeowCare — cat care & community';
+
+  @override
+  String shareAppBody(String url) {
+    return 'MeowCare — cat care reminders, family sharing, and a friendly cat feed.\n\nGet the app:\n$url';
+  }
+
+  @override
+  String sharePostLinkLine(String url) {
+    return 'Open post (link placeholder):\n$url';
+  }
 
   @override
   String get sourceReddit => 'Source: Reddit';

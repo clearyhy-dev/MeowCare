@@ -7,6 +7,7 @@ import '../../core/constants/enums.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../core/utils/meow_share.dart';
 import '../../providers/family_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../providers/user_provider.dart';
@@ -81,6 +82,12 @@ class SettingsScreen extends ConsumerWidget {
                 ],
                 const Divider(),
                 ListTile(
+                  leading: Icon(Icons.ios_share_outlined, color: Theme.of(context).colorScheme.primary),
+                  title: Text(context.l10n.shareAppMenu),
+                  onTap: () => MeowShare.shareApp(context),
+                ),
+                const Divider(),
+                ListTile(
                   leading: const Icon(Icons.logout),
                   title: Text(context.l10n.signOut),
                   onTap: () => _signOut(context, ref),
@@ -101,15 +108,16 @@ class SettingsScreen extends ConsumerWidget {
             Text(context.l10n.signInForFullFeatures, style: Theme.of(context).textTheme.bodyLarge, textAlign: TextAlign.center),
 
             const SizedBox(height: 24),
-            FilledButton.icon(
-              icon: const Icon(Icons.login),
-              label: Text(context.l10n.signIn),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.account_circle_outlined),
+              label: Text(context.l10n.signInWithGoogle),
               onPressed: () => context.push(AppRouter.auth),
             ),
             const SizedBox(height: 12),
-            TextButton(
-              child: Text(context.l10n.createAccount),
-              onPressed: () => context.push(AppRouter.register),
+            TextButton.icon(
+              icon: const Icon(Icons.ios_share_outlined, size: 20),
+              label: Text(context.l10n.shareAppMenu),
+              onPressed: () => MeowShare.shareApp(context),
             ),
           ],
         ),
@@ -170,8 +178,7 @@ class SettingsScreen extends ConsumerWidget {
     await ref.read(authServiceProvider).signOut();
     ref.invalidate(authStateProvider);
     ref.invalidate(currentUserAsyncProvider);
-    if (context.mounted) context.go(AppRouter.home);
-
+    if (context.mounted) context.go(AppRouter.auth);
   }
 }
 

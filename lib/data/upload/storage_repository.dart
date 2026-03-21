@@ -16,8 +16,19 @@ class StorageRepository {
   }
 
   Future<String> uploadPostCover(String postId, File file) async {
-    final ref = _storage.ref().child(AppConstants.storageCoversPath).child('$postId.jpg');
-    await ref.putFile(file);
-    return ref.getDownloadURL();
+    final lower = file.path.toLowerCase();
+    final ext = lower.endsWith('.png')
+        ? 'png'
+        : lower.endsWith('.webp')
+            ? 'webp'
+            : 'jpg';
+    final contentType = ext == 'png'
+        ? 'image/png'
+        : ext == 'webp'
+            ? 'image/webp'
+            : 'image/jpeg';
+    final storageRef = _storage.ref().child(AppConstants.storageCoversPath).child('$postId.$ext');
+    await storageRef.putFile(file, SettableMetadata(contentType: contentType));
+    return storageRef.getDownloadURL();
   }
 }

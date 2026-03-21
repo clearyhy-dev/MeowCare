@@ -33,12 +33,12 @@ class MeowCareApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final refreshNotifier = ref.watch(routerRefreshNotifierProvider);
-    final userAsync = ref.watch(currentUserAsyncProvider);
-    refreshNotifier.update(userAsync);
+    final authAsync = ref.watch(authStateProvider);
+    final profileAsync = ref.watch(currentUserAsyncProvider);
+    refreshNotifier.update(authAsync, profileAsync);
 
     final router = ref.watch(appRouterProvider);
     final localeAsync = ref.watch(appLocaleProvider);
-    // 未设置时 locale 为 null，由 localeResolutionCallback 使用设备语言；设置页选择国家/语言后对所有用户生效（含未登录）
     final locale = localeAsync.valueOrNull;
 
     final supported = AppLocalizations.supportedLocales;
@@ -50,7 +50,6 @@ class MeowCareApp extends ConsumerWidget {
       supportedLocales: supported,
       locale: locale,
       localeResolutionCallback: (Locale? deviceLocale, Iterable<Locale> supportedLocales) {
-
         final list = supportedLocales.toList();
         if (list.isEmpty) return null;
         if (deviceLocale == null) return list.first;
@@ -69,13 +68,8 @@ class MeowCareApp extends ConsumerWidget {
         }
         return list.first;
       },
-
-
       routerConfig: router,
     );
-
-
-
   }
 }
 
@@ -87,4 +81,3 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final notifier = ref.watch(routerRefreshNotifierProvider);
   return AppRouter.createRouter(notifier);
 });
-

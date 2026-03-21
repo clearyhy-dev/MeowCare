@@ -48,3 +48,16 @@ app.*.map.json
 /android/key.properties
 /android/app/*.jks
 
+# Environment & local secrets (templates 可提交)
+**/.env
+!**/.env.example
+
+# Firebase / GCP 服务账号密钥（勿入仓库）
+*firebase-adminsdk*.json
+**/*-adminsdk-*.json
+**/serviceAccountKey.json
+
+# 私有名单导出（测试邮箱等）
+*testers*.csv
+*tester*emails*.csv
+

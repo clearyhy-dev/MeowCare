@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/theme/app_theme.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../core/utils/meow_share.dart';
+import '../../core/utils/topic_l10n.dart';
 import '../../data/repositories/report_repository.dart';
 import '../../models/post_model.dart';
 import '../../providers/bookmark_provider.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/like_provider.dart';
-
 import '../../providers/user_provider.dart';
 import '../../widgets/comment_list.dart';
 
@@ -25,6 +25,26 @@ class PostDetailPage extends ConsumerStatefulWidget {
 
 class _PostDetailPageState extends ConsumerState<PostDetailPage> {
   static const _kErrorPostNotFound = 'post_not_found';
+  static const double _heroImageHeight = 160;
+  static const double _imageRadius = 11;
+
+  static const Map<String, String> _languageChipLabels = {
+    'en': 'EN',
+    'zh': '中文',
+    'ja': '日本語',
+    'es': 'ES',
+    'fr': 'FR',
+    'de': 'DE',
+    'pt': 'PT',
+    'ru': 'RU',
+    'ko': '한국어',
+  };
+
+  static String _languageChipText(String code) {
+    final c = code.trim().toLowerCase();
+    if (c.isEmpty) return 'EN';
+    return _languageChipLabels[c] ?? c.toUpperCase();
+  }
 
   PostModel? _post;
   bool _loading = true;
@@ -48,42 +68,56 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
     _load();
   }
 
+  static String _formatTime(DateTime? t) {
+    if (t == null) return '';
+    return DateFormat.yMMMd().add_jm().format(t.toLocal());
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return Scaffold(appBar: AppBar(title: Text(context.l10n.post)), body: const Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        appBar: AppBar(title: Text(context.l10n.post)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
     if (_error != null || _post == null) {
       return Scaffold(
         appBar: AppBar(title: Text(context.l10n.post)),
-        body: Center(child: Text(_error == _kErrorPostNotFound ? context.l10n.postNotFound : (_error ?? context.l10n.notFound))),
-
-
+        body: Center(
+          child: Text(_error == _kErrorPostNotFound ? context.l10n.postNotFound : (_error ?? context.l10n.notFound)),
+        ),
       );
     }
     final post = _post!;
     final user = ref.watch(currentUserAsyncProvider).valueOrNull;
     final isLikedAsync = ref.watch(isLikedProvider(widget.postId));
     final isBookmarkedAsync = ref.watch(isBookmarkedProvider(widget.postId));
+    final scheme = Theme.of(context).colorScheme;
+    final onVar = scheme.onSurfaceVariant;
+    final hasCategory = post.topics.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(post.title),
+        title: Text(context.l10n.post),
         actions: [
           IconButton(
             icon: const Icon(Icons.share_outlined),
             tooltip: context.l10n.share,
-            onPressed: () => Share.share(
-              '${post.title}\n\n${context.l10n.shareFromMeowCare}',
-              subject: post.title,
-            ),
+            onPressed: () => MeowShare.sharePost(
+                  context,
+                  postId: widget.postId,
+                  title: post.title,
+                  summary: post.summary,
+                ),
           ),
           IconButton(
             icon: Icon(isLikedAsync.valueOrNull == true ? Icons.favorite : Icons.favorite_border),
-
             onPressed: () async {
               if (user == null) {
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.signInForFullFeatures)));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.signInForFullFeatures)));
+                }
                 return;
               }
               await toggleLike(ref, widget.postId);
@@ -95,7 +129,9 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
             icon: Icon(isBookmarkedAsync.valueOrNull == true ? Icons.bookmark : Icons.bookmark_border),
             onPressed: () async {
               if (user == null) {
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.signInForFullFeatures)));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.signInForFullFeatures)));
+                }
                 return;
               }
               await toggleBookmark(ref, widget.postId);
@@ -108,56 +144,111 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: AppInsets.screenPadding, vertical: AppInsets.sectionSpacing / 2),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (post.coverUrl.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                child: Image.network(
-                  post.coverUrl,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, progress) =>
-                      progress == null ? child : const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
-                  errorBuilder: (context, error, stackTrace) => SizedBox(height: 120, child: Center(child: Icon(Icons.broken_image, size: 48, color: Theme.of(context).colorScheme.outline))),
-                ),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      _DetailChip(text: _languageChipText(post.language)),
+                      if (hasCategory)
+                        _DetailChip(text: feedTopicCategoryLabel(context, post.topics.first)),
+                      if (_formatTime(post.createdAt).isNotEmpty)
+                        Text(
+                          _formatTime(post.createdAt),
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: onVar),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    post.title,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          height: 1.25,
+                        ),
+                  ),
+                  if (post.shouldShowImage) ...[
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(_imageRadius),
+                      child: SizedBox(
+                        height: _heroImageHeight,
+                        width: double.infinity,
+                        child: Image.network(
+                          post.displayImageUrl,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            final total = progress.expectedTotalBytes;
+                            return ColoredBox(
+                              color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  value: total != null && total > 0 ? progress.cumulativeBytesLoaded / total : null,
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (_, __, ___) => ColoredBox(
+                            color: scheme.surfaceContainerHighest,
+                            child: Center(child: Icon(Icons.broken_image_outlined, size: 32, color: onVar)),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (post.summary.trim().isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      post.summary.trim(),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: onVar, height: 1.4),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Icon(Icons.favorite_border, size: 18, color: onVar),
+                      const SizedBox(width: 4),
+                      Text('${post.likeCount}', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: onVar)),
+                      const SizedBox(width: 18),
+                      Icon(Icons.chat_bubble_outline, size: 17, color: onVar),
+                      const SizedBox(width: 4),
+                      Text('${post.commentCount}', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: onVar)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Divider(height: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
+                  const SizedBox(height: 16),
+                  _linkedPostContent(context, post.content),
+                  if (user != null) ...[
+                    const SizedBox(height: 24),
+                    Divider(height: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
+                    const SizedBox(height: 12),
+                    Text(context.l10n.comments, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    CommentList(
+                      postId: widget.postId,
+                      currentUid: user.uid,
+                      onCommentAdded: _load,
+                      currentUserDisplayName: user.displayName.isNotEmpty ? user.displayName : user.email,
+                      currentUserPhotoUrl: user.photoUrl.isNotEmpty ? user.photoUrl : null,
+                    ),
+                  ],
+                ],
               ),
-            if (post.coverUrl.isNotEmpty) const SizedBox(height: 16),
-            Text(post.title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Icon(Icons.favorite_border, size: 16, color: Theme.of(context).colorScheme.outline),
-                const SizedBox(width: 4),
-                Text('${post.likeCount}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                const SizedBox(width: 16),
-                Icon(Icons.chat_bubble_outline, size: 16, color: Theme.of(context).colorScheme.outline),
-                const SizedBox(width: 4),
-                Text('${post.commentCount}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-              ],
             ),
-            const SizedBox(height: 20),
-            _linkedPostContent(context, post.content),
-            const SizedBox(height: 24),
-
-            if (user != null) ...[
-              const Divider(),
-              Text(context.l10n.comments, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              CommentList(
-                postId: widget.postId,
-                currentUid: user.uid,
-                onCommentAdded: _load,
-                currentUserDisplayName: user.displayName.isNotEmpty ? user.displayName : user.email,
-                currentUserPhotoUrl: user.photoUrl.isNotEmpty ? user.photoUrl : null,
-              ),
-
-            ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -206,7 +297,6 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
   }
 
   void _showReportDialog(BuildContext context) {
-
     final reasonController = TextEditingController();
     showDialog(
       context: context,
@@ -220,7 +310,6 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(context.l10n.cancel)),
           FilledButton(
-
             onPressed: () async {
               final uid = ref.read(currentUserAsyncProvider).valueOrNull?.uid;
               if (uid == null) return;
@@ -239,5 +328,30 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
   }
 }
 
-final reportRepositoryProvider = Provider<ReportRepository>((ref) => ReportRepository());
+class _DetailChip extends StatelessWidget {
+  const _DetailChip({required this.text});
 
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 11,
+              color: scheme.onSurfaceVariant,
+            ),
+      ),
+    );
+  }
+}
+
+final reportRepositoryProvider = Provider<ReportRepository>((ref) => ReportRepository());

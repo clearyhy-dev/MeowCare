@@ -20,6 +20,7 @@ class AuthService {
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
+  /// 前台仅支持 Google 登录；邮箱密码注册/登录已移除。
   Future<void> signInWithGoogle() async {
     final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) return;
@@ -30,29 +31,6 @@ class AuthService {
     );
     final userCred = await _auth.signInWithCredential(credential);
     await _upsertUserDocument(userCred.user!);
-  }
-
-  Future<void> signInWithEmail(String email, String password) async {
-    final userCred = await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-    await _upsertUserDocument(userCred.user!);
-  }
-
-  Future<void> registerWithEmail({
-    required String email,
-    required String password,
-    String displayName = '',
-  }) async {
-    final userCred = await _auth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-    if (userCred.user != null) {
-      await userCred.user!.updateDisplayName(displayName);
-      await _upsertUserDocument(userCred.user!);
-    }
   }
 
   /// Retry Firestore ops on transient unavailable (e.g. cloud_firestore/unavailable).

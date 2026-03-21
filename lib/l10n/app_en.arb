@@ -137,6 +137,10 @@
   "noCatsYetAddOne": "No cats yet. Add one!",
   "createPost": "Create post",
   "postButton": "Post",
+  "postAddImage": "Add image",
+  "postRemoveImage": "Remove image",
+  "postImagePickFailed": "Could not pick image.",
+  "postImageUploadFailed": "Image upload failed. The post may be published without a cover.",
   "submit": "Submit",
   "title": "Title",
   "summary": "Summary",
@@ -171,6 +175,24 @@
   "reason": "Reason",
   "share": "Share",
   "shareFromMeowCare": "From MeowCare – cat care made simple",
+  "shareAppMenu": "Share MeowCare",
+  "shareAppSubject": "MeowCare — cat care & community",
+  "shareAppBody": "MeowCare — cat care reminders, family sharing, and a friendly cat feed.\n\nGet the app:\n{url}",
+  "@shareAppBody": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "sharePostLinkLine": "Open post (link placeholder):\n{url}",
+  "@sharePostLinkLine": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
   "sourceReddit": "Source: Reddit",
   "viewDiscussionOnReddit": "View discussion on Reddit",
   "trendingCatsFromReddit": "Trending cats from Reddit",

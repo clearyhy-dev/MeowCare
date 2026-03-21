@@ -390,6 +390,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get postButton => '发帖';
 
   @override
+  String get postAddImage => 'Add image';
+
+  @override
+  String get postRemoveImage => 'Remove image';
+
+  @override
+  String get postImagePickFailed => 'Could not pick image.';
+
+  @override
+  String get postImageUploadFailed =>
+      'Image upload failed. The post may be published without a cover.';
+
+  @override
   String get submit => '提交';
 
   @override
@@ -489,6 +502,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get shareFromMeowCare => '来自 MeowCare，一起科学养猫';
+
+  @override
+  String get shareAppMenu => '分享 MeowCare';
+
+  @override
+  String get shareAppSubject => 'MeowCare — 猫咪护理与社区';
+
+  @override
+  String shareAppBody(String url) {
+    return 'MeowCare — 养猫提醒、家庭协作与猫咪内容流。\n\n下载应用：\n$url';
+  }
+
+  @override
+  String sharePostLinkLine(String url) {
+    return '查看帖子（链接占位，正式页面上线后可用）：\n$url';
+  }
 
   @override
   String get sourceReddit => '来源：Reddit';

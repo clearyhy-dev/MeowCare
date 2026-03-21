@@ -88,15 +88,18 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: Colors.white,
-        elevation: 2,
-        shadowColor: Colors.black.withValues(alpha: 0.1),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: const Color(0xFFE7E2D9).withValues(alpha: 0.9)),
+        ),
         margin: AppInsets.cardMargin,
         clipBehavior: Clip.antiAlias,
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 64,
-        elevation: 2,
+        height: 60,
+        elevation: 0,
         indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
@@ -188,15 +191,18 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: colorScheme.surfaceContainerHighest,
-        elevation: 2,
-        shadowColor: Colors.black.withValues(alpha: 0.25),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.35)),
+        ),
         margin: AppInsets.cardMargin,
         clipBehavior: Clip.antiAlias,
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 64,
-        elevation: 2,
+        height: 60,
+        elevation: 0,
         indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {

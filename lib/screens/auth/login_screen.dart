@@ -6,7 +6,7 @@ import '../../core/router/app_router.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../providers/user_provider.dart';
 
-
+/// 用户端仅 Google 登录；视觉与 Feed 一致的社区风（紧凑、轻阴影、信息优先）。
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -15,21 +15,14 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
   bool _loading = false;
   String? _error;
 
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
   Future<void> _signInWithGoogle() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       await ref.read(authServiceProvider).signInWithGoogle();
       if (!mounted) return;
@@ -43,16 +36,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       } else {
         context.go(AppRouter.createFamily);
       }
-
     } catch (e) {
       if (!mounted) return;
       final msg = _errorMessageForLogin(e);
-      setState(() { _loading = false; _error = msg; });
+      setState(() {
+        _loading = false;
+        _error = msg;
+      });
     }
   }
 
-
-  /// 把异常转成用户能看懂的提示（区分 Google 认证失败 vs Firestore 同步失败）
   String _errorMessageForLogin(dynamic e) {
     final s = e.toString().toLowerCase();
     if (s.contains('cloud_firestore') && s.contains('unavailable')) {
@@ -67,88 +60,115 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return e.toString();
   }
 
-
-  Future<void> _signInWithEmail() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; _error = null; });
-    try {
-      await ref.read(authServiceProvider).signInWithEmail(
-            _emailController.text.trim(),
-            _passwordController.text,
-          );
-      if (!mounted) return;
-      ref.invalidate(currentUserAsyncProvider);
-      final newUser = await ref.read(currentUserAsyncProvider.future);
-      if (!mounted) return;
-      setState(() => _loading = false);
-      final hasFamily = newUser?.familyId != null && newUser!.familyId!.isNotEmpty;
-      if (hasFamily) {
-        context.go(AppRouter.home);
-      } else {
-        context.go(AppRouter.createFamily);
-      }
-    } catch (e) {
-      if (mounted) setState(() { _loading = false; _error = e.toString(); });
-    }
-  }
-
-
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final borderColor = scheme.outline.withValues(alpha: 0.35);
+
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(context.l10n.appTitle, style: Theme.of(context).textTheme.headlineMedium),
-                  const SizedBox(height: 8),
-                  Text(context.l10n.appSubtitle, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                  const SizedBox(height: 32),
-                  if (_error != null) ...[
-                    Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                    const SizedBox(height: 16),
-                  ],
-                  OutlinedButton.icon(
-                    onPressed: _loading ? null : _signInWithGoogle,
-                    icon: const Icon(Icons.g_mobiledata),
-                    label: Text(context.l10n.signInWithGoogle),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 12),
+                Text(
+                  context.l10n.appTitle,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  context.l10n.appSubtitle,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        height: 1.35,
+                      ),
+                ),
+                const SizedBox(height: 40),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+                  decoration: BoxDecoration(
+                    color: scheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: borderColor),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: InputDecoration(labelText: context.l10n.email, border: const OutlineInputBorder()),
-                    keyboardType: TextInputType.emailAddress,
-                    autocorrect: false,
-                    validator: (v) => v == null || v.isEmpty ? context.l10n.enterEmail : null,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        context.l10n.signIn,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        context.l10n.signInWithGoogle,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 20),
+                      if (_error != null) ...[
+                        Text(
+                          _error!,
+                          style: TextStyle(color: scheme.error, fontSize: 13, height: 1.35),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      OutlinedButton(
+                        onPressed: _loading ? null : _signInWithGoogle,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: scheme.onSurface,
+                          side: BorderSide(color: borderColor),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: _loading
+                            ? SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: scheme.primary,
+                                ),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.account_circle_outlined, size: 22, color: scheme.primary),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    context.l10n.signInWithGoogle,
+                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _passwordController,
-                    decoration: InputDecoration(labelText: context.l10n.password, border: const OutlineInputBorder()),
-                    obscureText: true,
-                    validator: (v) => v == null || v.isEmpty ? context.l10n.enterPassword : null,
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: _loading ? null : _signInWithEmail,
-                    child: _loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(context.l10n.signIn),
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: () => context.push(AppRouter.register),
-                    child: Text(context.l10n.createAccount),
-                  ),
-
-                ],
-              ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  context.l10n.goToSettingsToSignIn,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.85),
+                        fontSize: 12,
+                      ),
+                ),
+              ],
             ),
           ),
         ),

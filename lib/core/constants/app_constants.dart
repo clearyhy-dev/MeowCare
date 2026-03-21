@@ -42,6 +42,20 @@ class AppConstants {
     'MEOWCARE_BACKEND_URL',
     defaultValue: 'https://meowcare-api-394032854754.asia-east1.run.app',
   );
+
+  /// Play / App Store link used in「分享 App」. Override: `--dart-define=MEOWCARE_APP_URL=https://...`
+  static const String appDownloadUrl = String.fromEnvironment(
+    'MEOWCARE_APP_URL',
+    defaultValue: 'https://play.google.com/store/apps/details?id=com.meowcare.meowcare',
+  );
+
+  /// 帖子 Web 分享链接前缀（占位，上线站点后替换）。`--dart-define=MEOWCARE_POST_WEB_BASE=https://example.com/p`
+  static const String postShareWebBase = String.fromEnvironment(
+    'MEOWCARE_POST_WEB_BASE',
+    defaultValue: 'https://meowcare.app/post',
+  );
+
+  static String postShareUrl(String postId) => '$postShareWebBase/$postId';
 }
 
 

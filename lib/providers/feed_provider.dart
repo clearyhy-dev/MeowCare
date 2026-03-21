@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/constants/app_constants.dart';
 import '../data/repositories/post_repository.dart';
+import '../data/upload/storage_repository.dart';
 import '../models/post_model.dart';
 
 final postRepositoryProvider = Provider<PostRepository>((ref) => PostRepository());
+
+final storageRepositoryProvider = Provider<StorageRepository>((ref) => StorageRepository());
 
 class FeedState {
   final List<PostModel> posts;

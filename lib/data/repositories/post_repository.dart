@@ -83,8 +83,11 @@ class PostRepository {
     List<String> topics = const [],
     String status = 'pending',
     String countryCode = '',
+    String language = 'en',
+    bool? hasImage,
   }) async {
     final ref = _firestore.collection(AppConstants.postsCollection).doc();
+    final inferredHasImage = hasImage ?? coverUrl.trim().isNotEmpty;
     final post = PostModel(
       postId: ref.id,
       type: 'ugc',
@@ -100,12 +103,26 @@ class PostRepository {
       commentCount: 0,
       score: 0,
       countryCode: countryCode,
+      language: language.isNotEmpty ? language.toLowerCase() : 'en',
+      hasImage: inferredHasImage ? true : null,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
 
     await ref.set(post.toMap());
     return post;
+  }
+
+  /// 发帖后上传封面图成功时更新 `coverUrl` / `hasImage`。
+  Future<void> updatePostCover({
+    required String postId,
+    required String coverUrl,
+  }) async {
+    await _firestore.collection(AppConstants.postsCollection).doc(postId).update({
+      'coverUrl': coverUrl,
+      'hasImage': true,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 }
 
