@@ -20,16 +20,10 @@ class MeowShare {
     BuildContext context, {
     required String postId,
     required String title,
-    String summary = '',
   }) async {
     final l10n = context.l10n;
     final url = AppConstants.postShareUrl(postId);
     final b = StringBuffer(title);
-    final s = summary.trim();
-    if (s.isNotEmpty) {
-      b.write('\n\n');
-      b.write(s);
-    }
     b.write('\n\n');
     b.write(l10n.sharePostLinkLine(url));
     b.write('\n\n');

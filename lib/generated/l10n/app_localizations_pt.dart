@@ -4,9 +4,9 @@ import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
 
-/// The translations for English (`en`).
-class AppLocalizationsEn extends AppLocalizations {
-  AppLocalizationsEn([String locale = 'en']) : super(locale);
+/// The translations for Portuguese (`pt`).
+class AppLocalizationsPt extends AppLocalizations {
+  AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
   String get appTitle => 'MeowCare';
@@ -508,17 +508,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get share => 'Share';
 
   @override
-  String get shareFromMeowCare => 'From MeowCare – cat care made simple';
+  String get shareFromMeowCare => 'From MeowCare - cat care made simple';
 
   @override
   String get shareAppMenu => 'Share MeowCare';
 
   @override
-  String get shareAppSubject => 'MeowCare — cat care & community';
+  String get shareAppSubject => 'MeowCare - cat care & community';
 
   @override
   String shareAppBody(String url) {
-    return 'MeowCare — cat care reminders, family sharing, and a friendly cat feed.\n\nGet the app:\n$url';
+    return 'MeowCare - cat care reminders, family sharing, and a friendly cat feed.\n\nGet the app:\n$url';
   }
 
   @override

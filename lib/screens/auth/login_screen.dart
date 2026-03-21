@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../generated/l10n/app_localizations.dart';
 import '../../providers/user_provider.dart';
 
 /// 用户端仅 Google 登录；视觉与 Feed 一致的社区风（紧凑、轻阴影、信息优先）。
@@ -38,7 +39,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      final msg = _errorMessageForLogin(e);
+      final msg = _errorMessageForLogin(e, context.l10n);
       setState(() {
         _loading = false;
         _error = msg;
@@ -46,16 +47,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  String _errorMessageForLogin(dynamic e) {
+  String _errorMessageForLogin(dynamic e, AppLocalizations l10n) {
     final s = e.toString().toLowerCase();
     if (s.contains('cloud_firestore') && s.contains('unavailable')) {
-      return 'Google 登录成功，但同步资料失败（网络或 Firestore 不可用）。请检查网络、关闭 VPN 后重试，并确认 Firebase 已创建 Firestore。';
+      return l10n.loginErrorFirestoreSync;
     }
     if (s.contains('12501') || s.contains('sign_in_failed') || s.contains('10')) {
-      return 'Google 登录配置有误：请在 Firebase 项目设置中添加当前应用的 SHA-1 指纹，并重新下载 google-services.json。';
+      return l10n.loginErrorGoogleConfig;
     }
     if (s.contains('network') || s.contains('socket')) {
-      return '网络异常，请检查网络后重试。';
+      return l10n.loginErrorNetwork;
     }
     return e.toString();
   }

@@ -16,38 +16,31 @@ db = firestore.client()
 
 class RewriteBody(BaseModel):
     content: str = Field(..., max_length=MAX_CONTENT_LENGTH)
-    summary: str = Field("", max_length=MAX_CONTENT_LENGTH)
     locale: str = ""
 
 
 @router.post("/rewrite")
 async def rewrite(body: RewriteBody, uid: str = Depends(require_uid)):
-    """Return rewritten content (and optionally summary) in the requested locale; does not write to DB."""
+    """Return rewritten content in the requested locale; does not write to DB."""
     lang_hint = ""
     if body.locale:
         lang_map = {"zh": "简体中文", "en": "English", "ja": "日本語", "ko": "한국어", "de": "Deutsch", "es": "Español", "fr": "Français", "ru": "Русский"}
         lang_hint = f" Output in {lang_map.get(body.locale, body.locale)}."
     if not GEMINI_API_KEY:
-        return {"content": body.content, "summary": body.summary}
+        return {"content": body.content}
     try:
         import google.generativeai as genai
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel("gemini-2.5-flash")
         out_content = body.content
-        out_summary = body.summary
         if body.content.strip():
             r = model.generate_content(
                 f"Rewrite the following text to be clearer and more polished. Keep the same meaning.{lang_hint}\n\n{body.content}"
             )
             out_content = r.text or body.content
-        if body.summary.strip():
-            r2 = model.generate_content(
-                f"Rewrite the following short summary to be clearer and concise. Keep the same meaning.{lang_hint}\n\n{body.summary}"
-            )
-            out_summary = r2.text or body.summary
-        return {"content": out_content, "summary": out_summary}
+        return {"content": out_content}
     except Exception:
-        return {"content": body.content, "summary": body.summary}
+        return {"content": body.content}
 
 
 class SymptomBody(BaseModel):
@@ -108,21 +101,20 @@ async def generate(body: GenerateBody, uid: str = Depends(require_admin)):
         model = genai.GenerativeModel("gemini-1.5-flash")
         created = 0
         for _ in range(min(body.count, 5)):
-            prompt = f"Write a short cat care article. Breed: {body.breed or 'any'}. Topic: {body.topic or 'general care'}. Output JSON with keys: title, summary, content (plain text)."
+            prompt = f"Write a short cat care article. Breed: {body.breed or 'any'}. Topic: {body.topic or 'general care'}. Output JSON with keys: title, content (plain text)."
             r = model.generate_content(prompt)
             text = r.text or "{}"
-            if "title" in text and "summary" in text:
+            if "title" in text:
                 import json
                 try:
-                    data = json.loads(text) if text.strip().startswith("{") else {"title": "Generated", "summary": "", "content": text}
+                    data = json.loads(text) if text.strip().startswith("{") else {"title": "Generated", "content": text}
                 except json.JSONDecodeError:
-                    data = {"title": "Generated", "summary": "", "content": text}
+                    data = {"title": "Generated", "content": text}
                 ref = db.collection("posts").document()
                 ref.set({
                     "type": "official",
                     "status": "draft",
                     "title": data.get("title", "Generated"),
-                    "summary": data.get("summary", ""),
                     "content": data.get("content", ""),
                     "coverUrl": "",
                     "breedIds": [body.breed] if body.breed else [],

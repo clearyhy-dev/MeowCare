@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/i18n/app_language_display.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/meow_share.dart';
 import '../../core/utils/topic_l10n.dart';
@@ -27,24 +28,6 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
   static const _kErrorPostNotFound = 'post_not_found';
   static const double _heroImageHeight = 160;
   static const double _imageRadius = 11;
-
-  static const Map<String, String> _languageChipLabels = {
-    'en': 'EN',
-    'zh': '中文',
-    'ja': '日本語',
-    'es': 'ES',
-    'fr': 'FR',
-    'de': 'DE',
-    'pt': 'PT',
-    'ru': 'RU',
-    'ko': '한국어',
-  };
-
-  static String _languageChipText(String code) {
-    final c = code.trim().toLowerCase();
-    if (c.isEmpty) return 'EN';
-    return _languageChipLabels[c] ?? c.toUpperCase();
-  }
 
   PostModel? _post;
   bool _loading = true;
@@ -108,7 +91,6 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                   context,
                   postId: widget.postId,
                   title: post.title,
-                  summary: post.summary,
                 ),
           ),
           IconButton(
@@ -157,7 +139,7 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                     runSpacing: 6,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      _DetailChip(text: _languageChipText(post.language)),
+                      _DetailChip(text: AppLanguageDisplay.chipLabel(post.language, context.l10n)),
                       if (hasCategory)
                         _DetailChip(text: feedTopicCategoryLabel(context, post.topics.first)),
                       if (_formatTime(post.createdAt).isNotEmpty)
@@ -207,17 +189,38 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                       ),
                     ),
                   ],
-                  if (post.summary.trim().isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      post.summary.trim(),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: onVar, height: 1.4),
-                    ),
-                  ],
                   const SizedBox(height: 14),
                   Row(
                     children: [
-                      Icon(Icons.favorite_border, size: 18, color: onVar),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                        icon: Icon(
+                          isLikedAsync.valueOrNull == true ? Icons.favorite : Icons.favorite_border,
+                          size: 18,
+                          color: isLikedAsync.valueOrNull == true ? scheme.primary : onVar,
+                        ),
+                        onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final l10n = context.l10n;
+                          if (user == null) {
+                            messenger.showSnackBar(
+                              SnackBar(content: Text(l10n.signInForFullFeatures)),
+                            );
+                            return;
+                          }
+                          try {
+                            await toggleLike(ref, widget.postId);
+                            ref.invalidate(feedProvider);
+                            _load();
+                          } catch (e) {
+                            messenger.showSnackBar(
+                              SnackBar(content: Text(l10n.errorWithMessage(e.toString()))),
+                            );
+                          }
+                        },
+                      ),
                       const SizedBox(width: 4),
                       Text('${post.likeCount}', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: onVar)),
                       const SizedBox(width: 18),
@@ -230,20 +233,18 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                   Divider(height: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
                   const SizedBox(height: 16),
                   _linkedPostContent(context, post.content),
-                  if (user != null) ...[
-                    const SizedBox(height: 24),
-                    Divider(height: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
-                    const SizedBox(height: 12),
-                    Text(context.l10n.comments, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    CommentList(
-                      postId: widget.postId,
-                      currentUid: user.uid,
-                      onCommentAdded: _load,
-                      currentUserDisplayName: user.displayName.isNotEmpty ? user.displayName : user.email,
-                      currentUserPhotoUrl: user.photoUrl.isNotEmpty ? user.photoUrl : null,
-                    ),
-                  ],
+                  const SizedBox(height: 24),
+                  Divider(height: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
+                  const SizedBox(height: 12),
+                  Text(context.l10n.comments, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  CommentList(
+                    postId: widget.postId,
+                    currentUid: user?.uid,
+                    onCommentAdded: _load,
+                    currentUserDisplayName: user != null && user.displayName.isNotEmpty ? user.displayName : user?.email,
+                    currentUserPhotoUrl: user != null && user.photoUrl.isNotEmpty ? user.photoUrl : null,
+                  ),
                 ],
               ),
             ),

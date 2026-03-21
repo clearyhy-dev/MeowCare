@@ -12,14 +12,14 @@ class CommentList extends ConsumerStatefulWidget {
   const CommentList({
     super.key,
     required this.postId,
-    required this.currentUid,
+    this.currentUid,
     required this.onCommentAdded,
     this.currentUserDisplayName,
     this.currentUserPhotoUrl,
   });
 
   final String postId;
-  final String currentUid;
+  final String? currentUid;
   final VoidCallback onCommentAdded;
   /// 当前登录用户显示名（发评论时写入，列表显示为“Google 账号/昵称”）
   final String? currentUserDisplayName;
@@ -68,16 +68,33 @@ class _CommentListState extends ConsumerState<CommentList> {
   Future<void> _submit() async {
     final content = _contentController.text.trim();
     if (content.isEmpty) return;
-    _contentController.clear();
-    await ref.read(commentRepositoryProvider).addComment(
-          postId: widget.postId,
-          authorId: widget.currentUid,
-          content: content,
-          authorDisplayName: widget.currentUserDisplayName,
-          authorPhotoUrl: widget.currentUserPhotoUrl,
+    final currentUid = widget.currentUid;
+    if (currentUid == null || currentUid.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.signInForFullFeatures)),
         );
-    widget.onCommentAdded();
-    _loadFirst();
+      }
+      return;
+    }
+    _contentController.clear();
+    try {
+      await ref.read(commentRepositoryProvider).addComment(
+            postId: widget.postId,
+            authorId: currentUid,
+            content: content,
+            authorDisplayName: widget.currentUserDisplayName,
+            authorPhotoUrl: widget.currentUserPhotoUrl,
+          );
+      widget.onCommentAdded();
+      _loadFirst();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.errorWithMessage(e.toString()))),
+        );
+      }
+    }
   }
 
   @override
@@ -87,8 +104,9 @@ class _CommentListState extends ConsumerState<CommentList> {
       children: [
         TextField(
           controller: _contentController,
+          enabled: (widget.currentUid ?? '').isNotEmpty,
           decoration: InputDecoration(
-            hintText: context.l10n.comments,
+            hintText: (widget.currentUid ?? '').isNotEmpty ? context.l10n.comments : context.l10n.signInForFullFeatures,
             suffixIcon: IconButton(icon: const Icon(Icons.send), onPressed: _submit),
             border: const OutlineInputBorder(),
           ),

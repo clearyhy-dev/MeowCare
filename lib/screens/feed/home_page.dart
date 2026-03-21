@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/router/app_router.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/meow_share.dart';
+import '../../core/i18n/app_language_display.dart';
 import '../../core/utils/topic_l10n.dart';
 import '../../models/post_model.dart';
 import '../../providers/bookmark_provider.dart';
@@ -58,7 +59,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     final feedState = ref.watch(feedProvider);
     final breedsAsync = ref.watch(breedsFutureProvider);
-    final locale = Localizations.localeOf(context).languageCode;
+    final locale = ref.watch(effectiveUILanguageCodeProvider);
     final user = ref.watch(currentUserAsyncProvider).valueOrNull;
     ref.listen<AsyncValue<String?>>(appCountryProvider, (prev, next) {
       if (!next.hasValue) return;
@@ -357,24 +358,6 @@ class _PostCard extends ConsumerWidget {
   static const double _imageHeight = 148;
   static const double _imageRadius = 11;
 
-  static const Map<String, String> _languageChipLabels = {
-    'en': 'EN',
-    'zh': '中文',
-    'ja': '日本語',
-    'es': 'ES',
-    'fr': 'FR',
-    'de': 'DE',
-    'pt': 'PT',
-    'ru': 'RU',
-    'ko': '한국어',
-  };
-
-  static String _languageChipText(String code) {
-    final c = code.trim().toLowerCase();
-    if (c.isEmpty) return 'EN';
-    return _languageChipLabels[c] ?? c.toUpperCase();
-  }
-
   static String _formatTime(DateTime? t) {
     if (t == null) return '';
     final now = DateTime.now();
@@ -396,8 +379,7 @@ class _PostCard extends ConsumerWidget {
       height: 1.22,
       fontSize: (theme.textTheme.titleMedium?.fontSize ?? 16) + 1,
     );
-    final summary = post.summary.trim();
-    final langText = _languageChipText(post.language);
+    final langText = AppLanguageDisplay.chipLabel(post.language, context.l10n);
     final timeText = _formatTime(post.createdAt);
     final hasCategory = post.topics.isNotEmpty;
     final categoryText = hasCategory ? feedTopicCategoryLabel(context, post.topics.first) : '';
@@ -475,19 +457,6 @@ class _PostCard extends ConsumerWidget {
                   ),
                 ),
               ],
-              if (summary.isNotEmpty) ...[
-                const SizedBox(height: 5),
-                Text(
-                  summary,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: onSurfaceVariant,
-                    height: 1.32,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
               const SizedBox(height: 2),
               Row(
                 children: [
@@ -528,7 +497,6 @@ class _PostCard extends ConsumerWidget {
                         context,
                         postId: post.postId,
                         title: post.title,
-                        summary: post.summary,
                       );
                     },
                   ),

@@ -5,7 +5,6 @@ class PostModel {
   final String type; // 'official' | 'ugc'
   final String status; // 'published' | 'draft' | 'pending' | 'rejected'
   final String title;
-  final String summary;
   final String content;
   final String coverUrl;
   /// 可选缩略图；为空时 Feed 使用 [coverUrl]。
@@ -32,7 +31,6 @@ class PostModel {
     required this.type,
     required this.status,
     required this.title,
-    this.summary = '',
     this.content = '',
     this.coverUrl = '',
     this.thumbnailUrl = '',
@@ -69,7 +67,6 @@ class PostModel {
       'type': type,
       'status': status,
       'title': title,
-      'summary': summary,
       'content': content,
       'coverUrl': coverUrl,
       'thumbnailUrl': thumbnailUrl,
@@ -101,7 +98,6 @@ class PostModel {
       type: map['type'] as String? ?? 'ugc',
       status: map['status'] as String? ?? 'draft',
       title: map['title'] as String? ?? '',
-      summary: map['summary'] as String? ?? '',
       content: map['content'] as String? ?? '',
       coverUrl: map['coverUrl'] as String? ?? '',
       thumbnailUrl: map['thumbnailUrl'] as String? ?? '',

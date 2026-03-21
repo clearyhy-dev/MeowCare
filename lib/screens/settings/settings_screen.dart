@@ -6,8 +6,11 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/enums.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/i18n/app_language_display.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/meow_share.dart';
+import '../../providers/locale_provider.dart';
+import '../../widgets/settings/app_language_sheet.dart';
 import '../../providers/family_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../providers/user_provider.dart';
@@ -30,7 +33,7 @@ class SettingsScreen extends ConsumerWidget {
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
       ),
       body: user == null
-          ? SettingsScreen._buildNotSignedIn(context)
+          ? _buildNotSignedIn(context, ref)
           : ListView(
               children: [
                 const SizedBox(height: 16),
@@ -41,6 +44,19 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   title: Text(user.displayName.isNotEmpty ? user.displayName : context.l10n.me),
                   subtitle: Text(user.email),
+                ),
+                const Divider(),
+                ListTile(
+                  leading: Icon(Icons.language_outlined, color: Theme.of(context).colorScheme.primary),
+                  title: Text(context.l10n.appLanguage),
+                  subtitle: Text(
+                    ref.watch(appLocaleProvider).valueOrNull == null
+                        ? '${context.l10n.languageFollowSystem} · ${AppLanguageDisplay.fullName(ref.watch(effectiveUILanguageCodeProvider), context.l10n)}'
+                        : AppLanguageDisplay.fullName(ref.watch(appLocaleProvider).valueOrNull!.languageCode, context.l10n),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => showAppLanguageSheet(context, ref),
                 ),
                 const Divider(),
                 ListTile(
@@ -97,7 +113,7 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  static Widget _buildNotSignedIn(BuildContext context) {
+  Widget _buildNotSignedIn(BuildContext context, WidgetRef ref) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -107,6 +123,20 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             Text(context.l10n.signInForFullFeatures, style: Theme.of(context).textTheme.bodyLarge, textAlign: TextAlign.center),
 
+            const SizedBox(height: 16),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.language_outlined, color: Theme.of(context).colorScheme.primary),
+              title: Text(context.l10n.appLanguage),
+              subtitle: Text(
+                ref.watch(appLocaleProvider).valueOrNull == null
+                    ? '${context.l10n.languageFollowSystem} · ${AppLanguageDisplay.fullName(ref.watch(effectiveUILanguageCodeProvider), context.l10n)}'
+                    : AppLanguageDisplay.fullName(ref.watch(appLocaleProvider).valueOrNull!.languageCode, context.l10n),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => showAppLanguageSheet(context, ref),
+            ),
             const SizedBox(height: 24),
             OutlinedButton.icon(
               icon: const Icon(Icons.account_circle_outlined),

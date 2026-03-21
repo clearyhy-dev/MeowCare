@@ -401,7 +401,6 @@ async def build_post_dict(
         "type": "official",
         "status": status,
         "title": title[:200],
-        "summary": summary[:500],
         "content": content[:50000],
         "coverUrl": cover_url[:2000],
         "thumbnailUrl": (thumbnail_url[:2000] if thumbnail_url else ""),

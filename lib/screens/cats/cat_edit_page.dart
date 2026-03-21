@@ -13,6 +13,7 @@ import '../../widgets/network_avatar.dart';
 
 import '../../models/cat_model.dart';
 import '../../providers/breed_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
 import 'my_cats_page.dart';
 
@@ -152,7 +153,7 @@ class _CatEditPageState extends ConsumerState<CatEditPage> {
                 hint: Text(context.l10n.selectBreed),
                 items: [
                   DropdownMenuItem(value: '', child: Text(context.l10n.noneOption)),
-                  ...breeds.map((b) => DropdownMenuItem(value: b.breedId, child: Text(b.displayName(Localizations.localeOf(context).languageCode)))),
+                  ...breeds.map((b) => DropdownMenuItem(value: b.breedId, child: Text(b.displayName(ref.watch(effectiveUILanguageCodeProvider))))),
                 ],
                 onChanged: (v) => setState(() => _breedId = v ?? ''),
               ),

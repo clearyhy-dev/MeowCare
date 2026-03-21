@@ -37,7 +37,7 @@ class BookmarkPage extends ConsumerWidget {
               final post = result.list[index];
               return ListTile(
                 title: Text(post.title),
-                subtitle: Text(post.summary),
+                subtitle: Text(post.content, maxLines: 2, overflow: TextOverflow.ellipsis),
                 onTap: () => context.push('${AppRouter.home}post/${post.postId}'),
               );
             },

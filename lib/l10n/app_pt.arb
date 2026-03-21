@@ -1,5 +1,5 @@
 {
-  "@@locale": "en",
+  "@@locale": "pt",
   "appTitle": "MeowCare",
   "appSubtitle": "Family Feeding & Health Reminder",
   "feed": "Feed",
@@ -174,10 +174,10 @@
   "report": "Report",
   "reason": "Reason",
   "share": "Share",
-  "shareFromMeowCare": "From MeowCare – cat care made simple",
+  "shareFromMeowCare": "From MeowCare - cat care made simple",
   "shareAppMenu": "Share MeowCare",
-  "shareAppSubject": "MeowCare — cat care & community",
-  "shareAppBody": "MeowCare — cat care reminders, family sharing, and a friendly cat feed.\n\nGet the app:\n{url}",
+  "shareAppSubject": "MeowCare - cat care & community",
+  "shareAppBody": "MeowCare - cat care reminders, family sharing, and a friendly cat feed.\n\nGet the app:\n{url}",
   "@shareAppBody": {
     "placeholders": {
       "url": {

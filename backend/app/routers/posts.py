@@ -27,7 +27,6 @@ async def create_official_post(body: dict[str, Any], uid: str = Depends(require_
         "type": "official",
         "status": body.get("status", "draft"),
         "title": body.get("title", ""),
-        "summary": body.get("summary", ""),
         "content": body.get("content", ""),
         "coverUrl": body.get("coverUrl", ""),
         "breedIds": body.get("breedIds", []),
@@ -47,7 +46,7 @@ async def create_official_post(body: dict[str, Any], uid: str = Depends(require_
 async def update_post(post_id: str, body: dict[str, Any], uid: str = Depends(require_admin)):
     ref = _get_post_ref(post_id)
     upd = {"updatedAt": firestore.SERVER_TIMESTAMP}
-    for key in ("title", "summary", "content", "coverUrl", "breedIds", "topics"):
+    for key in ("title", "content", "coverUrl", "breedIds", "topics"):
         if key in body:
             upd[key] = body[key]
     ref.update(upd)
@@ -100,7 +99,6 @@ async def list_posts_admin(
         items.append({
             "postId": d.id,
             "title": data.get("title", ""),
-            "summary": data.get("summary", ""),
             "status": data.get("status", ""),
             "createdAt": created,
             "score": data.get("score", 0),

@@ -35,6 +35,8 @@ if _gac and not os.path.isfile(_gac):
 import firebase_admin
 from firebase_admin import firestore
 
+SUPPORTED_LANGUAGES = {"en", "zh", "ja", "es", "fr", "de", "pt", "ru", "ko"}
+
 
 def _init_firebase() -> None:
     if firebase_admin._apps:
@@ -88,24 +90,44 @@ def backfill_posts_fields(*, dry_run: bool, limit: int = 1000) -> None:
     for d in docs:
         data = d.to_dict() or {}
         upd = {}
+        cover_url = str(data.get("coverUrl", "") or "").strip()
+        language = str(data.get("language", "") or "").strip().lower()
         if "type" not in data:
             upd["type"] = "official"
         if "status" not in data:
             upd["status"] = "published"
+        if "title" not in data:
+            upd["title"] = ""
+        if "content" not in data:
+            upd["content"] = ""
         if "coverUrl" not in data:
             upd["coverUrl"] = ""
+        if "thumbnailUrl" not in data:
+            upd["thumbnailUrl"] = ""
         if "breedIds" not in data:
             upd["breedIds"] = []
         if "topics" not in data:
             upd["topics"] = ["care"]
         if "authorId" not in data:
             upd["authorId"] = "admin"
+        if "countryCode" not in data:
+            upd["countryCode"] = ""
+        if "redditPermalink" not in data:
+            upd["redditPermalink"] = ""
+        if "language" not in data:
+            upd["language"] = "en"
+        elif not language or language not in SUPPORTED_LANGUAGES:
+            upd["language"] = "en"
         if "likeCount" not in data:
             upd["likeCount"] = 0
         if "commentCount" not in data:
             upd["commentCount"] = 0
         if "score" not in data:
             upd["score"] = 0.0
+        if "hasImage" not in data:
+            upd["hasImage"] = bool(cover_url)
+        if "createdAt" not in data:
+            upd["createdAt"] = firestore.SERVER_TIMESTAMP
         if "updatedAt" not in data:
             upd["updatedAt"] = firestore.SERVER_TIMESTAMP
         if not upd:

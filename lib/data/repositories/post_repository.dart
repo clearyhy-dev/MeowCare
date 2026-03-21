@@ -76,7 +76,6 @@ class PostRepository {
   Future<PostModel> createPost({
     required String authorId,
     required String title,
-    String summary = '',
     String content = '',
     String coverUrl = '',
     List<String> breedIds = const [],
@@ -93,7 +92,6 @@ class PostRepository {
       type: 'ugc',
       status: status,
       title: title,
-      summary: summary,
       content: content,
       coverUrl: coverUrl,
       breedIds: breedIds,

@@ -11,6 +11,7 @@ import 'app_localizations_es.dart';
 import 'app_localizations_fr.dart';
 import 'app_localizations_ja.dart';
 import 'app_localizations_ko.dart';
+import 'app_localizations_pt.dart';
 import 'app_localizations_ru.dart';
 import 'app_localizations_zh.dart';
 
@@ -106,6 +107,7 @@ abstract class AppLocalizations {
     Locale('fr'),
     Locale('ja'),
     Locale('ko'),
+    Locale('pt'),
     Locale('ru'),
     Locale('zh')
   ];
@@ -1351,6 +1353,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Day 7: Establish routine'**
   String get planDay7;
+
+  /// No description provided for @appLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'App language'**
+  String get appLanguage;
+
+  /// No description provided for @profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profile;
+
+  /// No description provided for @chooseAppLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose app language'**
+  String get chooseAppLanguage;
+
+  /// No description provided for @loginErrorFirestoreSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in with Google, but profile sync failed (network or Firestore). Check your network, try without VPN, and ensure Firestore is enabled.'**
+  String get loginErrorFirestoreSync;
+
+  /// No description provided for @loginErrorGoogleConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Sign-In setup: add your app\'s SHA-1 in Firebase and re-download google-services.json.'**
+  String get loginErrorGoogleConfig;
+
+  /// No description provided for @loginErrorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Network error. Check your connection and try again.'**
+  String get loginErrorNetwork;
+
+  /// No description provided for @languageTagEn.
+  ///
+  /// In en, this message translates to:
+  /// **'EN'**
+  String get languageTagEn;
+
+  /// No description provided for @languageTagZh.
+  ///
+  /// In en, this message translates to:
+  /// **'中文'**
+  String get languageTagZh;
+
+  /// No description provided for @languageTagJa.
+  ///
+  /// In en, this message translates to:
+  /// **'日本語'**
+  String get languageTagJa;
+
+  /// No description provided for @languageTagEs.
+  ///
+  /// In en, this message translates to:
+  /// **'ES'**
+  String get languageTagEs;
+
+  /// No description provided for @languageTagFr.
+  ///
+  /// In en, this message translates to:
+  /// **'FR'**
+  String get languageTagFr;
+
+  /// No description provided for @languageTagDe.
+  ///
+  /// In en, this message translates to:
+  /// **'DE'**
+  String get languageTagDe;
+
+  /// No description provided for @languageTagPt.
+  ///
+  /// In en, this message translates to:
+  /// **'PT'**
+  String get languageTagPt;
+
+  /// No description provided for @languageTagRu.
+  ///
+  /// In en, this message translates to:
+  /// **'RU'**
+  String get languageTagRu;
+
+  /// No description provided for @languageTagKo.
+  ///
+  /// In en, this message translates to:
+  /// **'한국어'**
+  String get languageTagKo;
+
+  /// No description provided for @languageNameEn.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get languageNameEn;
+
+  /// No description provided for @languageNameZh.
+  ///
+  /// In en, this message translates to:
+  /// **'简体中文'**
+  String get languageNameZh;
+
+  /// No description provided for @languageNameJa.
+  ///
+  /// In en, this message translates to:
+  /// **'日本語'**
+  String get languageNameJa;
+
+  /// No description provided for @languageNameEs.
+  ///
+  /// In en, this message translates to:
+  /// **'Español'**
+  String get languageNameEs;
+
+  /// No description provided for @languageNameFr.
+  ///
+  /// In en, this message translates to:
+  /// **'Français'**
+  String get languageNameFr;
+
+  /// No description provided for @languageNameDe.
+  ///
+  /// In en, this message translates to:
+  /// **'Deutsch'**
+  String get languageNameDe;
+
+  /// No description provided for @languageNamePt.
+  ///
+  /// In en, this message translates to:
+  /// **'Português'**
+  String get languageNamePt;
+
+  /// No description provided for @languageNameRu.
+  ///
+  /// In en, this message translates to:
+  /// **'Русский'**
+  String get languageNameRu;
+
+  /// No description provided for @languageNameKo.
+  ///
+  /// In en, this message translates to:
+  /// **'한국어'**
+  String get languageNameKo;
 }
 
 class _AppLocalizationsDelegate
@@ -1370,6 +1516,7 @@ class _AppLocalizationsDelegate
         'fr',
         'ja',
         'ko',
+        'pt',
         'ru',
         'zh'
       ].contains(locale.languageCode);
@@ -1393,6 +1540,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsJa();
     case 'ko':
       return AppLocalizationsKo();
+    case 'pt':
+      return AppLocalizationsPt();
     case 'ru':
       return AppLocalizationsRu();
     case 'zh':

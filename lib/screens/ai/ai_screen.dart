@@ -8,6 +8,7 @@ import '../../core/router/app_router.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../providers/cat_provider.dart';
 import '../../providers/subscription_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../services/ai_service.dart';
 
@@ -38,7 +39,7 @@ class _AIScreenState extends ConsumerState<AIScreen> {
       setState(() => _error = context.l10n.aiErrorDescribeSymptom);
       return;
     }
-    final locale = Localizations.localeOf(context).languageCode;
+    final locale = ref.read(effectiveUILanguageCodeProvider);
     final uid = ref.read(authServiceProvider).currentUid;
 
     if (uid == null) return;

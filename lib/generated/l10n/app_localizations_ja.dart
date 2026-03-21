@@ -650,4 +650,79 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get planDay7 => '7日目: ルーティン';
+
+  @override
+  String get appLanguage => 'App language';
+
+  @override
+  String get profile => 'Profile';
+
+  @override
+  String get chooseAppLanguage => 'Choose app language';
+
+  @override
+  String get loginErrorFirestoreSync =>
+      'Signed in with Google, but profile sync failed (network or Firestore). Check your network, try without VPN, and ensure Firestore is enabled.';
+
+  @override
+  String get loginErrorGoogleConfig =>
+      'Google Sign-In setup: add your app\'s SHA-1 in Firebase and re-download google-services.json.';
+
+  @override
+  String get loginErrorNetwork =>
+      'Network error. Check your connection and try again.';
+
+  @override
+  String get languageTagEn => 'EN';
+
+  @override
+  String get languageTagZh => '中文';
+
+  @override
+  String get languageTagJa => '日本語';
+
+  @override
+  String get languageTagEs => 'ES';
+
+  @override
+  String get languageTagFr => 'FR';
+
+  @override
+  String get languageTagDe => 'DE';
+
+  @override
+  String get languageTagPt => 'PT';
+
+  @override
+  String get languageTagRu => 'RU';
+
+  @override
+  String get languageTagKo => '한국어';
+
+  @override
+  String get languageNameEn => 'English';
+
+  @override
+  String get languageNameZh => '简体中文';
+
+  @override
+  String get languageNameJa => '日本語';
+
+  @override
+  String get languageNameEs => 'Español';
+
+  @override
+  String get languageNameFr => 'Français';
+
+  @override
+  String get languageNameDe => 'Deutsch';
+
+  @override
+  String get languageNamePt => 'Português';
+
+  @override
+  String get languageNameRu => 'Русский';
+
+  @override
+  String get languageNameKo => '한국어';
 }

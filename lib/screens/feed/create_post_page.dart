@@ -27,7 +27,6 @@ class CreatePostPage extends ConsumerStatefulWidget {
 
 class _CreatePostPageState extends ConsumerState<CreatePostPage> {
   final _titleController = TextEditingController();
-  final _summaryController = TextEditingController();
   final _contentController = TextEditingController();
   List<String> _topics = [];
   List<String> _breedIds = [];
@@ -40,7 +39,6 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
   @override
   void dispose() {
     _titleController.dispose();
-    _summaryController.dispose();
     _contentController.dispose();
     super.dispose();
   }
@@ -67,7 +65,7 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
   }
 
   Future<void> _onAiRewrite() async {
-    final locale = Localizations.localeOf(context).languageCode;
+    final locale = ref.read(effectiveUILanguageCodeProvider);
     final baseUrl = AppConstants.backendBaseUrl;
     if (baseUrl.isEmpty) {
       if (mounted) {
@@ -95,7 +93,6 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
         },
         body: jsonEncode({
           'content': _contentController.text,
-          'summary': '',
           'locale': locale,
         }),
       );
@@ -108,10 +105,8 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
       }
       final data = jsonDecode(res.body) as Map<String, dynamic>?;
       final content = data?['content'] as String?;
-      final summary = data?['summary'] as String?;
       if (content != null) _contentController.text = content;
-      if (summary != null) _summaryController.text = summary;
-      if (content != null || summary != null) {
+      if (content != null) {
         setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.l10n.contentUpdated)),
@@ -136,11 +131,10 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
     setState(() => _loading = true);
     try {
       final countryCode = ref.read(appCountryProvider).valueOrNull ?? '';
-      final lang = Localizations.localeOf(context).languageCode;
+      final lang = ref.read(effectiveUILanguageCodeProvider);
       final post = await ref.read(postRepositoryProvider).createPost(
             authorId: user.uid,
             title: title,
-            summary: _summaryController.text.trim(),
             content: _contentController.text.trim(),
             coverUrl: '',
             breedIds: _breedIds,
@@ -181,7 +175,7 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
   @override
   Widget build(BuildContext context) {
     final breedsAsync = ref.watch(breedsFutureProvider);
-    final locale = Localizations.localeOf(context).languageCode;
+    final locale = ref.watch(effectiveUILanguageCodeProvider);
     final scheme = Theme.of(context).colorScheme;
     final divider = Theme.of(context).dividerColor.withValues(alpha: 0.45);
 
@@ -270,25 +264,6 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
               ),
             ],
             Divider(height: 22, thickness: 0.7, color: divider),
-            Text(
-              context.l10n.summary,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onSurfaceVariant,
-                  ),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _summaryController,
-              decoration: const InputDecoration(
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 0),
-                border: InputBorder.none,
-              ),
-              maxLines: 2,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            Divider(height: 20, thickness: 0.7, color: divider),
             Text(
               context.l10n.content,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
