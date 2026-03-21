@@ -22,6 +22,7 @@ import '../../screens/settings/settings_screen.dart';
 import '../../screens/subscription/subscription_screen.dart';
 import '../../screens/tasks/tasks_screen.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/app/primary_fab.dart';
 
 class AppRouter {
   AppRouter._();
@@ -174,7 +175,7 @@ class MainShell extends ConsumerWidget {
     return Scaffold(
       body: const HomePage(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: PrimaryFab(
         tooltip: context.l10n.createPost,
         onPressed: () {
           if (user == null) {
@@ -183,7 +184,6 @@ class MainShell extends ConsumerWidget {
           }
           context.push('${AppRouter.home}post/create');
         },
-        child: const Icon(Icons.add),
       ),
 
       bottomNavigationBar: NavigationBar(

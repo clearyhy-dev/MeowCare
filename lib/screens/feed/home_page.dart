@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import '../../core/router/app_router.dart';
+import '../../core/utils/app_feedback.dart';
 import '../../core/utils/l10n_ext.dart';
-import '../../core/utils/meow_share.dart';
-import '../../core/i18n/app_language_display.dart';
 import '../../core/utils/topic_l10n.dart';
-import '../../models/post_model.dart';
 import '../../providers/breed_provider.dart';
 import '../../providers/feed_provider.dart';
-import '../../providers/like_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/app/app_empty_state.dart';
+import '../../widgets/post/post_card.dart';
+import '../../widgets/post/post_card_skeleton.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -88,6 +86,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
               TabBar(
                 controller: _tabController,
                 onTap: (i) {
+                  AppFeedback.selection();
                   final country = ref.read(appCountryProvider).valueOrNull;
                   ref.read(feedProvider.notifier).loadFirst(
                     orderByCreated: i == 0,
@@ -112,6 +111,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                       value: _selectedBreedId,
                       options: breedsAsync.valueOrNull?.map((b) => MapEntry(b.breedId, b.displayName(locale))).toList() ?? [],
                       onSelected: (id) {
+                        AppFeedback.selection();
                         setState(() {
                           _selectedBreedId = id;
                           _selectedTopic = null;
@@ -126,6 +126,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                       value: _selectedTopic,
                       options: _topics.map((t) => MapEntry(t, topicLabel(context, t))).toList(),
                       onSelected: (id) {
+                        AppFeedback.selection();
                         setState(() {
                           _selectedTopic = id;
                           _selectedBreedId = null;
@@ -168,30 +169,9 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
               ),
             )
           : feedState.loading && feedState.posts.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const CircularProgressIndicator(),
-                      const SizedBox(height: 16),
-                      Text(
-                        context.l10n.loadingRegionContent,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                      ),
-                    ],
-                  ),
-                )
+              ? const _FeedLoadingSkeleton()
               : (!feedState.loading && feedState.posts.isEmpty)
-                  ? Center(
-                      child: Text(
-                        context.l10n.feedNoContent,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                      ),
-                    )
+                  ? AppEmptyState(message: context.l10n.feedNoContent, icon: Icons.forum_outlined)
                   : RefreshIndicator(
                   onRefresh: () async {
                     ref.invalidate(redditTrendingProvider);
@@ -230,10 +210,9 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                         return const SizedBox.shrink();
                       }
                       final post = feedState.posts[postIndex];
-                      final postId = post.postId;
-                      return _PostCard(
+                      return PostCard(
                         post: post,
-                        onOpenPost: () => context.push('${AppRouter.postDetail}/$postId'),
+                        onOpenPost: () => context.push('${AppRouter.postDetail}/${post.postId}'),
                       );
                     },
                   ),
@@ -337,284 +316,63 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final matches = options.where((e) => e.key == value).toList();
     final displayText = value == null ? label : (matches.isEmpty ? (value ?? label) : matches.first.value);
 
     return PopupMenuButton<String?>(
       onSelected: onSelected,
       tooltip: label,
-      child: Chip(
-        avatar: const Icon(Icons.tune, size: 18),
-        label: Text(displayText),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: value == null ? scheme.surfaceContainerLow : scheme.primaryContainer.withValues(alpha: 0.75),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: scheme.outline.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.tune_rounded, size: 16, color: value == null ? scheme.onSurfaceVariant : scheme.primary),
+            const SizedBox(width: 6),
+            Text(
+              displayText,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: value == null ? scheme.onSurface : scheme.primary,
+                  ),
+            ),
+          ],
+        ),
       ),
       itemBuilder: (context) => [
-        PopupMenuItem(value: null, child: Text(allLabel)),
+        PopupMenuItem(
+          value: null,
+          child: Row(
+            children: [
+              if (value == null) Icon(Icons.check_rounded, size: 16, color: Theme.of(context).colorScheme.primary),
+              if (value == null) const SizedBox(width: 6),
+              Text(allLabel),
+            ],
+          ),
+        ),
         ...options.map((e) => PopupMenuItem(value: e.key, child: Text(e.value))),
       ],
     );
   }
 }
 
-/// Reddit 风格紧凑 Feed 卡片：信息优先、小图、轻分割；支持点赞、评论跳转、分享、收藏。
-class _PostCard extends ConsumerWidget {
-  const _PostCard({required this.post, required this.onOpenPost});
-
-  final PostModel post;
-  final VoidCallback onOpenPost;
-
-  static const double _imageHeight = 148;
-  static const double _imageRadius = 11;
-
-  static String _formatTime(DateTime? t) {
-    if (t == null) return '';
-    final now = DateTime.now();
-    final diff = now.difference(t);
-    if (diff.inMinutes < 1) return 'now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
-    if (diff.inHours < 24) return '${diff.inHours}h';
-    if (diff.inDays < 7) return '${diff.inDays}d';
-    return DateFormat.MMMd().format(t);
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final onSurfaceVariant = scheme.onSurfaceVariant;
-    final titleStyle = theme.textTheme.titleMedium?.copyWith(
-      fontWeight: FontWeight.w700,
-      height: 1.22,
-      fontSize: (theme.textTheme.titleMedium?.fontSize ?? 16) + 1,
-    );
-    final langText = AppLanguageDisplay.chipLabel(post.language, context.l10n);
-    final timeText = _formatTime(post.createdAt);
-    final hasCategory = post.topics.isNotEmpty;
-    final categoryText = hasCategory ? feedTopicCategoryLabel(context, post.topics.first) : '';
-    final myVote = ref.watch(myEffectiveVoteProvider(post.postId));
-    final voteUi = ref.watch(voteUiStateProvider(post.postId));
-    final displayedUp = post.likeCount + (voteUi?.upDelta ?? 0);
-    final displayedDown = post.downvoteCount + (voteUi?.downDelta ?? 0);
-
-    return Material(
-      color: scheme.surface,
-      child: InkWell(
-        onTap: onOpenPost,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(12, 8, 6, 6),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.4)),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  _FeedChip(text: langText),
-                  if (hasCategory) ...[
-                    const SizedBox(width: 6),
-                    _FeedChip(text: categoryText),
-                  ],
-                  const Spacer(),
-                  if (timeText.isNotEmpty)
-                    Text(
-                      timeText,
-                      style: theme.textTheme.labelSmall?.copyWith(color: onSurfaceVariant, fontSize: 11.5),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(post.title, style: titleStyle),
-              if (post.shouldShowImage) ...[
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(_imageRadius),
-                  child: SizedBox(
-                    height: _imageHeight,
-                    width: double.infinity,
-                    child: Image.network(
-                      post.displayImageUrl,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.center,
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        final total = progress.expectedTotalBytes;
-                        return ColoredBox(
-                          color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                          child: Center(
-                            child: SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                value: total != null && total > 0 ? progress.cumulativeBytesLoaded / total : null,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                      errorBuilder: (_, __, ___) => ColoredBox(
-                        color: scheme.surfaceContainerHighest,
-                        child: Center(child: Icon(Icons.broken_image_outlined, size: 28, color: onSurfaceVariant)),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 2),
-              Row(
-                children: [
-                  _PostActionIcon(
-                    icon: Icons.arrow_upward,
-                    label: '${displayedUp < 0 ? 0 : displayedUp}',
-                    color: myVote == 1 ? scheme.primary : onSurfaceVariant,
-                    tooltip: context.l10n.likes,
-                    onPressed: () async {
-                      final messenger = ScaffoldMessenger.of(context);
-                      final l10n = context.l10n;
-                      final user = ref.read(currentUserAsyncProvider).valueOrNull;
-                      if (user == null) {
-                        messenger.showSnackBar(
-                          SnackBar(content: Text(l10n.signInForFullFeatures)),
-                        );
-                        return;
-                      }
-                      try {
-                        await toggleUpvote(ref, post.postId);
-                      } catch (e) {
-                        messenger.showSnackBar(
-                          SnackBar(content: Text(l10n.errorWithMessage(e.toString()))),
-                        );
-                      }
-                    },
-                  ),
-                  _PostActionIcon(
-                    icon: Icons.arrow_downward,
-                    label: '${displayedDown < 0 ? 0 : displayedDown}',
-                    color: myVote == -1 ? scheme.error : onSurfaceVariant,
-                    tooltip: 'Downvote',
-                    onPressed: () async {
-                      final messenger = ScaffoldMessenger.of(context);
-                      final l10n = context.l10n;
-                      final user = ref.read(currentUserAsyncProvider).valueOrNull;
-                      if (user == null) {
-                        messenger.showSnackBar(
-                          SnackBar(content: Text(l10n.signInForFullFeatures)),
-                        );
-                        return;
-                      }
-                      try {
-                        await toggleDownvote(ref, post.postId);
-                      } catch (e) {
-                        messenger.showSnackBar(
-                          SnackBar(content: Text(l10n.errorWithMessage(e.toString()))),
-                        );
-                      }
-                    },
-                  ),
-                  _PostActionIcon(
-                    icon: Icons.chat_bubble_outline,
-                    label: '${post.commentCount}',
-                    color: onSurfaceVariant,
-                    tooltip: context.l10n.comments,
-                    onPressed: onOpenPost,
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-                    tooltip: context.l10n.share,
-                    icon: Icon(Icons.share_outlined, size: 19, color: onSurfaceVariant),
-                    onPressed: () {
-                      HapticFeedback.lightImpact();
-                      MeowShare.sharePost(
-                        context,
-                        postId: post.postId,
-                        title: post.title,
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PostActionIcon extends StatelessWidget {
-  const _PostActionIcon({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.tooltip,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color color;
-  final String tooltip;
-  final VoidCallback onPressed;
+class _FeedLoadingSkeleton extends StatelessWidget {
+  const _FeedLoadingSkeleton();
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 4),
-      child: Tooltip(
-        message: tooltip,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 18, color: color),
-                const SizedBox(width: 4),
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(color: color, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FeedChip extends StatelessWidget {
-  const _FeedChip({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.65),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 11,
-              letterSpacing: 0.2,
-              color: scheme.onSurfaceVariant,
-            ),
-      ),
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      children: const [
+        SizedBox(height: 4),
+        PostCardSkeleton(),
+        PostCardSkeleton(),
+        PostCardSkeleton(),
+      ],
     );
   }
 }

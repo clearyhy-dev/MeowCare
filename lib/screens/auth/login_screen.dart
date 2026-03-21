@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
+import '../../core/theme/app_radii.dart';
+import '../../core/theme/app_shadows.dart';
+import '../../core/theme/app_spacing.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../generated/l10n/app_localizations.dart';
 import '../../providers/user_provider.dart';
@@ -70,7 +73,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.xxl),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -95,18 +98,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 40),
                 Container(
-                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 18, AppSpacing.lg, 18),
                   decoration: BoxDecoration(
                     color: scheme.surface,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppRadii.md),
                     border: Border.all(color: borderColor),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    boxShadow: AppShadows.soft,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -134,7 +131,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           foregroundColor: scheme.onSurface,
                           side: BorderSide(color: borderColor),
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
                         ),
                         child: _loading
                             ? SizedBox(

@@ -10,6 +10,7 @@ import '../../core/i18n/app_language_display.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/meow_share.dart';
 import '../../providers/locale_provider.dart';
+import '../../widgets/app/app_empty_state.dart';
 import '../../widgets/settings/app_language_sheet.dart';
 import '../../providers/family_provider.dart';
 import '../../providers/subscription_provider.dart';
@@ -113,44 +114,40 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _buildNotSignedIn(BuildContext context, WidgetRef ref) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(context.l10n.signInForFullFeatures, style: Theme.of(context).textTheme.bodyLarge, textAlign: TextAlign.center),
-
-            const SizedBox(height: 16),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.language_outlined, color: Theme.of(context).colorScheme.primary),
-              title: Text(context.l10n.appLanguage),
-              subtitle: Text(
-                ref.watch(appLocaleProvider).valueOrNull == null
-                    ? '${context.l10n.languageFollowSystem} · ${AppLanguageDisplay.fullName(ref.watch(effectiveUILanguageCodeProvider), context.l10n)}'
-                    : AppLanguageDisplay.fullName(ref.watch(appLocaleProvider).valueOrNull!.languageCode, context.l10n),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => showAppLanguageSheet(context, ref),
-            ),
-            const SizedBox(height: 24),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.account_circle_outlined),
-              label: Text(context.l10n.signInWithGoogle),
-              onPressed: () => context.push(AppRouter.auth),
-            ),
-            const SizedBox(height: 12),
-            TextButton.icon(
-              icon: const Icon(Icons.ios_share_outlined, size: 20),
-              label: Text(context.l10n.shareAppMenu),
-              onPressed: () => MeowShare.shareApp(context),
-            ),
-          ],
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        AppEmptyState(
+          message: context.l10n.signInForFullFeatures,
+          icon: Icons.lock_outline_rounded,
+          action: OutlinedButton.icon(
+            icon: const Icon(Icons.account_circle_outlined),
+            label: Text(context.l10n.signInWithGoogle),
+            onPressed: () => context.push(AppRouter.auth),
+          ),
         ),
-      ),
+        const SizedBox(height: 14),
+        Card(
+          child: ListTile(
+            leading: Icon(Icons.language_outlined, color: Theme.of(context).colorScheme.primary),
+            title: Text(context.l10n.appLanguage),
+            subtitle: Text(
+              ref.watch(appLocaleProvider).valueOrNull == null
+                  ? '${context.l10n.languageFollowSystem} · ${AppLanguageDisplay.fullName(ref.watch(effectiveUILanguageCodeProvider), context.l10n)}'
+                  : AppLanguageDisplay.fullName(ref.watch(appLocaleProvider).valueOrNull!.languageCode, context.l10n),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => showAppLanguageSheet(context, ref),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          icon: const Icon(Icons.ios_share_outlined, size: 20),
+          label: Text(context.l10n.shareAppMenu),
+          onPressed: () => MeowShare.shareApp(context),
+        ),
+      ],
     );
   }
 

@@ -12,6 +12,7 @@ import '../../models/health_model.dart';
 import '../../providers/cat_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../services/health_service.dart';
+import '../../widgets/app/app_empty_state.dart';
 import '../../widgets/cat_selector.dart';
 
 String _healthLogTypeLabel(BuildContext context, HealthLogType type) {
@@ -33,27 +34,13 @@ class HealthScreen extends ConsumerWidget {
     if (user == null) {
       return Scaffold(
         appBar: AppBar(title: Text(context.l10n.health)),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Card(
-                  color: Theme.of(context).colorScheme.errorContainer,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Text(context.l10n.signInForFullFeatures),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.account_circle_outlined),
-                  label: Text(context.l10n.signInWithGoogle),
-                  onPressed: () => context.push(AppRouter.auth),
-                ),
-              ],
-            ),
+        body: AppEmptyState(
+          message: context.l10n.signInForFullFeatures,
+          icon: Icons.health_and_safety_outlined,
+          action: OutlinedButton.icon(
+            icon: const Icon(Icons.account_circle_outlined),
+            label: Text(context.l10n.signInWithGoogle),
+            onPressed: () => context.push(AppRouter.auth),
           ),
         ),
       );
@@ -63,7 +50,7 @@ class HealthScreen extends ConsumerWidget {
     if (cats.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: Text(context.l10n.health)),
-        body: Center(child: Text(context.l10n.addCatFirstHealth)),
+        body: AppEmptyState(message: context.l10n.addCatFirstHealth, icon: Icons.pets_outlined),
       );
     }
     return DefaultTabController(

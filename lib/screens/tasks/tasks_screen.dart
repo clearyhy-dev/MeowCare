@@ -9,6 +9,7 @@ import '../../models/task_model.dart';
 import '../../providers/cat_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/app/app_empty_state.dart';
 import '../../widgets/cat_selector.dart';
 import '../../widgets/reminder_dialog.dart';
 import '../../widgets/task_card.dart';
@@ -42,18 +43,13 @@ class TasksScreen extends ConsumerWidget {
           final completion = completionAsync.valueOrNull ?? {};
           final catMap = {for (var c in cats) c.catId: c.name};
           if (tasks.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(context.l10n.noTasksYet),
-                  const SizedBox(height: 16),
-                  FilledButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: Text(context.l10n.addTask),
-                    onPressed: cats.isEmpty ? null : () => _openAddTask(context, ref, cats),
-                  ),
-                ],
+            return AppEmptyState(
+              message: context.l10n.noTasksYet,
+              icon: Icons.task_alt_outlined,
+              action: FilledButton.icon(
+                icon: const Icon(Icons.add),
+                label: Text(context.l10n.addTask),
+                onPressed: cats.isEmpty ? null : () => _openAddTask(context, ref, cats),
               ),
             );
           }

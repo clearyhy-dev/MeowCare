@@ -6,6 +6,8 @@ import '../core/constants/app_constants.dart';
 import '../core/utils/l10n_ext.dart';
 import '../providers/comment_provider.dart';
 import '../models/comment_model.dart';
+import 'comment/comment_card.dart';
+import 'comment/comment_composer.dart';
 
 
 class CommentList extends ConsumerStatefulWidget {
@@ -139,15 +141,10 @@ class _CommentListState extends ConsumerState<CommentList> {
               ],
             ),
           ),
-        TextField(
+        CommentComposer(
           controller: _contentController,
           enabled: (widget.currentUid ?? '').isNotEmpty,
-          decoration: InputDecoration(
-            hintText: (widget.currentUid ?? '').isNotEmpty ? context.l10n.comments : context.l10n.signInForFullFeatures,
-            suffixIcon: IconButton(icon: const Icon(Icons.send), onPressed: _submit),
-            border: const OutlineInputBorder(),
-          ),
-          maxLines: 2,
+          onSubmit: _submit,
         ),
         const SizedBox(height: 16),
         if (_loading && _comments.isEmpty)
@@ -196,29 +193,11 @@ class _CommentListState extends ConsumerState<CommentList> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ListTile(
-            dense: depth > 0,
-            contentPadding: EdgeInsets.zero,
-            leading: depth == 0
-                ? CircleAvatar(
-                    backgroundImage: (comment.authorPhotoUrl != null && comment.authorPhotoUrl!.isNotEmpty)
-                        ? NetworkImage(comment.authorPhotoUrl!)
-                        : null,
-                    child: (comment.authorPhotoUrl == null || comment.authorPhotoUrl!.isEmpty)
-                        ? const Icon(Icons.person)
-                        : null,
-                  )
-                : null,
-            title: Text(comment.content),
-            subtitle: Text(
-              (comment.replyToAuthor != null && comment.replyToAuthor!.isNotEmpty)
-                  ? '${comment.displayAuthorLabel} · ${context.l10n.replyToUser(comment.replyToAuthor!)}'
-                  : comment.displayAuthorLabel,
-            ),
-            trailing: TextButton(
-              onPressed: () => setState(() => _replyTarget = comment),
-              child: Text(context.l10n.replyAction),
-            ),
+          CommentCard(
+            comment: comment,
+            depth: depth,
+            onReply: () => setState(() => _replyTarget = comment),
+            replyLabel: context.l10n.replyAction,
           ),
           ...visibleReplies.map((reply) => _buildCommentNode(context, reply, depth + 1, childrenMap)),
           if (replies.length > 3)

@@ -15,6 +15,7 @@ import '../../models/cat_model.dart';
 import '../../providers/cat_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/app/app_empty_state.dart';
 import '../../widgets/upgrade_dialog.dart';
 
 final _storageRepositoryProvider = Provider<StorageRepository>((ref) => StorageRepository());
@@ -39,27 +40,13 @@ class CatsScreen extends ConsumerWidget {
     if (user == null) {
       return Scaffold(
         appBar: AppBar(title: Text(context.l10n.cats)),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Card(
-                  color: Theme.of(context).colorScheme.errorContainer,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Text(context.l10n.signInForFullFeatures),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.account_circle_outlined),
-                  label: Text(context.l10n.signInWithGoogle),
-                  onPressed: () => context.push(AppRouter.auth),
-                ),
-              ],
-            ),
+        body: AppEmptyState(
+          message: context.l10n.signInForFullFeatures,
+          icon: Icons.pets_outlined,
+          action: OutlinedButton.icon(
+            icon: const Icon(Icons.account_circle_outlined),
+            label: Text(context.l10n.signInWithGoogle),
+            onPressed: () => context.push(AppRouter.auth),
           ),
         ),
       );
@@ -75,18 +62,13 @@ class CatsScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text(context.l10n.errorWithMessage(e.toString()))),
         data: (cats) {
           if (cats.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(context.l10n.noCatsYet),
-                  const SizedBox(height: 16),
-                  FilledButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: Text(context.l10n.addFirstCat),
-                    onPressed: () => _goToAddCat(context, ref, userAsync.valueOrNull, statusAsync.valueOrNull),
-                  ),
-                ],
+            return AppEmptyState(
+              message: context.l10n.noCatsYet,
+              icon: Icons.pets,
+              action: FilledButton.icon(
+                icon: const Icon(Icons.add),
+                label: Text(context.l10n.addFirstCat),
+                onPressed: () => _goToAddCat(context, ref, userAsync.valueOrNull, statusAsync.valueOrNull),
               ),
             );
           }

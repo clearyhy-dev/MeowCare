@@ -10,12 +10,17 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/router/app_router.dart';
+import '../../core/theme/app_radii.dart';
+import '../../core/theme/app_shadows.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../core/utils/app_feedback.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/topic_l10n.dart';
 import '../../providers/breed_provider.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/app/app_section_header.dart';
 
 /// Reddit 风发帖：标题突出、可选配图（Firebase Storage → coverUrl）、正文与标签紧凑。
 class CreatePostPage extends ConsumerStatefulWidget {
@@ -143,6 +148,8 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
       final content = data?['content'] as String?;
       if (content != null) _contentController.text = content;
       if (content != null) {
+        await AppFeedback.success();
+        if (!mounted) return;
         setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.l10n.contentUpdated)),
@@ -195,6 +202,8 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
 
       ref.invalidate(feedProvider);
       if (mounted) {
+        await AppFeedback.success();
+        if (!mounted) return;
         context.go(AppRouter.home);
       }
     } catch (e) {
@@ -213,94 +222,72 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
     final breedsAsync = ref.watch(breedsFutureProvider);
     final locale = ref.watch(effectiveUILanguageCodeProvider);
     final scheme = Theme.of(context).colorScheme;
-    final divider = Theme.of(context).dividerColor.withValues(alpha: 0.45);
+    final divider = Theme.of(context).dividerColor.withValues(alpha: 0.35);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(context.l10n.createPost),
-        actions: [
-          TextButton(
-            onPressed: _loading ? null : _submit,
-            child: _loading
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: scheme.primary),
-                  )
-                : Text(
-                    context.l10n.postButton,
-                    style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary, fontSize: 15),
-                  ),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 28),
+        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 30),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _titleController,
-              decoration: InputDecoration(
-                hintText: context.l10n.title,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: divider),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: divider),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: scheme.primary, width: 1.2),
-                ),
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                hintStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: scheme.onSurfaceVariant.withValues(alpha: 0.45),
-                      fontWeight: FontWeight.w600,
+            Container(
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(AppRadii.md),
+                border: Border.all(color: divider),
+                boxShadow: AppShadows.subtle,
+              ),
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppSectionHeader(title: context.l10n.title),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _titleController,
+                    decoration: InputDecoration(
+                      hintText: context.l10n.title,
+                      hintStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: scheme.onSurfaceVariant.withValues(alpha: 0.45),
+                            fontWeight: FontWeight.w600,
+                          ),
                     ),
-              ),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          height: 1.2,
+                        ),
+                    textCapitalization: TextCapitalization.sentences,
+                    maxLines: 4,
+                    minLines: 2,
                   ),
-              textCapitalization: TextCapitalization.sentences,
-              maxLines: 4,
-              minLines: 2,
-            ),
-            Divider(height: 20, thickness: 0.7, color: divider),
-            Text(
-              context.l10n.content,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onSurfaceVariant,
+                  const SizedBox(height: AppSpacing.lg),
+                  AppSectionHeader(title: context.l10n.content),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _contentController,
+                    decoration: InputDecoration(
+                      hintText: context.l10n.content,
+                      alignLabelWithHint: true,
+                    ),
+                    maxLines: 10,
+                    minLines: 5,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.45),
                   ),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _contentController,
-              decoration: const InputDecoration(
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 0),
-                border: InputBorder.none,
-                alignLabelWithHint: true,
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.image_outlined, size: 20),
+                    label: Text(context.l10n.postAddImage),
+                    style: OutlinedButton.styleFrom(
+                      alignment: Alignment.centerLeft,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
+                    ),
+                    onPressed: _loading ? null : _pickCoverImage,
+                  ),
+                ],
               ),
-              maxLines: 10,
-              minLines: 4,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.4),
-            ),
-            const SizedBox(height: 10),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.image_outlined, size: 20),
-              label: Text(context.l10n.postAddImage),
-              style: OutlinedButton.styleFrom(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: _loading ? null : _pickCoverImage,
             ),
             if (_coverFile != null) ...[
               const SizedBox(height: 10),
@@ -320,7 +307,7 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
                     ),
                   ),
                   Material(
-                    color: Colors.black54,
+                    color: scheme.onSurface.withValues(alpha: 0.62),
                     shape: const CircleBorder(),
                     child: IconButton(
                       icon: const Icon(Icons.close, color: Colors.white, size: 20),
@@ -332,87 +319,127 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
               ),
             ],
             const SizedBox(height: 16),
-            Text(
-              context.l10n.breeds,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            breedsAsync.when(
-              data: (breeds) => Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: breeds
-                    .map(
-                      (b) => FilterChip(
-                        label: Text(b.displayName(locale), style: const TextStyle(fontSize: 13)),
-                        selected: _breedIds.contains(b.breedId),
-                        visualDensity: VisualDensity.compact,
-                        onSelected: (v) {
-                          setState(() {
-                            if (v) {
-                              _breedIds = [..._breedIds, b.breedId];
-                            } else {
-                              _breedIds = _breedIds.where((id) => id != b.breedId).toList();
-                            }
-                          });
-                        },
-                      ),
-                    )
-                    .toList(),
+            Container(
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(AppRadii.md),
+                border: Border.all(color: divider),
               ),
-              loading: () => const SizedBox(height: 36, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
-              error: (_, __) => Column(
-                mainAxisSize: MainAxisSize.min,
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(context.l10n.failedToLoadBreeds, style: TextStyle(color: scheme.error)),
+                  AppSectionHeader(title: context.l10n.breeds),
                   const SizedBox(height: 8),
-                  TextButton.icon(
-                    onPressed: () => ref.invalidate(breedsFutureProvider),
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: Text(context.l10n.retry),
+                  breedsAsync.when(
+                    data: (breeds) => Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: breeds
+                          .map(
+                            (b) => FilterChip(
+                              label: Text(b.displayName(locale), style: const TextStyle(fontSize: 13)),
+                              selected: _breedIds.contains(b.breedId),
+                              onSelected: (v) {
+                                setState(() {
+                                  if (v) {
+                                    _breedIds = [..._breedIds, b.breedId];
+                                  } else {
+                                    _breedIds = _breedIds.where((id) => id != b.breedId).toList();
+                                  }
+                                });
+                              },
+                            ),
+                          )
+                          .toList(),
+                    ),
+                    loading: () => const SizedBox(height: 36, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
+                    error: (_, __) => Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(context.l10n.failedToLoadBreeds, style: TextStyle(color: scheme.error)),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: () => ref.invalidate(breedsFutureProvider),
+                          icon: const Icon(Icons.refresh, size: 18),
+                          label: Text(context.l10n.retry),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(height: 14),
+                  AppSectionHeader(title: context.l10n.topics),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _topicsInputController,
+                    onChanged: (v) => setState(() => _syncTopicsFromInput(v)),
+                    decoration: InputDecoration(
+                      hintText: '#care #feeding your description...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: _topicSuggestions(_topicsInputController.text)
+                        .map(
+                          (t) => ActionChip(
+                            label: Text('#$t ${topicLabel(context, t)}'),
+                            onPressed: () => setState(() => _appendTopicTag(t)),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  if (_topics.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      children: _topics
+                          .map(
+                            (t) => Chip(
+                              label: Text('#$t'),
+                              deleteIcon: const Icon(Icons.close, size: 16),
+                              onDeleted: () {
+                                setState(() {
+                                  _topics = _topics.where((e) => e != t).toList();
+                                  _topicsInputController.text = _topics.map((e) => '#$e').join(' ');
+                                });
+                              },
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
                 ],
               ),
             ),
-            const SizedBox(height: 14),
-            Text(
-              context.l10n.topics,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _topicsInputController,
-              onChanged: (v) => setState(() => _syncTopicsFromInput(v)),
-              decoration: InputDecoration(
-                hintText: '#care #feeding your description...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: _topicSuggestions(_topicsInputController.text)
-                  .map(
-                    (t) => ActionChip(
-                      label: Text('#$t ${topicLabel(context, t)}'),
-                      onPressed: () => setState(() => _appendTopicTag(t)),
-                    ),
-                  )
-                  .toList(),
-            ),
-            const SizedBox(height: 18),
-            OutlinedButton.icon(
+            const SizedBox(height: 16),
+            FilledButton.tonalIcon(
               icon: const Icon(Icons.auto_awesome, size: 20),
               label: Text(context.l10n.aiRewriteLabel),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
               onPressed: _loading ? null : _onAiRewrite,
+            ),
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              icon: _loading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.send_rounded),
+              label: Text(context.l10n.postButton),
+              onPressed: _loading ? null : _submit,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                ),
+              ),
             ),
           ],
         ),
