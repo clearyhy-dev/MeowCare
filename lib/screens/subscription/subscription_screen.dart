@@ -27,55 +27,58 @@ class SubscriptionScreen extends ConsumerWidget {
       body: ListView(
         padding: EdgeInsets.symmetric(horizontal: AppInsets.screenPadding, vertical: AppInsets.sectionSpacing / 2),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(context.l10n.free, style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Text('• ${context.l10n.freeCats(AppConstants.freeMaxCats)}'),
-                  Text('• ${context.l10n.freeMembers(AppConstants.freeMaxMembers)}'),
-                  Text('• ${context.l10n.freeAiPerDay(AppConstants.freeAiRequestsPerDay)}'),
-                  if (!isPro) Text('• ${context.l10n.currentPlan}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                ],
-              ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(context.l10n.free, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 12),
+                Text('• ${context.l10n.freeCats(AppConstants.freeMaxCats)}', style: Theme.of(context).textTheme.bodyLarge),
+                Text('• ${context.l10n.freeMembers(AppConstants.freeMaxMembers)}', style: Theme.of(context).textTheme.bodyLarge),
+                Text('• ${context.l10n.freeAiPerDay(AppConstants.freeAiRequestsPerDay)}', style: Theme.of(context).textTheme.bodyLarge),
+                if (!isPro)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text('• ${context.l10n.currentPlan}', style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
+                  ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          Card(
-            color: Theme.of(context).colorScheme.primaryContainer,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(context.l10n.pro, style: Theme.of(context).textTheme.titleMedium),
-                      if (isPro) Padding(padding: const EdgeInsets.only(left: 8), child: Text(context.l10n.currentPlan, style: const TextStyle(fontWeight: FontWeight.bold))),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text('• ${context.l10n.multipleCats}'),
-                  Text('• ${context.l10n.multipleMembers}'),
-                  Text('• ${context.l10n.unlimitedAi}'),
-                  Text('• ${context.l10n.advancedReminders}'),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: isPro || uid == null
-                        ? null
-                        : () async {
-                            await ref.read(subscriptionServiceProvider).setPro(uid);
-                            ref.invalidate(subscriptionStatusProvider);
-                            ref.invalidate(currentUserAsyncProvider);
-                            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.proActivated)));
-                          },
-                    child: Text(isPro ? context.l10n.currentPlan : context.l10n.upgradeToPro),
-                  ),
-                ],
-              ),
+          Divider(height: 24, thickness: 0.5, color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(context.l10n.pro, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    if (isPro)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Text(context.l10n.currentPlan, style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text('• ${context.l10n.multipleCats}', style: Theme.of(context).textTheme.bodyLarge),
+                Text('• ${context.l10n.multipleMembers}', style: Theme.of(context).textTheme.bodyLarge),
+                Text('• ${context.l10n.unlimitedAi}', style: Theme.of(context).textTheme.bodyLarge),
+                Text('• ${context.l10n.advancedReminders}', style: Theme.of(context).textTheme.bodyLarge),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: isPro || uid == null
+                      ? null
+                      : () async {
+                          await ref.read(subscriptionServiceProvider).setPro(uid);
+                          ref.invalidate(subscriptionStatusProvider);
+                          ref.invalidate(currentUserAsyncProvider);
+                          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.proActivated)));
+                        },
+                  child: Text(isPro ? context.l10n.currentPlan : context.l10n.upgradeToPro),
+                ),
+              ],
             ),
           ),
         ],

@@ -127,19 +127,18 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 14),
-        Card(
-          child: ListTile(
-            leading: Icon(Icons.language_outlined, color: Theme.of(context).colorScheme.primary),
-            title: Text(context.l10n.appLanguage),
-            subtitle: Text(
-              ref.watch(appLocaleProvider).valueOrNull == null
-                  ? '${context.l10n.languageFollowSystem} · ${AppLanguageDisplay.fullName(ref.watch(effectiveUILanguageCodeProvider), context.l10n)}'
-                  : AppLanguageDisplay.fullName(ref.watch(appLocaleProvider).valueOrNull!.languageCode, context.l10n),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => showAppLanguageSheet(context, ref),
+        const Divider(),
+        ListTile(
+          leading: Icon(Icons.language_outlined, color: Theme.of(context).colorScheme.primary),
+          title: Text(context.l10n.appLanguage),
+          subtitle: Text(
+            ref.watch(appLocaleProvider).valueOrNull == null
+                ? '${context.l10n.languageFollowSystem} · ${AppLanguageDisplay.fullName(ref.watch(effectiveUILanguageCodeProvider), context.l10n)}'
+                : AppLanguageDisplay.fullName(ref.watch(appLocaleProvider).valueOrNull!.languageCode, context.l10n),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => showAppLanguageSheet(context, ref),
         ),
         const SizedBox(height: 8),
         TextButton.icon(

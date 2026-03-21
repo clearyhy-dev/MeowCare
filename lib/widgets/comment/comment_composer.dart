@@ -20,7 +20,7 @@ class CommentComposer extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow.withValues(alpha: 0.8),
+        color: scheme.surfaceContainerLow.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(

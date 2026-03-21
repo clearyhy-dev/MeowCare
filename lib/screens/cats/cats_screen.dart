@@ -8,8 +8,12 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/constants/enums.dart';
 import '../../core/router/app_router.dart';
+import '../../core/theme/app_spacing.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../data/upload/storage_repository.dart';
+import '../../widgets/app/app_section_header.dart';
+import '../../widgets/app/minimal_text_form_field.dart';
+import '../../widgets/app/photo_picker_tile.dart';
 import '../../widgets/network_avatar.dart';
 import '../../models/cat_model.dart';
 import '../../providers/cat_provider.dart';
@@ -72,22 +76,24 @@ class CatsScreen extends ConsumerWidget {
               ),
             );
           }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
+          return ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             itemCount: cats.length,
+            separatorBuilder: (_, __) => Divider(
+              height: 1,
+              thickness: 0.5,
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.45),
+            ),
             itemBuilder: (context, i) {
               final cat = cats[i];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  leading: NetworkAvatar(imageUrl: cat.avatarUrl),
-                  title: Text(cat.name),
-                  subtitle: Text('${cat.weight} kg · ${_catActivityLabel(context, cat.activityLevel)}'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _openCatForm(context, ref, cat),
-                ),
+              return ListTile(
+                contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+                leading: NetworkAvatar(imageUrl: cat.avatarUrl),
+                title: Text(cat.name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                subtitle: Text('${cat.weight} kg · ${_catActivityLabel(context, cat.activityLevel)}'),
+                trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                onTap: () => _openCatForm(context, ref, cat),
               );
-
             },
           );
         },
@@ -257,56 +263,133 @@ class _CatFormScreenState extends ConsumerState<_CatFormScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xxl),
           children: [
-            Center(
-              child: GestureDetector(
-                onTap: _loading ? null : _pickImage,
-                child: _avatarUrl.isEmpty
-                    ? CircleAvatar(
-                        radius: 48,
-                        child: Icon(Icons.add_a_photo, size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                      )
-                    : NetworkAvatar(imageUrl: _avatarUrl, radius: 48, placeholder: Icon(Icons.add_a_photo, size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-              ),
+            AppSectionHeader(title: context.l10n.cat),
+            const SizedBox(height: AppSpacing.sm),
+            PhotoPickerTile(
+              loading: _loading,
+              onTap: _pickImage,
+              onChangePressed: _pickImage,
+              changeLabel: context.l10n.postAddImage,
+              subtitle: context.l10n.postAddImage,
+              avatar: _avatarUrl.isEmpty
+                  ? ColoredBox(
+                      color: Theme.of(context).colorScheme.surfaceContainerLow,
+                      child: Icon(
+                        Icons.add_a_photo_outlined,
+                        size: 36,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    )
+                  : NetworkAvatar(
+                      imageUrl: _avatarUrl,
+                      radius: 44,
+                      placeholder: const Icon(Icons.add_a_photo_outlined, size: 36),
+                    ),
             ),
-            const SizedBox(height: 16),
-
-            TextFormField(
-
+            const SizedBox(height: AppSpacing.lg),
+            Divider(height: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.35)),
+            const SizedBox(height: AppSpacing.lg),
+            AppSectionHeader(title: context.l10n.name),
+            const SizedBox(height: AppSpacing.sm),
+            MinimalTextFormField(
               controller: _nameController,
-              decoration: InputDecoration(labelText: context.l10n.name, border: const OutlineInputBorder()),
+              hintText: context.l10n.name,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.next,
               validator: (v) => v == null || v.isEmpty ? context.l10n.enterName : null,
             ),
-            const SizedBox(height: 16),
-            ListTile(
-              title: Text(_birthday != null ? '${context.l10n.birthday}: ${_birthday!.toIso8601String().split('T').first}' : context.l10n.birthday),
-              onTap: () async {
-                final d = await showDatePicker(context: context, initialDate: _birthday ?? DateTime.now(), firstDate: DateTime(2000), lastDate: DateTime.now());
-                if (d != null) setState(() => _birthday = d);
-              },
+            const SizedBox(height: AppSpacing.xl),
+            AppSectionHeader(title: context.l10n.birthday),
+            const SizedBox(height: AppSpacing.sm),
+            InkWell(
+              onTap: _loading
+                  ? null
+                  : () async {
+                      final d = await showDatePicker(
+                        context: context,
+                        initialDate: _birthday ?? DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime.now(),
+                      );
+                      if (d != null) setState(() => _birthday = d);
+                    },
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _birthday != null
+                            ? _birthday!.toIso8601String().split('T').first
+                            : context.l10n.birthday,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                    ),
+                    Icon(Icons.calendar_today_outlined, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
-            TextFormField(
+            Divider(height: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.45)),
+            const SizedBox(height: AppSpacing.xl),
+            AppSectionHeader(title: context.l10n.weight),
+            const SizedBox(height: AppSpacing.sm),
+            MinimalTextFormField(
               controller: _weightController,
-              decoration: InputDecoration(labelText: context.l10n.weight, border: const OutlineInputBorder()),
+              hintText: context.l10n.weight,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              textInputAction: TextInputAction.next,
             ),
-            const SizedBox(height: 16),
-            SwitchListTile(title: Text(context.l10n.neutered), value: _neutered, onChanged: (v) => setState(() => _neutered = v)),
+            const SizedBox(height: AppSpacing.xl),
+            AppSectionHeader(title: context.l10n.neutered),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    context.l10n.neutered,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
+                Switch.adaptive(
+                  value: _neutered,
+                  onChanged: (v) => setState(() => _neutered = v),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Divider(height: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.35)),
+            const SizedBox(height: AppSpacing.lg),
+            AppSectionHeader(title: context.l10n.activity),
+            const SizedBox(height: AppSpacing.sm),
             DropdownButtonFormField<ActivityLevel>(
               key: ValueKey(_activityLevel),
               initialValue: _activityLevel,
-              decoration: InputDecoration(labelText: context.l10n.activity, border: const OutlineInputBorder()),
-              items: ActivityLevel.values.map((e) => DropdownMenuItem(value: e, child: Text(_catActivityLabel(context, e)))).toList(),
+              isExpanded: true,
+              decoration: const InputDecoration(
+                isDense: true,
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+              ),
+              items: ActivityLevel.values
+                  .map((e) => DropdownMenuItem(value: e, child: Text(_catActivityLabel(context, e))))
+                  .toList(),
               onChanged: (v) => setState(() => _activityLevel = v ?? ActivityLevel.medium),
             ),
-
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.sm),
+            Divider(height: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.45)),
+            const SizedBox(height: AppSpacing.xxl),
             FilledButton(
               onPressed: _loading ? null : _save,
-              child: _loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(context.l10n.save),
-
+              child: _loading
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(context.l10n.save),
             ),
           ],
         ),

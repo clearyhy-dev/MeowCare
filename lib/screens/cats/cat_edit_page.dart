@@ -7,8 +7,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/router/app_router.dart';
+import '../../core/theme/app_spacing.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../data/upload/storage_repository.dart';
+import '../../widgets/app/app_section_header.dart';
+import '../../widgets/app/minimal_multiline_field.dart';
+import '../../widgets/app/minimal_text_field.dart';
+import '../../widgets/app/photo_picker_tile.dart';
 import '../../widgets/network_avatar.dart';
 
 import '../../models/cat_model.dart';
@@ -127,33 +132,72 @@ class _CatEditPageState extends ConsumerState<CatEditPage> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xxl),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            GestureDetector(
+            AppSectionHeader(title: context.l10n.cat),
+            const SizedBox(height: AppSpacing.sm),
+            PhotoPickerTile(
+              loading: _loading,
               onTap: _pickImage,
-              child: _avatarUrl.isEmpty
-                  ? const CircleAvatar(radius: 48, child: Icon(Icons.add_a_photo, size: 40))
-                  : NetworkAvatar(imageUrl: _avatarUrl, radius: 48, placeholder: const Icon(Icons.add_a_photo, size: 40)),
+              onChangePressed: _pickImage,
+              changeLabel: context.l10n.postAddImage,
+              subtitle: context.l10n.postAddImage,
+              avatar: _avatarUrl.isEmpty
+                  ? ColoredBox(
+                      color: Theme.of(context).colorScheme.surfaceContainerLow,
+                      child: Icon(
+                        Icons.add_a_photo_outlined,
+                        size: 36,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    )
+                  : NetworkAvatar(
+                      imageUrl: _avatarUrl,
+                      radius: 44,
+                      placeholder: const Icon(Icons.add_a_photo_outlined, size: 36),
+                    ),
             ),
-
-            const SizedBox(height: 24),
-            TextField(
+            const SizedBox(height: AppSpacing.lg),
+            Divider(height: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.35)),
+            const SizedBox(height: AppSpacing.lg),
+            AppSectionHeader(title: context.l10n.name),
+            const SizedBox(height: AppSpacing.sm),
+            MinimalTextField(
               controller: _nameController,
-              decoration: InputDecoration(labelText: context.l10n.name, border: const OutlineInputBorder()),
+              hintText: context.l10n.name,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.next,
             ),
-            const SizedBox(height: 16),
-            SwitchListTile(
-              title: Text(context.l10n.publicProfile),
-              value: _isPublic,
-              onChanged: (v) => setState(() => _isPublic = v),
+            const SizedBox(height: AppSpacing.xl),
+            AppSectionHeader(title: context.l10n.publicProfile),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    context.l10n.publicProfile,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
+                Switch.adaptive(
+                  value: _isPublic,
+                  onChanged: (v) => setState(() => _isPublic = v),
+                ),
+              ],
             ),
-            TextField(
+            const SizedBox(height: AppSpacing.lg),
+            Divider(height: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.35)),
+            const SizedBox(height: AppSpacing.lg),
+            AppSectionHeader(title: context.l10n.yourNotes),
+            const SizedBox(height: AppSpacing.sm),
+            MinimalMultilineField(
               controller: _ownerNotesController,
-              decoration: InputDecoration(labelText: context.l10n.yourNotes, border: const OutlineInputBorder()),
-
-              maxLines: 3,
+              hintText: context.l10n.yourNotes,
+              minLines: 3,
+              maxLines: 8,
+              showBottomDivider: false,
             ),
           ],
         ),

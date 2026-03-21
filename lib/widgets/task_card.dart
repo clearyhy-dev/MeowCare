@@ -32,14 +32,16 @@ class TaskCard extends StatelessWidget {
     return AnimatedOpacity(
       opacity: isCompletedToday ? 0.85 : 1,
       duration: const Duration(milliseconds: 200),
-      child: Card(
-        margin: AppInsets.cardMargin,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: showTodayCareLayout
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+              child: showTodayCareLayout
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
@@ -93,6 +95,7 @@ class TaskCard extends StatelessWidget {
                       Icon(_iconForType(task.type), color: theme.colorScheme.primary),
                     ],
                   ),
+            ),
           ),
         ),
       ),

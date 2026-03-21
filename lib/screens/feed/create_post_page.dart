@@ -14,6 +14,8 @@ import '../../providers/feed_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../widgets/app/app_section_header.dart';
+import '../../widgets/app/minimal_multiline_field.dart';
+import '../../widgets/app/minimal_text_field.dart';
 
 /// Reddit 风发帖：标题突出、可选配图（Firebase Storage → coverUrl）、正文与标签紧凑。
 class CreatePostPage extends ConsumerStatefulWidget {
@@ -174,34 +176,26 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
           children: [
             AppSectionHeader(title: context.l10n.title),
             const SizedBox(height: 8),
-            TextField(
+            MinimalTextField(
               controller: _titleController,
-              decoration: InputDecoration(
-                hintText: context.l10n.title,
-                border: InputBorder.none,
-                filled: false,
-              ),
+              hintText: context.l10n.title,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, height: 1.2),
               textCapitalization: TextCapitalization.sentences,
-              maxLines: 4,
               minLines: 2,
+              maxLines: 4,
+              showBottomDivider: true,
             ),
-            Divider(color: Theme.of(context).dividerColor.withValues(alpha: 0.5), height: 20),
+            const SizedBox(height: AppSpacing.md),
             AppSectionHeader(title: context.l10n.content),
             const SizedBox(height: 8),
-            TextField(
+            MinimalMultilineField(
               controller: _contentController,
-              decoration: InputDecoration(
-                hintText: context.l10n.content,
-                alignLabelWithHint: true,
-                border: InputBorder.none,
-                filled: false,
-              ),
-              maxLines: 11,
+              hintText: context.l10n.content,
               minLines: 6,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.45),
+              maxLines: 11,
+              showBottomDivider: true,
             ),
-            Divider(color: Theme.of(context).dividerColor.withValues(alpha: 0.5), height: 20),
+            const SizedBox(height: AppSpacing.md),
             TextButton.icon(
               onPressed: _loading ? null : _pickCoverImage,
               icon: const Icon(Icons.image_outlined, size: 20),
@@ -240,12 +234,11 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
             const SizedBox(height: 16),
             AppSectionHeader(title: context.l10n.topics),
             const SizedBox(height: 8),
-            TextField(
+            MinimalTextField(
               controller: _topicsInputController,
+              hintText: '#care #feeding your description...',
               onChanged: (v) => setState(() => _syncTopicsFromInput(v)),
-              decoration: const InputDecoration(
-                hintText: '#care #feeding your description...',
-              ),
+              showBottomDivider: false,
             ),
             const SizedBox(height: 8),
             Wrap(

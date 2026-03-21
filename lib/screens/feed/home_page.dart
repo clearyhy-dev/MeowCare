@@ -231,20 +231,17 @@ class _RedditTrendingBlock extends ConsumerWidget {
                 separatorBuilder: (_, __) => const SizedBox(width: 10),
                 itemBuilder: (context, i) {
                   final post = posts[i];
+                  final scheme = Theme.of(context).colorScheme;
                   return SizedBox(
                     width: 200,
-                    child: Card(
-                      margin: EdgeInsets.zero,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.35)),
-                      ),
+                    child: Material(
+                      color: scheme.surfaceContainerLow.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(12),
                       child: InkWell(
                         onTap: () => onTapPost(post.postId),
                         borderRadius: BorderRadius.circular(12),
                         child: Padding(
-                          padding: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -253,13 +250,13 @@ class _RedditTrendingBlock extends ConsumerWidget {
                                 post.title,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 6),
                               Text(
                                 context.l10n.sourceReddit,
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Theme.of(context).colorScheme.outline,
+                                      color: scheme.onSurfaceVariant,
                                     ),
                               ),
                             ],

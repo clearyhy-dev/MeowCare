@@ -113,23 +113,29 @@ class _HealthLogList extends ConsumerWidget {
         if (logs.isEmpty) {
           return Center(child: Text(context.l10n.noHealthLogs(catName)));
         }
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
+        return ListView.separated(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           itemCount: logs.length,
+          separatorBuilder: (_, __) => Divider(
+            height: 1,
+            thickness: 0.5,
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.45),
+          ),
           itemBuilder: (context, i) {
             final log = logs[i];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                title: Text('${_healthLogTypeLabel(context, log.type)}${log.type == HealthLogType.weight ? ': ${log.value}' : ''}'),
-                subtitle: Text('${AppDateUtils.formatDate(log.createdAt)}${log.note.isNotEmpty ? ' · ${log.note}' : ''}'),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () async {
-                    await ref.read(healthServiceProvider).deleteHealthLog(log.logId);
-                    ref.invalidate(_healthLogsProvider(catId));
-                  },
-                ),
+            return ListTile(
+              contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+              title: Text(
+                '${_healthLogTypeLabel(context, log.type)}${log.type == HealthLogType.weight ? ': ${log.value}' : ''}',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text('${AppDateUtils.formatDate(log.createdAt)}${log.note.isNotEmpty ? ' · ${log.note}' : ''}'),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () async {
+                  await ref.read(healthServiceProvider).deleteHealthLog(log.logId);
+                  ref.invalidate(_healthLogsProvider(catId));
+                },
               ),
             );
           },
