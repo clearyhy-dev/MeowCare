@@ -84,7 +84,9 @@ def is_admin(uid: str) -> bool:
 
 
 async def require_admin(identity: Annotated[str | None, Depends(get_identity)]) -> str:
-    if not identity or not is_admin(identity):
+    if not identity:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    if not is_admin(identity):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin required")
     return identity
 

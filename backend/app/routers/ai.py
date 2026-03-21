@@ -33,8 +33,6 @@ async def rewrite(body: RewriteBody, uid: str = Depends(require_uid)):
         import google.generativeai as genai
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel("gemini-2.5-flash")
-  replace_all: true
-  replace_all: true
         out_content = body.content
         out_summary = body.summary
         if body.content.strip():

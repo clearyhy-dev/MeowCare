@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 import httpx
 from fastapi import APIRouter, Depends, Request, HTTPException, status
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from pydantic import BaseModel
 import jwt
@@ -25,9 +25,10 @@ def _get_admin_creds():
 router = APIRouter()
 
 
-def _make_jwt():
+def _make_jwt() -> str:
     payload = {"sub": "admin", "exp": datetime.now(timezone.utc) + timedelta(days=7)}
-    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+    raw = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+    return raw.decode("utf-8") if isinstance(raw, bytes) else str(raw)
 
 
 class LoginBody(BaseModel):
@@ -83,6 +84,7 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
     .nav a { color: rgba(255,255,255,0.9); text-decoration: none; padding: 8px 14px; border-radius: 6px; font-size: 14px; }
     .nav a:hover { background: rgba(255,255,255,0.15); color: #fff; }
     .nav a.active { background: rgba(255,255,255,0.25); color: #fff; font-weight: 500; }
+    .nav a.reddit-nav { background: rgba(255,255,255,0.18); }
     .logout { margin-left: auto; color: rgba(255,255,255,0.8); }
     .logout:hover { color: #fff; background: rgba(255,255,255,0.1); }
     .main { padding: 24px; }
@@ -126,15 +128,23 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
       </form>
     </div>
     <div id="dashboard" style="display:none;">
-
-      <h1>后台管理</h1>
-      <div class="nav">
-        <a href="#" data-page="breeds">品种</a>
-        <a href="#" data-page="ugc">待审内容</a>
-        <a href="#" data-page="reports">举报</a>
+      <div class="header" style="border-radius:0;">
+        <h1>MeowCare 后台管理</h1>
+        <div class="nav">
+          <a href="#" data-page="posts">最新/热门管理</a>
+          <a href="#" data-page="ugc">待审内容</a>
+          <a href="#" data-page="reports">举报</a>
+          <a href="#" data-page="cats">宠物管理</a>
+          <a href="#" data-page="users">用户管理</a>
+          <a href="#" data-page="breeds">品种</a>
+          <a href="#" data-page="reddit" class="reddit-nav">Reddit 导入</a>
+        </div>
         <a href="#" class="logout" id="logout">退出</a>
       </div>
-      <div id="content"></div>
+      <div class="main">
+        <p id="dashErr" class="err"></p>
+        <div id="content"></div>
+      </div>
     </div>
   </div>
   <script>
@@ -156,23 +166,18 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
 
     function setToken(t) { if (t) localStorage.setItem('adminToken', t); else localStorage.removeItem('adminToken'); }
     function headers() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token() }; }
-    function show(el, show) { el.style.display = show ? 'block' : 'none'; }
-    function showLogin(show) { show(document.getElementById('loginCard'), show); show(document.getElementById('dashboard'), !show); }
-    document.getElementById('loginForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const fd = new FormData(e.target);
-      const err = document.getElementById('loginErr');
-      err.textContent = '';
-      try {
-        const r = await fetch(API + '/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: fd.get('username'), password: fd.get('password') }) });
-        const data = await r.json();
-        if (!r.ok) { err.textContent = data.detail || '登录失败'; return; }
-        setToken(data.token);
-        showLogin(false);
-        loadPage('breeds');
-      } catch (e) { err.textContent = e.message || '请求失败'; }
+    function showEl(el, visible) { if (el) el.style.display = visible ? 'block' : 'none'; }
+    function showLogin(visible) {
+      showEl(document.getElementById('noAuthCard'), visible);
+      showEl(document.getElementById('dashboard'), !visible);
+    }
+    document.getElementById('logout').onclick = function() {
+      setToken(null);
+      showLogin(true);
+      document.getElementById('content').innerHTML = '';
+      var de = document.getElementById('dashErr');
+      if (de) de.textContent = '';
     };
-    document.getElementById('logout').onclick = () => { setToken(null); showLogin(true); document.getElementById('content').innerHTML = ''; };
     document.getElementById('loginForm').onsubmit = async function(e) {
       e.preventDefault();
       var fd = new FormData(e.target);
@@ -181,53 +186,149 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
       try {
         var r = await fetch(API + '/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: (fd.get('username') || '').trim(), password: fd.get('password') || '' }) });
         var data = await r.json().catch(function() { return {}; });
-        if (r.ok && data.token) { setToken(data.token); showLogin(false); loadPage('posts'); } else { errEl.textContent = data.detail || '登录失败，请重试'; }
+        var tok = data.token;
+        if (typeof tok !== 'string') tok = '';
+        if (r.ok && tok) { setToken(tok); showLogin(false); loadPage('posts'); }
+        else { errEl.textContent = (data && data.detail) ? data.detail : '登录失败，请重试'; }
       } catch (err) { errEl.textContent = err.message || '网络错误'; }
     };
 
     document.querySelectorAll('.nav a[data-page]').forEach(a => { a.onclick = (e) => { e.preventDefault(); loadPage(a.dataset.page); }; });
+    function escHtml(t) {
+      return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    var REDDIT_SUBS = ['cats', 'catcare', 'CatAdvice', 'AskVet', 'kittens', 'catpics'];
     async function loadPage(page) {
-      const content = document.getElementById('content');
-      const errEl = document.getElementById('loginErr');
-      if (!token()) { errEl.textContent = ''; showLogin(true); return; }
+      var content = document.getElementById('content');
+      var errEl = document.getElementById('loginErr');
+      var dashErr = document.getElementById('dashErr');
+      function clearErrs() { errEl.textContent = ''; if (dashErr) dashErr.textContent = ''; }
+      function authFail(r) {
+        if (r.status === 401 || r.status === 403) {
+          setToken(null);
+          clearErrs();
+          errEl.textContent = (r.status === 401) ? '登录已失效，请重新登录' : '无权访问：请使用后台管理员账号登录';
+          showLogin(true);
+          content.innerHTML = '';
+          return true;
+        }
+        return false;
+      }
+      if (!token()) { clearErrs(); showLogin(true); return; }
+      clearErrs();
       content.innerHTML = '<p class="loading">加载中…</p>';
       try {
-        var r, list, url;
-        if (page === 'breeds') {
+        var r, list, url, data, i, rows, ord, sub, sort, items;
+        if (page === 'posts') {
+          ord = window._postsOrder || 'latest';
+          url = API + '/posts?limit=50&order=' + encodeURIComponent(ord === 'hot' ? 'hot' : 'latest');
+          r = await fetch(url, { headers: headers() });
+          if (authFail(r)) return;
+          if (!r.ok) { content.innerHTML = '<p class="err">请求失败 ' + r.status + '</p>'; return; }
+          data = await r.json().catch(function() { return {}; });
+          items = data.items;
+          if (!Array.isArray(items)) items = [];
+          rows = items.map(function(p) {
+            var pid = p.postId || p.id || '';
+            return '<tr><td>' + escHtml(pid) + '</td><td>' + escHtml(p.title) + '</td><td>' + escHtml(p.status) + '</td><td>' + escHtml(p.score) + '</td><td><button onclick="unpublishPost(\\\'' + pid + '\\\')">下架</button> <button class="danger" onclick="deletePostAdmin(\\\'' + pid + '\\\')">删除</button></td></tr>';
+          }).join('');
+          content.innerHTML = '<div class="card"><div class="card-head"><h2>最新 / 热门 帖子</h2><div class="toolbar"><button type="button" id="btnPostsLatest"' + (ord !== 'hot' ? ' class="primary"' : '') + '>最新</button><button type="button" id="btnPostsHot"' + (ord === 'hot' ? ' class="primary"' : '') + '>热门</button></div></div><table><thead><tr><th>ID</th><th>标题</th><th>状态</th><th>分数</th><th>操作</th></tr></thead><tbody>' + (items.length === 0 ? '<tr><td colspan="5" class="empty">暂无数据。</td></tr>' : rows) + '</tbody></table></div>';
+          document.getElementById('btnPostsLatest').onclick = function() { window._postsOrder = 'latest'; loadPage('posts'); };
+          document.getElementById('btnPostsHot').onclick = function() { window._postsOrder = 'hot'; loadPage('posts'); };
+        } else if (page === 'breeds') {
           url = API + '/breeds';
           r = await fetch(url, { headers: headers() });
-          if (r.status === 401) { setToken(null); errEl.textContent = '登录已过期或无效，请重新登录'; showLogin(true); return; }
+          if (authFail(r)) return;
           if (!r.ok) { content.innerHTML = '<p class="err">请求失败 ' + r.status + '</p>'; return; }
           list = await r.json().catch(function() { return []; });
           if (!Array.isArray(list)) list = [];
-          content.innerHTML = '<div class="card"><div class="card-head"><h2>品种列表</h2><button type="button" id="btnSeedBreeds">一键添加常用品种</button> <button type="button" id="btnAddBreed" class="primary">+ 添加品种</button></div><div id="breedFormCard" class="card" style="display:none;"><h3>添加品种</h3><form id="formAddBreed"><label>名称 <input type="text" name="name" placeholder="如：英国短毛猫" required /></label><label>排序 <input type="number" name="order" value="0" /></label><label><input type="checkbox" name="enabled" checked /> 启用</label><button type="submit">保存</button> <button type="button" id="btnCancelBreed">取消</button></form></div><table><thead><tr><th>编号</th><th>名称</th><th>启用状态</th><th>排序</th><th>操作</th></tr></thead><tbody>' + (list.length === 0 ? '<tr><td colspan="5" class="empty">暂无品种，请点击上方「添加品种」。</td></tr>' : (list.map(b => '<tr><td>' + (b.breedId || b.id) + '</td><td>' + (b.name || '') + '</td><td>' + (b.enabled !== false ? '是' : '否') + '</td><td>' + (b.order ?? '') + '</td><td><button onclick="toggleBreedEnabled(\\\'' + (b.breedId || b.id) + '\\\', ' + (b.enabled !== false ? 'false' : 'true') + ')">' + (b.enabled !== false ? '禁用' : '启用') + '</button> <button class="danger" onclick="deleteBreed(\\\'' + (b.breedId || b.id) + '\\\')">删除</button></td></tr>').join(''))) + '</tbody></table></div>';
-
+          content.innerHTML = '<div class="card"><div class="card-head"><h2>品种列表</h2><button type="button" id="btnSeedBreeds">一键添加常用品种</button> <button type="button" id="btnAddBreed" class="primary">+ 添加品种</button></div><div id="breedFormCard" class="card" style="display:none;"><h3>添加品种</h3><form id="formAddBreed"><label>名称 <input type="text" name="name" placeholder="如：英国短毛猫" required /></label><label>排序 <input type="number" name="order" value="0" /></label><label><input type="checkbox" name="enabled" checked /> 启用</label><button type="submit">保存</button> <button type="button" id="btnCancelBreed">取消</button></form></div><table><thead><tr><th>编号</th><th>名称</th><th>启用状态</th><th>排序</th><th>操作</th></tr></thead><tbody>' + (list.length === 0 ? '<tr><td colspan="5" class="empty">暂无品种，请点击上方「添加品种」。</td></tr>' : (list.map(function(b) { var bid = b.breedId || b.id; return '<tr><td>' + escHtml(bid) + '</td><td>' + escHtml(b.name) + '</td><td>' + (b.enabled !== false ? '是' : '否') + '</td><td>' + escHtml(b.order) + '</td><td><button onclick="toggleBreedEnabled(\\\'' + bid + '\\\', ' + (b.enabled !== false ? 'false' : 'true') + ')">' + (b.enabled !== false ? '禁用' : '启用') + '</button> <button class="danger" onclick="deleteBreed(\\\'' + bid + '\\\')">删除</button></td></tr>'; }).join(''))) + '</tbody></table></div>';
+          document.getElementById('btnSeedBreeds').onclick = function() { seedBreeds(); };
           document.getElementById('btnAddBreed').onclick = function() { document.getElementById('breedFormCard').style.display = 'block'; };
           document.getElementById('btnCancelBreed').onclick = function() { document.getElementById('breedFormCard').style.display = 'none'; };
           document.getElementById('formAddBreed').onsubmit = function(e) { e.preventDefault(); addBreed(e.target); };
-        }
-
         } else if (page === 'ugc') {
           url = API + '/ugc/pending';
           r = await fetch(url, { headers: headers() });
-          if (r.status === 401) { setToken(null); errEl.textContent = '登录已过期或无效，请重新登录'; showLogin(true); return; }
+          if (authFail(r)) return;
           if (!r.ok) { content.innerHTML = '<p class="err">请求失败 ' + r.status + '</p>'; return; }
           list = await r.json().catch(function() { return []; });
           if (!Array.isArray(list)) list = [];
-          content.innerHTML = '<div class="card"><h2>待审 UGC</h2><table><thead><tr><th>postId</th><th>title</th><th>操作</th></tr></thead><tbody>' + (list.map(p => '<tr><td>' + (p.postId || p.id) + '</td><td>' + (p.title || '') + '</td><td><button onclick="approve(\\\'' + (p.postId || p.id) + '\\\')">通过</button> <button class="danger" onclick="reject(\\\'' + (p.postId || p.id) + '\\\')">拒绝</button></td></tr>').join(''))) + '</tbody></table></div>';
+          content.innerHTML = '<div class="card"><h2>待审 UGC</h2><table><thead><tr><th>postId</th><th>title</th><th>操作</th></tr></thead><tbody>' + (list.length === 0 ? '<tr><td colspan="3" class="empty">暂无待审内容。</td></tr>' : list.map(function(p) { var pid = p.postId || p.id; return '<tr><td>' + escHtml(pid) + '</td><td>' + escHtml(p.title) + '</td><td><button onclick="approve(\\\'' + pid + '\\\')">通过</button> <button class="danger" onclick="reject(\\\'' + pid + '\\\')">拒绝</button></td></tr>'; }).join('')) + '</tbody></table></div>';
         } else if (page === 'reports') {
           url = API + '/reports/open';
           r = await fetch(url, { headers: headers() });
-          if (r.status === 401) { setToken(null); errEl.textContent = '登录已过期或无效，请重新登录'; showLogin(true); return; }
+          if (authFail(r)) return;
           if (!r.ok) { content.innerHTML = '<p class="err">请求失败 ' + r.status + '</p>'; return; }
           list = await r.json().catch(function() { return []; });
           if (!Array.isArray(list)) list = [];
-          content.innerHTML = '<div class="card"><h2>待处理举报</h2><table><thead><tr><th>举报 ID</th><th>帖子 ID</th><th>原因</th><th>操作</th></tr></thead><tbody>' + (list.length === 0 ? '<tr><td colspan="4" class="empty">暂无待处理举报。</td></tr>' : (list.map(rr => '<tr><td>' + (rr.reportId || rr.id) + '</td><td>' + (rr.postId || '') + '</td><td>' + (rr.reason || '') + '</td><td><button onclick="resolveReport(\\\'' + (rr.reportId || rr.id) + '\\\')">已处理</button></td></tr>').join(''))) + '</tbody></table></div>';
-
-
+          content.innerHTML = '<div class="card"><h2>待处理举报</h2><table><thead><tr><th>举报 ID</th><th>帖子 ID</th><th>原因</th><th>操作</th></tr></thead><tbody>' + (list.length === 0 ? '<tr><td colspan="4" class="empty">暂无待处理举报。</td></tr>' : (list.map(function(rr) { var rid = rr.reportId || rr.id; return '<tr><td>' + escHtml(rid) + '</td><td>' + escHtml(rr.postId) + '</td><td>' + escHtml(rr.reason) + '</td><td><button onclick="resolveReport(\\\'' + rid + '\\\')">已处理</button></td></tr>'; }).join(''))) + '</tbody></table></div>';
+        } else if (page === 'cats') {
+          url = API + '/admin/cats';
+          r = await fetch(url, { headers: headers() });
+          if (authFail(r)) return;
+          if (!r.ok) { content.innerHTML = '<p class="err">请求失败 ' + r.status + '</p>'; return; }
+          data = await r.json().catch(function() { return {}; });
+          items = data.items;
+          if (!Array.isArray(items)) items = [];
+          content.innerHTML = '<div class="card"><h2>宠物列表</h2><table><thead><tr><th>catId</th><th>名称</th><th>主人</th><th>家庭</th><th>操作</th></tr></thead><tbody>' + (items.length === 0 ? '<tr><td colspan="5" class="empty">暂无数据。</td></tr>' : items.map(function(c) { var cid = c.catId || ''; return '<tr><td>' + escHtml(cid) + '</td><td>' + escHtml(c.name) + '</td><td>' + escHtml(c.ownerId) + '</td><td>' + escHtml(c.familyId) + '</td><td><button class="danger" onclick="deleteCatAdmin(\\\'' + cid + '\\\')">删除</button></td></tr>'; }).join('')) + '</tbody></table></div>';
+        } else if (page === 'users') {
+          url = API + '/admin/users';
+          r = await fetch(url, { headers: headers() });
+          if (authFail(r)) return;
+          if (!r.ok) { content.innerHTML = '<p class="err">请求失败 ' + r.status + '</p>'; return; }
+          data = await r.json().catch(function() { return {}; });
+          items = data.items;
+          if (!Array.isArray(items)) items = [];
+          content.innerHTML = '<div class="card"><h2>用户列表</h2><table><thead><tr><th>uid</th><th>邮箱</th><th>显示名</th><th>家庭</th><th>操作</th></tr></thead><tbody>' + (items.length === 0 ? '<tr><td colspan="5" class="empty">暂无数据。</td></tr>' : items.map(function(u) { var uid = u.uid || ''; return '<tr><td>' + escHtml(uid) + '</td><td>' + escHtml(u.email) + '</td><td>' + escHtml(u.displayName) + '</td><td>' + escHtml(u.familyId) + '</td><td><button class="danger" onclick="deleteUserAdmin(\\\'' + uid + '\\\')">删除</button></td></tr>'; }).join('')) + '</tbody></table></div>';
+        } else if (page === 'reddit') {
+          sub = window._redditSub || 'CatAdvice';
+          sort = window._redditSort || 'new';
+          content.innerHTML = '<div class="card"><h2>Reddit 导入</h2><div class="toolbar">子版块 <select id="redditSub">' + REDDIT_SUBS.map(function(s) { return '<option value="' + s + '"' + (s === sub ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select> 排序 <select id="redditSort"><option value="new"' + (sort === 'new' ? ' selected' : '') + '>最新</option><option value="hot"' + (sort === 'hot' ? ' selected' : '') + '>热门</option><option value="top_day"' + (sort === 'top_day' ? ' selected' : '') + '>日榜</option><option value="top_week"' + (sort === 'top_week' ? ' selected' : '') + '>周榜</option></select> <button type="button" id="btnRedditFetch">拉取列表</button> <button type="button" id="btnRedditImport" class="primary">导入选中</button></div><p id="redditErr" class="err"></p><div id="redditTableWrap"></div></div>';
+          document.getElementById('btnRedditFetch').onclick = async function() {
+            var subEl = document.getElementById('redditSub');
+            var sortEl = document.getElementById('redditSort');
+            var msg = document.getElementById('redditErr');
+            var wrap = document.getElementById('redditTableWrap');
+            window._redditSub = subEl.value;
+            window._redditSort = sortEl.value;
+            msg.textContent = '';
+            wrap.innerHTML = '<p class="loading">拉取中…</p>';
+            try {
+              url = API + '/admin/reddit/fetch?subreddit=' + encodeURIComponent(window._redditSub) + '&sort=' + encodeURIComponent(window._redditSort);
+              r = await fetch(url, { headers: headers() });
+              if (authFail(r)) return;
+              if (!r.ok) { var ed = await r.json().catch(function() { return {}; }); wrap.innerHTML = ''; msg.textContent = (ed.detail || ('请求失败 ' + r.status)); return; }
+              data = await r.json();
+              items = data.items || [];
+              window._redditFetched = items;
+              if (items.length === 0) { wrap.innerHTML = '<p class="empty">当前列表为空。</p>'; return; }
+              wrap.innerHTML = '<table><thead><tr><th></th><th>ID</th><th>标题</th><th>分</th><th>已导入</th></tr></thead><tbody>' + items.map(function(it) {
+                var rid = String(it.id || '').replace(/"/g, '');
+                return '<tr><td><input type="checkbox" class="reddit-chk" value="' + rid + '"' + (it.alreadyImported ? ' disabled' : '') + ' /></td><td>' + escHtml(it.id) + '</td><td>' + escHtml(it.title) + '</td><td>' + escHtml(it.score) + '</td><td>' + (it.alreadyImported ? '是' : '否') + '</td></tr>';
+              }).join('') + '</tbody></table>';
+            } catch (e) { wrap.innerHTML = ''; msg.textContent = e.message || '加载失败'; }
+          };
+          document.getElementById('btnRedditImport').onclick = async function() {
+            var msg = document.getElementById('redditErr');
+            msg.textContent = '';
+            var ids = [];
+            document.querySelectorAll('input.reddit-chk:checked').forEach(function(ch) { ids.push(ch.value); });
+            if (ids.length === 0) { msg.textContent = '请先勾选要导入的条目'; return; }
+            try {
+              r = await fetch(API + '/admin/reddit/import', { method: 'POST', headers: headers(), body: JSON.stringify({ reddit_ids: ids, subreddit: window._redditSub || 'CatAdvice', sort: window._redditSort || 'new' }) });
+              if (authFail(r)) return;
+              data = await r.json().catch(function() { return {}; });
+              if (!r.ok) { msg.textContent = data.detail || '导入失败'; return; }
+              alert('已导入 ' + (data.imported || 0) + ' 条，跳过 ' + (data.skipped || 0));
+              document.getElementById('btnRedditFetch').click();
+            } catch (e) { msg.textContent = e.message || '导入失败'; }
+          };
+        } else {
+          content.innerHTML = '<p class="err">未知页面</p>';
         }
       } catch (e) { content.innerHTML = '<p class="err">加载失败: ' + (e.message || '') + '</p>'; }
-      document.querySelectorAll('.nav a[data-page]').forEach(function(a){ a.classList.toggle('active', a.dataset.page === page); });
+      document.querySelectorAll('.nav a[data-page]').forEach(function(a) { a.classList.toggle('active', a.dataset.page === page); });
     }
 
 
@@ -235,7 +336,6 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
       try {
         const r = await fetch(API + '/ugc/' + postId + '/approve', { method: 'POST', headers: headers() });
         if (r.ok) loadPage('ugc'); else alert((await r.json()).detail || '操作失败');
-  replace_all: true
       } catch (e) { alert(e.message); }
     }
     async function reject(postId) {
@@ -270,7 +370,33 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
       try {
         const r = await fetch(API + '/breeds/' + breedId, { method: 'PUT', headers: headers(), body: JSON.stringify({ enabled: enabled }) });
         if (r.ok) loadPage('breeds'); else alert((await r.json()).detail || '操作失败');
-  replace_all: true
+      } catch (e) { alert(e.message); }
+    }
+    async function unpublishPost(postId) {
+      try {
+        const r = await fetch(API + '/posts/' + encodeURIComponent(postId) + '/unpublish', { method: 'POST', headers: headers() });
+        if (r.ok) loadPage('posts'); else alert((await r.json()).detail || '操作失败');
+      } catch (e) { alert(e.message); }
+    }
+    async function deletePostAdmin(postId) {
+      if (!confirm('确定删除该帖子？')) return;
+      try {
+        const r = await fetch(API + '/posts/' + encodeURIComponent(postId), { method: 'DELETE', headers: headers() });
+        if (r.ok) loadPage('posts'); else alert((await r.json()).detail || '操作失败');
+      } catch (e) { alert(e.message); }
+    }
+    async function deleteCatAdmin(catId) {
+      if (!confirm('确定删除该宠物？')) return;
+      try {
+        const r = await fetch(API + '/admin/cats/' + encodeURIComponent(catId), { method: 'DELETE', headers: headers() });
+        if (r.ok) loadPage('cats'); else alert((await r.json()).detail || '操作失败');
+      } catch (e) { alert(e.message); }
+    }
+    async function deleteUserAdmin(uid) {
+      if (!confirm('确定删除该用户？将同时删除 Firebase Auth 账号。')) return;
+      try {
+        const r = await fetch(API + '/admin/users/' + encodeURIComponent(uid), { method: 'DELETE', headers: headers() });
+        if (r.ok) loadPage('users'); else alert((await r.json()).detail || '操作失败');
       } catch (e) { alert(e.message); }
     }
     async function deleteBreed(breedId) {
@@ -280,7 +406,24 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
         if (r.ok) loadPage('breeds'); else alert((await r.json()).detail || '失败');
       } catch (e) { alert(e.message); }
     }
-    if (token()) { showLogin(false); loadPage('breeds'); }
+    (function bootstrapAdminPage() {
+      var el = document.getElementById('init-admin-data');
+      if (!el) return;
+      var tb64 = el.getAttribute('data-token-base64');
+      if (tb64) {
+        try { setToken(atob(tb64)); } catch (e) {}
+      }
+      var eb64 = el.getAttribute('data-login-error-base64');
+      if (eb64) {
+        try {
+          var le = document.getElementById('loginErr');
+          if (le) le.textContent = decodeURIComponent(Array.prototype.map.call(atob(eb64), function(c) { return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2); }).join(''));
+        } catch (e2) {
+          try { document.getElementById('loginErr').textContent = atob(eb64); } catch (e3) {}
+        }
+      }
+    })();
+    if (token()) { showLogin(false); loadPage('posts'); }
 
 
   </script>
@@ -617,7 +760,7 @@ async def admin_page(request: Request) -> Response:
             redirect_url = f"{base}/admin"
 
             resp = RedirectResponse(url=redirect_url, status_code=302)
-            resp.set_cookie(key="admin_token", value=token, httponly=True, secure=True, samesite="lax", path="/", max_age=60)
+            resp.set_cookie(key="admin_token", value=token, httponly=True, secure=True, samesite="lax", path="/", max_age=604800)
             resp.headers["X-Admin-Login"] = "ok"
             resp.headers["X-Admin-Action"] = "redirect"
             resp.headers["Cache-Control"] = "no-store, no-cache"

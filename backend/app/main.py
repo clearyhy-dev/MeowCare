@@ -1,6 +1,7 @@
 import logging
 import time
 from collections import defaultdict
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,14 +9,23 @@ from starlette.responses import JSONResponse
 
 
 from app.config import CORS_ORIGINS, IS_PRODUCTION
-from app.routers import admin, ai, posts, reports, ugc
+from app.routers import admin, ai, breeds, content_jobs, posts, reports, ugc
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
 
-# Simple in-memory rate limit:
- key -> list of request timestamps (pruned to last 60s)
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    from app.services.scheduler import shutdown_scheduler, start_scheduler
+
+    start_scheduler()
+    yield
+    shutdown_scheduler()
+
+
+app = FastAPI(lifespan=lifespan)
+
+# Simple in-memory rate limit: key -> list of request timestamps (pruned to last 60s)
 _rate_store = defaultdict(list)
 _RATE_WINDOW = 60
 _AI_LIMIT = 30
@@ -72,4 +82,5 @@ app.include_router(posts.router, prefix="/posts", tags=["posts"])
 app.include_router(ugc.router, prefix="/ugc", tags=["ugc"])
 app.include_router(reports.router, prefix="/reports", tags=["reports"])
 app.include_router(ai.router, prefix="/ai", tags=["ai"])
+app.include_router(content_jobs.router, prefix="/content-jobs", tags=["content-jobs"])
 
