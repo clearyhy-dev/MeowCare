@@ -90,7 +90,8 @@ service cloud.firestore {
 
     match /likes/{likeId} {
       allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
-      allow read, update, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow read: if isSignedIn();
+      allow update, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
     }
 
     match /bookmarks/{bookmarkId} {

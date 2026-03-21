@@ -27,17 +27,16 @@ class PostRepository {
       q = q.where('countryCode', isEqualTo: countryCode);
     }
 
+    // UI 当前为二选一筛选：breed 或 topic（选择其一会清空另一项）。
+    if (breedIds != null && breedIds.isNotEmpty) {
+      q = q.where('breedIds', arrayContains: breedIds.first);
+    } else if (topics != null && topics.isNotEmpty) {
+      q = q.where('topics', arrayContains: topics.first);
+    }
+
     if (orderByCreated) {
       q = q.orderBy('createdAt', descending: true);
     } else {
-      q = q.orderBy('score', descending: true);
-    }
-
-    if (breedIds != null && breedIds.isNotEmpty) {
-      q = q.where('breedIds', arrayContains: breedIds.first);
-      if (!orderByCreated) q = q.orderBy('score', descending: true);
-    } else if (topics != null && topics.isNotEmpty) {
-      q = q.where('topics', arrayContains: topics.first);
       q = q.orderBy('score', descending: true);
     }
 

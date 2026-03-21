@@ -101,7 +101,6 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                 return;
               }
               await toggleLike(ref, widget.postId);
-              ref.invalidate(feedProvider);
               _load();
             },
           ),
@@ -197,7 +196,6 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                           }
                           try {
                             await toggleLike(ref, widget.postId);
-                            ref.invalidate(feedProvider);
                             _load();
                           } catch (e) {
                             messenger.showSnackBar(

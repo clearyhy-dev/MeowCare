@@ -28,6 +28,7 @@ class CreatePostPage extends ConsumerStatefulWidget {
 class _CreatePostPageState extends ConsumerState<CreatePostPage> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
+  final _topicsInputController = TextEditingController();
   List<String> _topics = [];
   List<String> _breedIds = [];
   File? _coverFile;
@@ -40,7 +41,42 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
+    _topicsInputController.dispose();
     super.dispose();
+  }
+
+  void _syncTopicsFromInput(String raw) {
+    final hashtagMatches = RegExp(r'#([a-zA-Z_]+)').allMatches(raw);
+    final next = <String>[];
+    for (final m in hashtagMatches) {
+      final token = (m.group(1) ?? '').toLowerCase().trim();
+      if (_topicOptions.contains(token) && !next.contains(token)) {
+        next.add(token);
+      }
+    }
+    _topics = next;
+  }
+
+  String _activeTopicQuery(String raw) {
+    final m = RegExp(r'#([a-zA-Z_]*)$').firstMatch(raw);
+    return (m?.group(1) ?? '').toLowerCase().trim();
+  }
+
+  List<String> _topicSuggestions(String raw) {
+    final q = _activeTopicQuery(raw);
+    if (q.isEmpty) return _topicOptions;
+    return _topicOptions.where((t) => t.startsWith(q)).toList();
+  }
+
+  void _appendTopicTag(String topic) {
+    final text = _topicsInputController.text;
+    if (RegExp('#$topic(\\b|\$)', caseSensitive: false).hasMatch(text)) return;
+    final spacer = text.trim().isEmpty || text.trimRight().endsWith('#') ? '' : ' ';
+    _topicsInputController.text = '${text.trimRight()}$spacer#$topic ';
+    _topicsInputController.selection = TextSelection.collapsed(offset: _topicsInputController.text.length);
+    setState(() {
+      _syncTopicsFromInput(_topicsInputController.text);
+    });
   }
 
   Future<void> _pickCoverImage() async {
@@ -207,9 +243,20 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
               controller: _titleController,
               decoration: InputDecoration(
                 hintText: context.l10n.title,
-                border: InputBorder.none,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: divider),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: divider),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: scheme.primary, width: 1.2),
+                ),
                 isDense: true,
-                contentPadding: EdgeInsets.zero,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                 hintStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: scheme.onSurfaceVariant.withValues(alpha: 0.45),
                       fontWeight: FontWeight.w600,
@@ -220,10 +267,31 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
                     height: 1.2,
                   ),
               textCapitalization: TextCapitalization.sentences,
-              maxLines: 3,
-              minLines: 1,
+              maxLines: 4,
+              minLines: 2,
             ),
             Divider(height: 20, thickness: 0.7, color: divider),
+            Text(
+              context.l10n.content,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _contentController,
+              decoration: const InputDecoration(
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+                border: InputBorder.none,
+                alignLabelWithHint: true,
+              ),
+              maxLines: 10,
+              minLines: 4,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.4),
+            ),
+            const SizedBox(height: 10),
             OutlinedButton.icon(
               icon: const Icon(Icons.image_outlined, size: 20),
               label: Text(context.l10n.postAddImage),
@@ -263,27 +331,6 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
                 ],
               ),
             ],
-            Divider(height: 22, thickness: 0.7, color: divider),
-            Text(
-              context.l10n.content,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onSurfaceVariant,
-                  ),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _contentController,
-              decoration: const InputDecoration(
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 0),
-                border: InputBorder.none,
-                alignLabelWithHint: true,
-              ),
-              maxLines: 10,
-              minLines: 4,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.4),
-            ),
             const SizedBox(height: 16),
             Text(
               context.l10n.breeds,
@@ -334,24 +381,25 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
               style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
+            TextField(
+              controller: _topicsInputController,
+              onChanged: (v) => setState(() => _syncTopicsFromInput(v)),
+              decoration: InputDecoration(
+                hintText: '#care #feeding your description...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 6,
-              children: _topicOptions
+              children: _topicSuggestions(_topicsInputController.text)
                   .map(
-                    (t) => FilterChip(
-                      label: Text(topicLabel(context, t), style: const TextStyle(fontSize: 13)),
-                      selected: _topics.contains(t),
-                      visualDensity: VisualDensity.compact,
-                      onSelected: (v) {
-                        setState(() {
-                          if (v) {
-                            _topics = [..._topics, t];
-                          } else {
-                            _topics = _topics.where((x) => x != t).toList();
-                          }
-                        });
-                      },
+                    (t) => ActionChip(
+                      label: Text('#$t ${topicLabel(context, t)}'),
+                      onPressed: () => setState(() => _appendTopicTag(t)),
                     ),
                   )
                   .toList(),

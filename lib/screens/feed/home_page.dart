@@ -482,7 +482,6 @@ class _PostCard extends ConsumerWidget {
                       }
                       try {
                         await toggleLike(ref, post.postId);
-                        ref.invalidate(feedProvider);
                       } catch (e) {
                         messenger.showSnackBar(
                           SnackBar(content: Text(l10n.errorWithMessage(e.toString()))),
