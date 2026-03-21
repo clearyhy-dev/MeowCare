@@ -123,7 +123,7 @@ class _CommentListState extends ConsumerState<CommentList> {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
             ),
             child: Row(
               children: [
@@ -186,7 +186,7 @@ class _CommentListState extends ConsumerState<CommentList> {
     final replies = childrenMap[comment.commentId] ?? const <CommentModel>[];
     final isExpanded = _expandedReplyParents.contains(comment.commentId);
     final visibleReplies = (isExpanded || replies.length <= 3) ? replies : replies.take(3).toList();
-    final left = depth == 0 ? 0.0 : (18.0 * depth);
+    final left = depth == 0 ? 0.0 : (12.0 * depth);
 
     return Padding(
       padding: EdgeInsets.only(left: left),

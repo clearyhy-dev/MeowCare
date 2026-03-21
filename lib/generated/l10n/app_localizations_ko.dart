@@ -631,6 +631,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get retry => '다시 시도';
 
   @override
+  String get searchPostsHint => 'Search by title, content, or #topic';
+
+  @override
+  String get noResultFound => 'No matching posts found.';
+
+  @override
   String get me => '나';
 
   @override

@@ -636,6 +636,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get retry => 'Reintentar';
 
   @override
+  String get searchPostsHint => 'Search by title, content, or #topic';
+
+  @override
+  String get noResultFound => 'No matching posts found.';
+
+  @override
   String get me => 'Yo';
 
   @override

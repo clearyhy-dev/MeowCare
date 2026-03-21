@@ -631,6 +631,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get retry => '再試行';
 
   @override
+  String get searchPostsHint => 'Search by title, content, or #topic';
+
+  @override
+  String get noResultFound => 'No matching posts found.';
+
+  @override
   String get me => '自分';
 
   @override

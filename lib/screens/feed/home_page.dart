@@ -9,6 +9,7 @@ import '../../providers/feed_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../widgets/app/app_empty_state.dart';
+import '../../widgets/feed/feed_control_bar.dart';
 import '../../widgets/post/post_card.dart';
 import '../../widgets/post/post_card_skeleton.dart';
 
@@ -19,15 +20,16 @@ class HomePage extends ConsumerStatefulWidget {
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _HomePageState extends ConsumerState<HomePage> {
+  final _searchController = TextEditingController();
+  String _searchText = '';
+  bool _latestSelected = true;
   String? _selectedTopic;
   static const _topics = ['care', 'health', 'feeding', 'behavior'];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final country = ref.read(appCountryProvider).valueOrNull;
       ref.read(feedProvider.notifier).loadFirst(orderByCreated: true, countryCode: country);
@@ -36,14 +38,17 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  void _onFilterChanged() {
+  void _onFilterChanged({bool? latestSelected}) {
+    if (latestSelected != null) {
+      _latestSelected = latestSelected;
+    }
     final country = ref.read(appCountryProvider).valueOrNull;
     ref.read(feedProvider.notifier).loadFirst(
-      orderByCreated: _tabController.index == 0,
+      orderByCreated: _latestSelected,
       topic: _selectedTopic,
       countryCode: country,
     );
@@ -58,11 +63,23 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
       final nextCountry = next.valueOrNull;
       if (prev?.valueOrNull == nextCountry) return;
       ref.read(feedProvider.notifier).loadFirst(
-        orderByCreated: _tabController.index == 0,
+        orderByCreated: _latestSelected,
         topic: _selectedTopic,
         countryCode: nextCountry,
       );
     });
+    final posts = feedState.posts;
+    final normalizedSearch = _searchText.trim().toLowerCase();
+    final visiblePosts = normalizedSearch.isEmpty
+        ? posts
+        : posts.where((post) {
+            final title = post.title.toLowerCase();
+            final content = post.content.toLowerCase();
+            final topics = post.topics.join(' ').toLowerCase();
+            return title.contains(normalizedSearch) ||
+                content.contains(normalizedSearch) ||
+                topics.contains(normalizedSearch);
+          }).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -74,47 +91,35 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
             IconButton(icon: const Icon(Icons.add), onPressed: () => context.push('${AppRouter.home}post/create')),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(100),
-          child: Column(
-            children: [
-              TabBar(
-                controller: _tabController,
-                onTap: (i) {
-                  AppFeedback.selection();
-                  final country = ref.read(appCountryProvider).valueOrNull;
-                  ref.read(feedProvider.notifier).loadFirst(
-                    orderByCreated: i == 0,
-                    topic: _selectedTopic,
-                    countryCode: country,
-                  );
-                },
-                tabs: [
-                  Tab(text: context.l10n.latest),
-                  Tab(text: context.l10n.hot),
-                ],
-              ),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: Row(
-                  children: [
-                    _FilterChip(
-                      label: context.l10n.topics,
-                      allLabel: context.l10n.allTopics,
-                      value: _selectedTopic,
-                      options: _topics.map((t) => MapEntry(t, topicLabel(context, t))).toList(),
-                      onSelected: (id) {
-                        AppFeedback.selection();
-                        setState(() {
-                          _selectedTopic = id;
-                        });
-                        _onFilterChanged();
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          preferredSize: const Size.fromHeight(94),
+          child: FeedControlBar(
+            searchController: _searchController,
+            searchHintText: context.l10n.searchPostsHint,
+            onSearchChanged: (value) => setState(() => _searchText = value),
+            latestSelected: _latestSelected,
+            latestLabel: context.l10n.latest,
+            hotLabel: context.l10n.hot,
+            onSelectLatest: () {
+              if (_latestSelected) return;
+              AppFeedback.selection();
+              setState(() => _latestSelected = true);
+              _onFilterChanged(latestSelected: true);
+            },
+            onSelectHot: () {
+              if (!_latestSelected) return;
+              AppFeedback.selection();
+              setState(() => _latestSelected = false);
+              _onFilterChanged(latestSelected: false);
+            },
+            selectedTopic: _selectedTopic,
+            topicIds: _topics,
+            allTopicsLabel: context.l10n.allTopics,
+            topicLabelBuilder: (topicId) => topicLabel(context, topicId),
+            onTopicSelect: (id) {
+              AppFeedback.selection();
+              setState(() => _selectedTopic = id);
+              _onFilterChanged();
+            },
           ),
         ),
       ),
@@ -133,7 +138,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                     onPressed: () {
                       final country = ref.read(appCountryProvider).valueOrNull;
                       ref.read(feedProvider.notifier).loadFirst(
-                        orderByCreated: _tabController.index == 0,
+                        orderByCreated: _latestSelected,
                         topic: _selectedTopic,
                         countryCode: country,
                       );
@@ -146,21 +151,23 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
             )
           : feedState.loading && feedState.posts.isEmpty
               ? const _FeedLoadingSkeleton()
-              : (!feedState.loading && feedState.posts.isEmpty)
+              : (!feedState.loading && posts.isEmpty)
                   ? AppEmptyState(message: context.l10n.feedNoContent, icon: Icons.forum_outlined)
+                  : (!feedState.loading && posts.isNotEmpty && visiblePosts.isEmpty)
+                      ? AppEmptyState(message: context.l10n.noResultFound, icon: Icons.search_off_rounded)
                   : RefreshIndicator(
                   onRefresh: () async {
                     ref.invalidate(redditTrendingProvider);
                     final country = ref.read(appCountryProvider).valueOrNull;
                     await ref.read(feedProvider.notifier).loadFirst(
-                      orderByCreated: _tabController.index == 0,
+                      orderByCreated: _latestSelected,
                       topic: _selectedTopic,
                       countryCode: country,
                     );
                   },
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
-                    itemCount: 1 + feedState.posts.length + (feedState.hasMore ? 1 : 0),
+                    itemCount: 1 + visiblePosts.length + (feedState.hasMore ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == 0) {
                         return Padding(
@@ -171,7 +178,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                         );
                       }
                       final postIndex = index - 1;
-                      final postCount = feedState.posts.length;
+                      final postCount = visiblePosts.length;
                       if (postIndex >= postCount) {
                         if (postIndex == postCount) {
                           ref.read(feedProvider.notifier).loadMore();
@@ -184,7 +191,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                       if (postIndex < 0 || postIndex >= postCount) {
                         return const SizedBox.shrink();
                       }
-                      final post = feedState.posts[postIndex];
+                      final post = visiblePosts[postIndex];
                       return PostCard(
                         post: post,
                         onOpenPost: () => context.push('${AppRouter.postDetail}/${post.postId}'),
@@ -270,67 +277,6 @@ class _RedditTrendingBlock extends ConsumerWidget {
       },
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.allLabel,
-    required this.value,
-    required this.options,
-    required this.onSelected,
-  });
-
-  final String label;
-  final String allLabel;
-  final String? value;
-  final List<MapEntry<String, String>> options;
-  final void Function(String?) onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final matches = options.where((e) => e.key == value).toList();
-    final displayText = value == null ? label : (matches.isEmpty ? (value ?? label) : matches.first.value);
-
-    return PopupMenuButton<String?>(
-      onSelected: onSelected,
-      tooltip: label,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: value == null ? scheme.surfaceContainerLow : scheme.primaryContainer.withValues(alpha: 0.75),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: scheme.outline.withValues(alpha: 0.35)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.tune_rounded, size: 16, color: value == null ? scheme.onSurfaceVariant : scheme.primary),
-            const SizedBox(width: 6),
-            Text(
-              displayText,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: value == null ? scheme.onSurface : scheme.primary,
-                  ),
-            ),
-          ],
-        ),
-      ),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: null,
-          child: Row(
-            children: [
-              if (value == null) Icon(Icons.check_rounded, size: 16, color: Theme.of(context).colorScheme.primary),
-              if (value == null) const SizedBox(width: 6),
-              Text(allLabel),
-            ],
-          ),
-        ),
-        ...options.map((e) => PopupMenuItem(value: e.key, child: Text(e.value))),
-      ],
     );
   }
 }

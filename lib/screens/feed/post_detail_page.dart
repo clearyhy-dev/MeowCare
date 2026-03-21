@@ -167,20 +167,12 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                   const SizedBox(height: 12),
                   AppSectionHeader(title: '${context.l10n.comments} (${post.commentCount})'),
                   const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                    decoration: BoxDecoration(
-                      color: scheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: scheme.outline.withValues(alpha: 0.2)),
-                    ),
-                    child: CommentList(
-                      postId: widget.postId,
-                      currentUid: user?.uid,
-                      onCommentAdded: _load,
-                      currentUserDisplayName: ((user?.displayName ?? '').isNotEmpty) ? user?.displayName : user?.email,
-                      currentUserPhotoUrl: ((user?.photoUrl ?? '').isNotEmpty) ? user?.photoUrl : null,
-                    ),
+                  CommentList(
+                    postId: widget.postId,
+                    currentUid: user?.uid,
+                    onCommentAdded: _load,
+                    currentUserDisplayName: ((user?.displayName ?? '').isNotEmpty) ? user?.displayName : user?.email,
+                    currentUserPhotoUrl: ((user?.photoUrl ?? '').isNotEmpty) ? user?.photoUrl : null,
                   ),
                   const SizedBox(height: 80),
                 ],

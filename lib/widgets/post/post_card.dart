@@ -35,88 +35,92 @@ class PostCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final hasCategory = post.topics.isNotEmpty;
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadii.md),
-        onTap: onOpenPost,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 14,
-                    backgroundColor: scheme.primaryContainer,
-                    child: Icon(Icons.pets_rounded, size: 14, color: scheme.primary),
+    return InkWell(
+      onTap: onOpenPost,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
+        padding: const EdgeInsets.fromLTRB(0, AppSpacing.md, 0, AppSpacing.md),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: scheme.outline.withValues(alpha: 0.18),
+            ),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: scheme.primaryContainer,
+                  child: Icon(Icons.pets_rounded, size: 14, color: scheme.primary),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'MeowCare',
+                    style: theme.textTheme.labelLarge,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'MeowCare',
-                      style: theme.textTheme.labelLarge,
-                    ),
-                  ),
-                  Text(
-                    _formatTime(post.createdAt),
-                    style: theme.textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  _TagChip(text: AppLanguageDisplay.chipLabel(post.language, context.l10n)),
-                  if (hasCategory) _TagChip(text: feedTopicCategoryLabel(context, post.topics.first)),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                post.title,
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, height: 1.25),
-              ),
-              if (post.content.trim().isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.sm),
+                ),
                 Text(
-                  post.content.trim(),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+                  _formatTime(post.createdAt),
+                  style: theme.textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
                 ),
               ],
-              if (post.shouldShowImage) ...[
-                const SizedBox(height: AppSpacing.md),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadii.sm),
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: Image.network(
-                      post.displayImageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => ColoredBox(
-                        color: scheme.surfaceContainerHighest,
-                        child: Icon(Icons.broken_image_outlined, color: scheme.onSurfaceVariant),
-                      ),
-                    ),
-                  ),
-                ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                _TagChip(text: AppLanguageDisplay.chipLabel(post.language, context.l10n)),
+                if (hasCategory) _TagChip(text: feedTopicCategoryLabel(context, post.topics.first)),
               ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              post.title,
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, height: 1.25),
+            ),
+            if (post.content.trim().isNotEmpty) ...[
               const SizedBox(height: AppSpacing.sm),
-              PostActionBar(
-                postId: post.postId,
-                title: post.title,
-                likeCount: post.likeCount,
-                downvoteCount: post.downvoteCount,
-                commentCount: post.commentCount,
-                onCommentTap: onOpenPost,
-                compact: true,
+              Text(
+                post.content.trim(),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
               ),
             ],
-          ),
+            if (post.shouldShowImage) ...[
+              const SizedBox(height: AppSpacing.md),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Image.network(
+                    post.displayImageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => ColoredBox(
+                      color: scheme.surfaceContainerHighest,
+                      child: Icon(Icons.broken_image_outlined, color: scheme.onSurfaceVariant),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.sm),
+            PostActionBar(
+              postId: post.postId,
+              title: post.title,
+              likeCount: post.likeCount,
+              downvoteCount: post.downvoteCount,
+              commentCount: post.commentCount,
+              onCommentTap: onOpenPost,
+              compact: true,
+            ),
+          ],
         ),
       ),
     );

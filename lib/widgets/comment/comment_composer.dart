@@ -18,11 +18,10 @@ class CommentComposer extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: scheme.surface,
+        color: scheme.surfaceContainerLow.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: scheme.outline.withValues(alpha: 0.35)),
       ),
       child: Row(
         children: [
@@ -35,6 +34,7 @@ class CommentComposer extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: enabled ? context.l10n.comments : context.l10n.signInForFullFeatures,
                 border: InputBorder.none,
+                filled: false,
                 isDense: true,
               ),
             ),

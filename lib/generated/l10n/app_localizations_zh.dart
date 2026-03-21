@@ -630,6 +630,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get retry => '重试';
 
   @override
+  String get searchPostsHint => '按标题、正文或 #话题搜索';
+
+  @override
+  String get noResultFound => '没有匹配的帖子';
+
+  @override
   String get me => '我';
 
   @override

@@ -19,61 +19,67 @@ class CommentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final left = depth == 0 ? 0.0 : 14.0;
+    final showIndentLine = depth > 0;
     return Padding(
-      padding: EdgeInsets.only(left: left, bottom: 8),
-      child: Container(
-        decoration: BoxDecoration(
-          color: scheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: scheme.outline.withValues(alpha: 0.22)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  if (depth == 0)
-                    CircleAvatar(
-                      radius: 12,
-                      backgroundImage: (comment.authorPhotoUrl != null && comment.authorPhotoUrl!.isNotEmpty)
-                          ? NetworkImage(comment.authorPhotoUrl!)
-                          : null,
-                      child: (comment.authorPhotoUrl == null || comment.authorPhotoUrl!.isEmpty)
-                          ? const Icon(Icons.person, size: 14)
-                          : null,
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (showIndentLine)
+            Container(
+              width: 1,
+              height: 42,
+              margin: const EdgeInsets.only(right: 10, top: 2),
+              color: scheme.outline.withValues(alpha: 0.22),
+            ),
+          if (depth == 0)
+            CircleAvatar(
+              radius: 12,
+              backgroundImage: (comment.authorPhotoUrl != null && comment.authorPhotoUrl!.isNotEmpty)
+                  ? NetworkImage(comment.authorPhotoUrl!)
+                  : null,
+              child: (comment.authorPhotoUrl == null || comment.authorPhotoUrl!.isEmpty)
+                  ? const Icon(Icons.person, size: 14)
+                  : null,
+            ),
+          if (depth == 0) const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        comment.displayAuthorLabel,
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
                     ),
-                  if (depth == 0) const SizedBox(width: 8),
-                  Expanded(
+                    TextButton(
+                      onPressed: onReply,
+                      style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                      child: Text(replyLabel),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                if (comment.replyToAuthor != null && comment.replyToAuthor!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
                     child: Text(
-                      comment.displayAuthorLabel,
-                      style: Theme.of(context).textTheme.labelLarge,
+                      '@${comment.replyToAuthor}',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.primary),
                     ),
                   ),
-                  TextButton(
-                    onPressed: onReply,
-                    style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                    child: Text(replyLabel),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                comment.content,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              if (comment.replyToAuthor != null && comment.replyToAuthor!.isNotEmpty) ...[
-                const SizedBox(height: 4),
                 Text(
-                  '@${comment.replyToAuthor}',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.primary),
+                  comment.content,
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
-            ],
+            ),
           ),
-        ),
+          if (depth > 0) const SizedBox(width: 2),
+        ],
       ),
     );
   }

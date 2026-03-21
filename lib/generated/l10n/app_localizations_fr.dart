@@ -638,6 +638,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get retry => 'Réessayer';
 
   @override
+  String get searchPostsHint => 'Search by title, content, or #topic';
+
+  @override
+  String get noResultFound => 'No matching posts found.';
+
+  @override
   String get me => 'Moi';
 
   @override

@@ -37,9 +37,8 @@ class PostActionBar extends ConsumerWidget {
     final up = likeCount + (voteUi?.upDelta ?? 0);
     final down = downvoteCount + (voteUi?.downDelta ?? 0);
     final scheme = Theme.of(context).colorScheme;
-    final textStyle = Theme.of(context).textTheme.labelMedium;
     final radius = BorderRadius.circular(compact ? 12 : 14);
-    final vPadding = compact ? 4.0 : 6.0;
+    final vPadding = compact ? 2.0 : 4.0;
 
     Future<void> requireLogin(Future<void> Function() action) async {
       if (user == null) {
@@ -53,10 +52,10 @@ class PostActionBar extends ConsumerWidget {
     }
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8, vertical: vPadding),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 2 : 4, vertical: vPadding),
       decoration: BoxDecoration(
         borderRadius: radius,
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+        color: scheme.surfaceContainerLow.withValues(alpha: 0.8),
       ),
       child: Row(
         children: [
@@ -82,24 +81,21 @@ class PostActionBar extends ConsumerWidget {
             onPressed: onCommentTap,
           ),
           const Spacer(),
-          _IconAction(
+          _ActionPill(
             icon: isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded,
+            label: '',
             selected: isBookmarked,
             selectedColor: scheme.primary,
             onPressed: () => requireLogin(() => toggleBookmark(ref, postId)),
           ),
           const SizedBox(width: 4),
-          _IconAction(
+          _ActionPill(
             icon: Icons.share_outlined,
+            label: '',
             onPressed: () {
               AppFeedback.lightTap();
               MeowShare.sharePost(context, postId: postId, title: title);
             },
-          ),
-          const SizedBox(width: 4),
-          Text(
-            context.l10n.share,
-            style: textStyle?.copyWith(color: scheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -135,40 +131,11 @@ class _ActionPill extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 18, color: color),
-            const SizedBox(width: 4),
-            Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: color)),
+            if (label.isNotEmpty) ...[
+              const SizedBox(width: 4),
+              Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: color)),
+            ],
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _IconAction extends StatelessWidget {
-  const _IconAction({
-    required this.icon,
-    required this.onPressed,
-    this.selected = false,
-    this.selectedColor,
-  });
-
-  final IconData icon;
-  final VoidCallback onPressed;
-  final bool selected;
-  final Color? selectedColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onPressed,
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Icon(
-          icon,
-          size: 19,
-          color: selected ? (selectedColor ?? scheme.primary) : scheme.onSurfaceVariant,
         ),
       ),
     );

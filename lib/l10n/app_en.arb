@@ -230,6 +230,8 @@
   "@aiErrorFreeLimit": {"placeholders": {"count": {"type": "int"}}},
   "aiModelLabel": "Current model",
   "retry": "Retry",
+  "searchPostsHint": "Search by title, content, or #topic",
+  "noResultFound": "No matching posts found.",
   "me": "Me",
   "planDay1": "Day 1: Prepare your home for the cat",
   "planDay2": "Day 2: Choose food and bowls",

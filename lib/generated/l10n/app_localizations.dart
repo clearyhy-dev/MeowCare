@@ -1312,6 +1312,18 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get retry;
 
+  /// No description provided for @searchPostsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by title, content, or #topic'**
+  String get searchPostsHint;
+
+  /// No description provided for @noResultFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching posts found.'**
+  String get noResultFound;
+
   /// No description provided for @me.
   ///
   /// In en, this message translates to:

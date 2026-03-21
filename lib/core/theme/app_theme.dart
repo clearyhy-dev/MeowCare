@@ -67,14 +67,19 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: AppColors.surface,
-        elevation: 0.6,
-        shadowColor: Colors.black.withValues(alpha: 0.08),
+        elevation: 0,
+        shadowColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadii.md),
-          side: BorderSide(color: AppColors.stroke.withValues(alpha: 0.8)),
+          side: BorderSide(color: AppColors.stroke.withValues(alpha: 0.45)),
         ),
         margin: AppInsets.cardMargin,
         clipBehavior: Clip.antiAlias,
+      ),
+      dividerTheme: DividerThemeData(
+        color: AppColors.stroke.withValues(alpha: 0.55),
+        thickness: 0.8,
+        space: 1,
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 68,
@@ -189,15 +194,20 @@ class AppTheme {
         titleTextStyle: textTheme.titleLarge?.copyWith(color: colorScheme.onSurface),
       ),
       cardTheme: CardThemeData(
-        color: colorScheme.surfaceContainerHighest,
-        elevation: 0.8,
-        shadowColor: Colors.black.withValues(alpha: 0.2),
+        color: colorScheme.surfaceContainerLow,
+        elevation: 0,
+        shadowColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadii.md),
-          side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.35)),
+          side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.24)),
         ),
         margin: AppInsets.cardMargin,
         clipBehavior: Clip.antiAlias,
+      ),
+      dividerTheme: DividerThemeData(
+        color: colorScheme.outline.withValues(alpha: 0.35),
+        thickness: 0.8,
+        space: 1,
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 68,
