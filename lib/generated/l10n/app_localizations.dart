@@ -1503,6 +1503,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'한국어'**
   String get languageNameKo;
+
+  /// No description provided for @replyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get replyAction;
+
+  /// No description provided for @replyToUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply to {name}'**
+  String replyToUser(String name);
+
+  /// No description provided for @viewMoreReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'View {count} more replies'**
+  String viewMoreReplies(int count);
+
+  /// No description provided for @collapseReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse replies'**
+  String get collapseReplies;
 }
 
 class _AppLocalizationsDelegate

@@ -261,6 +261,24 @@
   "languageNameDe": "Deutsch",
   "languageNamePt": "Português",
   "languageNameRu": "Русский",
-  "languageNameKo": "한국어"
+  "languageNameKo": "한국어",
+  "replyAction": "Reply",
+  "replyToUser": "Reply to {name}",
+  "@replyToUser": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "viewMoreReplies": "View {count} more replies",
+  "@viewMoreReplies": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "collapseReplies": "Collapse replies"
 }
 

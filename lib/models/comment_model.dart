@@ -10,6 +10,10 @@ class CommentModel {
   final String? authorDisplayName;
   /// 发评论时写入：作者头像 URL，用于列表展示
   final String? authorPhotoUrl;
+  /// 回复评论时，父评论 id（顶级评论为空）
+  final String? parentCommentId;
+  /// 回复目标作者展示名（用于“回复 @xxx”）
+  final String? replyToAuthor;
 
   const CommentModel({
     required this.commentId,
@@ -19,6 +23,8 @@ class CommentModel {
     this.createdAt,
     this.authorDisplayName,
     this.authorPhotoUrl,
+    this.parentCommentId,
+    this.replyToAuthor,
   });
 
   Map<String, dynamic> toMap() {
@@ -30,6 +36,8 @@ class CommentModel {
     };
     if (authorDisplayName != null) map['authorDisplayName'] = authorDisplayName;
     if (authorPhotoUrl != null) map['authorPhotoUrl'] = authorPhotoUrl;
+    if (parentCommentId != null && parentCommentId!.isNotEmpty) map['parentCommentId'] = parentCommentId;
+    if (replyToAuthor != null && replyToAuthor!.isNotEmpty) map['replyToAuthor'] = replyToAuthor;
     return map;
   }
 
@@ -43,6 +51,8 @@ class CommentModel {
       createdAt: createdAt is Timestamp ? createdAt.toDate() : null,
       authorDisplayName: map['authorDisplayName'] as String?,
       authorPhotoUrl: map['authorPhotoUrl'] as String?,
+      parentCommentId: map['parentCommentId'] as String?,
+      replyToAuthor: map['replyToAuthor'] as String?,
     );
   }
 

@@ -44,19 +44,17 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   title: Text(user.displayName.isNotEmpty ? user.displayName : context.l10n.me),
                   subtitle: Text(user.email),
+                  trailing: IconButton(
+                    tooltip: context.l10n.signOut,
+                    icon: const Icon(Icons.logout),
+                    onPressed: () => _signOut(context, ref),
+                  ),
                 ),
                 const Divider(),
                 ListTile(
-                  leading: Icon(Icons.language_outlined, color: Theme.of(context).colorScheme.primary),
-                  title: Text(context.l10n.appLanguage),
-                  subtitle: Text(
-                    ref.watch(appLocaleProvider).valueOrNull == null
-                        ? '${context.l10n.languageFollowSystem} · ${AppLanguageDisplay.fullName(ref.watch(effectiveUILanguageCodeProvider), context.l10n)}'
-                        : AppLanguageDisplay.fullName(ref.watch(appLocaleProvider).valueOrNull!.languageCode, context.l10n),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => showAppLanguageSheet(context, ref),
+                  leading: Icon(Icons.ios_share_outlined, color: Theme.of(context).colorScheme.primary),
+                  title: Text(context.l10n.shareAppMenu),
+                  onTap: () => MeowShare.shareApp(context),
                 ),
                 const Divider(),
                 ListTile(
@@ -98,15 +96,16 @@ class SettingsScreen extends ConsumerWidget {
                 ],
                 const Divider(),
                 ListTile(
-                  leading: Icon(Icons.ios_share_outlined, color: Theme.of(context).colorScheme.primary),
-                  title: Text(context.l10n.shareAppMenu),
-                  onTap: () => MeowShare.shareApp(context),
-                ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.logout),
-                  title: Text(context.l10n.signOut),
-                  onTap: () => _signOut(context, ref),
+                  leading: Icon(Icons.language_outlined, color: Theme.of(context).colorScheme.primary),
+                  title: Text(context.l10n.appLanguage),
+                  subtitle: Text(
+                    ref.watch(appLocaleProvider).valueOrNull == null
+                        ? '${context.l10n.languageFollowSystem} · ${AppLanguageDisplay.fullName(ref.watch(effectiveUILanguageCodeProvider), context.l10n)}'
+                        : AppLanguageDisplay.fullName(ref.watch(appLocaleProvider).valueOrNull!.languageCode, context.l10n),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => showAppLanguageSheet(context, ref),
                 ),
               ],
             ),

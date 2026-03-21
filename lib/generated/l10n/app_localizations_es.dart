@@ -733,4 +733,20 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get languageNameKo => '한국어';
+
+  @override
+  String get replyAction => 'Reply';
+
+  @override
+  String replyToUser(String name) {
+    return 'Reply to $name';
+  }
+
+  @override
+  String viewMoreReplies(int count) {
+    return 'View $count more replies';
+  }
+
+  @override
+  String get collapseReplies => 'Collapse replies';
 }

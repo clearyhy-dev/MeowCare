@@ -727,4 +727,20 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get languageNameKo => '한국어';
+
+  @override
+  String get replyAction => '回复';
+
+  @override
+  String replyToUser(String name) {
+    return '回复 $name';
+  }
+
+  @override
+  String viewMoreReplies(int count) {
+    return '展开另外 $count 条回复';
+  }
+
+  @override
+  String get collapseReplies => '收起回复';
 }

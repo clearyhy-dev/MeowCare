@@ -36,6 +36,8 @@ class _CommentListState extends ConsumerState<CommentList> {
   DocumentSnapshot? _lastDoc;
   bool _loading = false;
   bool _hasMore = true;
+  CommentModel? _replyTarget;
+  final Set<String> _expandedReplyParents = <String>{};
 
   @override
   void dispose() {
@@ -85,8 +87,11 @@ class _CommentListState extends ConsumerState<CommentList> {
             content: content,
             authorDisplayName: widget.currentUserDisplayName,
             authorPhotoUrl: widget.currentUserPhotoUrl,
+            parentCommentId: _replyTarget?.commentId,
+            replyToAuthor: _replyTarget?.displayAuthorLabel,
           );
       widget.onCommentAdded();
+      setState(() => _replyTarget = null);
       _loadFirst();
     } catch (e) {
       if (mounted) {
@@ -99,9 +104,41 @@ class _CommentListState extends ConsumerState<CommentList> {
 
   @override
   Widget build(BuildContext context) {
+    final topLevel = _comments.where((c) => (c.parentCommentId == null || c.parentCommentId!.isEmpty)).toList();
+    final childrenMap = <String, List<CommentModel>>{};
+    for (final c in _comments) {
+      final pid = c.parentCommentId;
+      if (pid == null || pid.isEmpty) continue;
+      childrenMap.putIfAbsent(pid, () => <CommentModel>[]).add(c);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (_replyTarget != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    context.l10n.replyToUser(_replyTarget!.displayAuthorLabel),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.close, size: 18),
+                  onPressed: () => setState(() => _replyTarget = null),
+                ),
+              ],
+            ),
+          ),
         TextField(
           controller: _contentController,
           enabled: (widget.currentUid ?? '').isNotEmpty,
@@ -116,18 +153,7 @@ class _CommentListState extends ConsumerState<CommentList> {
         if (_loading && _comments.isEmpty)
           const Center(child: CircularProgressIndicator())
         else
-          ..._comments.map((c) => ListTile(
-                leading: CircleAvatar(
-                  backgroundImage: (c.authorPhotoUrl != null && c.authorPhotoUrl!.isNotEmpty)
-                      ? NetworkImage(c.authorPhotoUrl!)
-                      : null,
-                  child: (c.authorPhotoUrl == null || c.authorPhotoUrl!.isEmpty)
-                      ? const Icon(Icons.person)
-                      : null,
-                ),
-                title: Text(c.content),
-                subtitle: Text(c.displayAuthorLabel),
-              )),
+          ...topLevel.map((c) => _buildCommentNode(context, c, 0, childrenMap)),
         if (_hasMore && _comments.isNotEmpty)
           TextButton(
             onPressed: () async {
@@ -151,6 +177,100 @@ class _CommentListState extends ConsumerState<CommentList> {
 
           ),
       ],
+    );
+  }
+
+  Widget _buildCommentNode(
+    BuildContext context,
+    CommentModel comment,
+    int depth,
+    Map<String, List<CommentModel>> childrenMap,
+  ) {
+    final replies = childrenMap[comment.commentId] ?? const <CommentModel>[];
+    final isExpanded = _expandedReplyParents.contains(comment.commentId);
+    final visibleReplies = (isExpanded || replies.length <= 3) ? replies : replies.take(3).toList();
+    final left = depth == 0 ? 0.0 : (18.0 * depth);
+
+    return Padding(
+      padding: EdgeInsets.only(left: left),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ListTile(
+            dense: depth > 0,
+            contentPadding: EdgeInsets.zero,
+            leading: depth == 0
+                ? CircleAvatar(
+                    backgroundImage: (comment.authorPhotoUrl != null && comment.authorPhotoUrl!.isNotEmpty)
+                        ? NetworkImage(comment.authorPhotoUrl!)
+                        : null,
+                    child: (comment.authorPhotoUrl == null || comment.authorPhotoUrl!.isEmpty)
+                        ? const Icon(Icons.person)
+                        : null,
+                  )
+                : null,
+            title: Text(comment.content),
+            subtitle: Text(
+              (comment.replyToAuthor != null && comment.replyToAuthor!.isNotEmpty)
+                  ? '${comment.displayAuthorLabel} · ${context.l10n.replyToUser(comment.replyToAuthor!)}'
+                  : comment.displayAuthorLabel,
+            ),
+            trailing: TextButton(
+              onPressed: () => setState(() => _replyTarget = comment),
+              child: Text(context.l10n.replyAction),
+            ),
+          ),
+          ...visibleReplies.map((reply) => _buildCommentNode(context, reply, depth + 1, childrenMap)),
+          if (replies.length > 3)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      if (isExpanded) {
+                        _expandedReplyParents.remove(comment.commentId);
+                      } else {
+                        _expandedReplyParents.add(comment.commentId);
+                      }
+                    });
+                  },
+                  icon: Icon(
+                    isExpanded ? Icons.expand_less : Icons.expand_more,
+                    size: 16,
+                  ),
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        isExpanded
+                            ? context.l10n.collapseReplies
+                            : context.l10n.viewMoreReplies(replies.length - 3),
+                      ),
+                      if (!isExpanded) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '+${replies.length - 3}',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

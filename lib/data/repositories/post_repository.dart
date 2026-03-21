@@ -30,8 +30,6 @@ class PostRepository {
     // UI 当前为二选一筛选：breed 或 topic（选择其一会清空另一项）。
     if (breedIds != null && breedIds.isNotEmpty) {
       q = q.where('breedIds', arrayContains: breedIds.first);
-    } else if (topics != null && topics.isNotEmpty) {
-      q = q.where('topics', arrayContains: topics.first);
     }
 
     if (orderByCreated) {
@@ -44,11 +42,20 @@ class PostRepository {
       q = q.startAfterDocument(startAfter);
     }
 
-    q = q.limit(limit);
+    // topic 筛选使用客户端兜底，避免依赖线上尚未创建完成的复合索引导致切换失败。
+    final hasTopicFilter = topics != null && topics.isNotEmpty;
+    final fetchLimit = hasTopicFilter ? (limit * 4) : limit;
+    q = q.limit(fetchLimit);
 
     final snap = await q.get();
-    final list = snap.docs.map((d) => PostModel.fromMap(d.data(), d.id)).toList();
-    final lastDoc = snap.docs.length == limit && snap.docs.isNotEmpty ? snap.docs.last : null;
+    var list = snap.docs.map((d) => PostModel.fromMap(d.data(), d.id)).toList();
+    if (hasTopicFilter) {
+      final wanted = topics.first;
+      list = list.where((p) => p.topics.contains(wanted)).take(limit).toList();
+    } else if (list.length > limit) {
+      list = list.take(limit).toList();
+    }
+    final lastDoc = snap.docs.length == fetchLimit && snap.docs.isNotEmpty ? snap.docs.last : null;
     return (list: list, lastDoc: lastDoc);
   }
 

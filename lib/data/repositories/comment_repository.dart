@@ -33,6 +33,8 @@ class CommentRepository {
     required String content,
     String? authorDisplayName,
     String? authorPhotoUrl,
+    String? parentCommentId,
+    String? replyToAuthor,
   }) async {
     final postRef = _firestore.collection(AppConstants.postsCollection).doc(postId);
     final commentsRef = _firestore.collection(AppConstants.commentsCollection);
@@ -47,6 +49,8 @@ class CommentRepository {
         createdAt: DateTime.now(),
         authorDisplayName: authorDisplayName,
         authorPhotoUrl: authorPhotoUrl,
+        parentCommentId: parentCommentId,
+        replyToAuthor: replyToAuthor,
       );
       tx.set(commentRef, comment.toMap());
       final postSnap = await tx.get(postRef);

@@ -9,6 +9,7 @@ import '../../core/utils/meow_share.dart';
 import '../../core/utils/topic_l10n.dart';
 import '../../data/repositories/report_repository.dart';
 import '../../models/post_model.dart';
+import '../../providers/bookmark_provider.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/like_provider.dart';
 import '../../providers/user_provider.dart';
@@ -75,6 +76,7 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
     final user = ref.watch(currentUserAsyncProvider).valueOrNull;
     final myVote = ref.watch(myEffectiveVoteProvider(widget.postId));
     final voteUi = ref.watch(voteUiStateProvider(widget.postId));
+    final isBookmarked = ref.watch(isBookmarkedProvider(widget.postId)).valueOrNull ?? false;
     final displayedUp = post.likeCount + (voteUi?.upDelta ?? 0);
     final displayedDown = post.downvoteCount + (voteUi?.downDelta ?? 0);
     final scheme = Theme.of(context).colorScheme;
@@ -93,34 +95,6 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                   postId: widget.postId,
                   title: post.title,
                 ),
-          ),
-          IconButton(
-            icon: Icon(Icons.arrow_upward, color: myVote == 1 ? scheme.primary : null),
-            onPressed: () async {
-              if (user == null) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.signInForFullFeatures)));
-                }
-                return;
-              }
-              await toggleUpvote(ref, widget.postId);
-              _load();
-              clearVoteUiState(ref, widget.postId);
-            },
-          ),
-          IconButton(
-            icon: Icon(Icons.arrow_downward, color: myVote == -1 ? scheme.error : null),
-            onPressed: () async {
-              if (user == null) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.signInForFullFeatures)));
-                }
-                return;
-              }
-              await toggleDownvote(ref, widget.postId);
-              _load();
-              clearVoteUiState(ref, widget.postId);
-            },
           ),
           IconButton(
             icon: const Icon(Icons.flag_outlined),
@@ -191,98 +165,103 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      IconButton(
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                        icon: Icon(
-                          Icons.arrow_upward,
-                          size: 18,
-                          color: myVote == 1 ? scheme.primary : onVar,
-                        ),
-                        onPressed: () async {
-                          final messenger = ScaffoldMessenger.of(context);
-                          final l10n = context.l10n;
-                          if (user == null) {
-                            messenger.showSnackBar(
-                              SnackBar(content: Text(l10n.signInForFullFeatures)),
-                            );
-                            return;
-                          }
-                          try {
-                            await toggleUpvote(ref, widget.postId);
-                            _load();
-                            clearVoteUiState(ref, widget.postId);
-                          } catch (e) {
-                            messenger.showSnackBar(
-                              SnackBar(content: Text(l10n.errorWithMessage(e.toString()))),
-                            );
-                          }
-                        },
-                      ),
-                      const SizedBox(width: 4),
-                      Text('${displayedUp < 0 ? 0 : displayedUp}', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: onVar)),
-                      const SizedBox(width: 12),
-                      IconButton(
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                        icon: Icon(Icons.arrow_downward, size: 18, color: myVote == -1 ? scheme.error : onVar),
-                        onPressed: () async {
-                          final messenger = ScaffoldMessenger.of(context);
-                          final l10n = context.l10n;
-                          if (user == null) {
-                            messenger.showSnackBar(
-                              SnackBar(content: Text(l10n.signInForFullFeatures)),
-                            );
-                            return;
-                          }
-                          try {
-                            await toggleDownvote(ref, widget.postId);
-                            _load();
-                            clearVoteUiState(ref, widget.postId);
-                          } catch (e) {
-                            messenger.showSnackBar(
-                              SnackBar(content: Text(l10n.errorWithMessage(e.toString()))),
-                            );
-                          }
-                        },
-                      ),
-                      const SizedBox(width: 4),
-                      Text('${displayedDown < 0 ? 0 : displayedDown}', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: onVar)),
-                      const SizedBox(width: 18),
-                      IconButton(
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                        icon: Icon(Icons.chat_bubble_outline, size: 17, color: onVar),
-                        onPressed: () => _openCommentsSheet(
-                          context,
-                          uid: user?.uid,
-                          displayName: user?.displayName,
-                          email: user?.email,
-                          photoUrl: user?.photoUrl,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text('${post.commentCount}', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: onVar)),
-                      const SizedBox(width: 18),
-                      IconButton(
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                        icon: Icon(Icons.repeat, size: 18, color: onVar),
-                        onPressed: () => MeowShare.sharePost(context, postId: widget.postId, title: post.title),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Divider(height: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
                   const SizedBox(height: 16),
                   _linkedPostContent(context, post.content),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          icon: Icon(
+                            Icons.arrow_upward,
+                            size: 20,
+                            color: myVote == 1 ? scheme.primary : onVar,
+                          ),
+                          onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            final l10n = context.l10n;
+                            if (user == null) {
+                              messenger.showSnackBar(SnackBar(content: Text(l10n.signInForFullFeatures)));
+                              return;
+                            }
+                            try {
+                              await toggleUpvote(ref, widget.postId);
+                              _load();
+                              clearVoteUiState(ref, widget.postId);
+                            } catch (e) {
+                              messenger.showSnackBar(SnackBar(content: Text(l10n.errorWithMessage(e.toString()))));
+                            }
+                          },
+                        ),
+                        Text('${displayedUp < 0 ? 0 : displayedUp}'),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          icon: Icon(
+                            Icons.arrow_downward,
+                            size: 20,
+                            color: myVote == -1 ? scheme.error : onVar,
+                          ),
+                          onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            final l10n = context.l10n;
+                            if (user == null) {
+                              messenger.showSnackBar(SnackBar(content: Text(l10n.signInForFullFeatures)));
+                              return;
+                            }
+                            try {
+                              await toggleDownvote(ref, widget.postId);
+                              _load();
+                              clearVoteUiState(ref, widget.postId);
+                            } catch (e) {
+                              messenger.showSnackBar(SnackBar(content: Text(l10n.errorWithMessage(e.toString()))));
+                            }
+                          },
+                        ),
+                        Text('${displayedDown < 0 ? 0 : displayedDown}'),
+                        const Spacer(),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          icon: Icon(Icons.bookmark, color: isBookmarked ? scheme.primary : onVar),
+                          onPressed: () async {
+                            if (user == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(context.l10n.signInForFullFeatures)),
+                              );
+                              return;
+                            }
+                            await toggleBookmark(ref, widget.postId);
+                          },
+                        ),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          icon: Icon(Icons.repeat, color: onVar),
+                          onPressed: () => MeowShare.sharePost(context, postId: widget.postId, title: post.title),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    context.l10n.comments,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  CommentList(
+                    postId: widget.postId,
+                    currentUid: user?.uid,
+                    onCommentAdded: _load,
+                    currentUserDisplayName: ((user?.displayName ?? '').isNotEmpty) ? user?.displayName : user?.email,
+                    currentUserPhotoUrl: ((user?.photoUrl ?? '').isNotEmpty) ? user?.photoUrl : null,
+                  ),
                   const SizedBox(height: 8),
                 ],
               ),
@@ -334,54 +313,6 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
-  }
-
-  Future<void> _openCommentsSheet(
-    BuildContext context, {
-    required String? uid,
-    required String? displayName,
-    required String? email,
-    required String? photoUrl,
-  }) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 8,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 12,
-            ),
-            child: SizedBox(
-              height: MediaQuery.of(ctx).size.height * 0.8,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.l10n.comments,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: CommentList(
-                      postId: widget.postId,
-                      currentUid: uid,
-                      onCommentAdded: _load,
-                      currentUserDisplayName: (displayName != null && displayName.isNotEmpty) ? displayName : email,
-                      currentUserPhotoUrl: (photoUrl != null && photoUrl.isNotEmpty) ? photoUrl : null,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
   }
 
   void _showReportDialog(BuildContext context) {

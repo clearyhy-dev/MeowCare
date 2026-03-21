@@ -21,6 +21,7 @@ import '../../screens/reminder/reminder_page.dart';
 import '../../screens/settings/settings_screen.dart';
 import '../../screens/subscription/subscription_screen.dart';
 import '../../screens/tasks/tasks_screen.dart';
+import '../../providers/user_provider.dart';
 
 class AppRouter {
   AppRouter._();
@@ -164,13 +165,26 @@ class GoRouterRefreshNotifier extends ChangeNotifier {
 }
 
 
-class MainShell extends StatelessWidget {
+class MainShell extends ConsumerWidget {
   const MainShell({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserAsyncProvider).valueOrNull;
     return Scaffold(
       body: const HomePage(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: FloatingActionButton(
+        tooltip: context.l10n.createPost,
+        onPressed: () {
+          if (user == null) {
+            context.push(AppRouter.auth);
+            return;
+          }
+          context.push('${AppRouter.home}post/create');
+        },
+        child: const Icon(Icons.add),
+      ),
 
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex(context),
