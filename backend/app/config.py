@@ -6,8 +6,6 @@ load_dotenv()
 
 GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-# The Cat API（可选）：提高免费额度与稳定性 https://thecatapi.com/
-THE_CAT_API_KEY = (os.getenv("THE_CAT_API_KEY") or "").strip()
 PORT = int(os.getenv("PORT", "8000"))
 ENV = (os.getenv("ENV") or "development").strip().lower()
 IS_PRODUCTION = ENV == "production"

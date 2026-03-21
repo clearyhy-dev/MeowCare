@@ -111,6 +111,9 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
     .card-head h2 { margin: 0; font-size: 1.1rem; color: #333; }
     .toolbar { margin-bottom: 12px; }
     .toolbar button { margin-right: 8px; }
+    .daily-form label { display: block; margin-top: 12px; font-weight: 500; font-size: 13px; color: #444; }
+    .daily-form label.daily-check { display: flex; align-items: center; gap: 10px; margin-top: 0; flex-direction: row; }
+    .daily-form input[type="text"], .daily-form input[type="number"] { width: 100%; max-width: 400px; }
   </style>
 
 </head>
@@ -136,6 +139,7 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
           <a href="#" data-page="reports">举报</a>
           <a href="#" data-page="cats">宠物管理</a>
           <a href="#" data-page="users">用户管理</a>
+          <a href="#" id="navDailyContent" onclick="event.preventDefault(); showTab('daily-content');">每日内容</a>
           <a href="#" data-page="breeds">品种</a>
           <a href="#" data-page="reddit" class="reddit-nav">Reddit 导入</a>
         </div>
@@ -166,6 +170,8 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
 
     function setToken(t) { if (t) localStorage.setItem('adminToken', t); else localStorage.removeItem('adminToken'); }
     function headers() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token() }; }
+    function authHeaders() { return headers(); }
+    function showTab(name) { loadPage(name); }
     function showEl(el, visible) { if (el) el.style.display = visible ? 'block' : 'none'; }
     function showLogin(visible) {
       showEl(document.getElementById('noAuthCard'), visible);
@@ -281,6 +287,19 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
           items = data.items;
           if (!Array.isArray(items)) items = [];
           content.innerHTML = '<div class="card"><h2>用户列表</h2><table><thead><tr><th>uid</th><th>邮箱</th><th>显示名</th><th>家庭</th><th>操作</th></tr></thead><tbody>' + (items.length === 0 ? '<tr><td colspan="5" class="empty">暂无数据。</td></tr>' : items.map(function(u) { var uid = u.uid || ''; return '<tr><td>' + escHtml(uid) + '</td><td>' + escHtml(u.email) + '</td><td>' + escHtml(u.displayName) + '</td><td>' + escHtml(u.familyId) + '</td><td><button class="danger" onclick="deleteUserAdmin(\\\'' + uid + '\\\')">删除</button></td></tr>'; }).join('')) + '</tbody></table></div>';
+        } else if (page === 'daily-content') {
+          content.innerHTML = '<section id="tab-daily-content"><h2 style="margin-top:0;color:#333;">每日内容生成</h2>' +
+            '<div class="card daily-form">' +
+            '<label class="daily-check">自动生成 <input type="checkbox" id="dailyEnabled" /></label>' +
+            '<label>每日生成条数</label><input type="number" id="dailyCount" min="1" max="20" value="5" />' +
+            '<label>生成时间（UTC小时）</label><input type="number" id="publishHourUtc" min="0" max="23" value="1" />' +
+            '<label>主题（逗号分隔）</label><input type="text" id="dailyTopics" value="care,health,behavior,feeding" />' +
+            '<div class="toolbar" style="margin-top:16px;"><button type="button" onclick="saveDailySettings()">保存设置</button> ' +
+            '<button type="button" onclick="generateNow(1)">立即生成1条</button> ' +
+            '<button type="button" onclick="generateNow(3)">立即生成3条</button></div></div>' +
+            '<div class="card"><h3>今日生成记录</h3><table id="dailyContentTable"><thead><tr><th>ID</th><th>标题</th><th>状态</th><th>时间</th></tr></thead><tbody></tbody></table></div></section>';
+          loadDailySettings();
+          loadLatestPosts();
         } else if (page === 'reddit') {
           sub = window._redditSub || 'CatAdvice';
           sort = window._redditSort || 'new';
@@ -329,8 +348,82 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
         }
       } catch (e) { content.innerHTML = '<p class="err">加载失败: ' + (e.message || '') + '</p>'; }
       document.querySelectorAll('.nav a[data-page]').forEach(function(a) { a.classList.toggle('active', a.dataset.page === page); });
+      var ndc = document.getElementById('navDailyContent');
+      if (ndc) ndc.classList.toggle('active', page === 'daily-content');
     }
 
+    async function loadDailySettings() {
+      try {
+        var res = await fetch(API + '/content-jobs/settings', { headers: authHeaders() });
+        if (!res.ok) return;
+        var data = await res.json();
+        var en = document.getElementById('dailyEnabled');
+        if (en) en.checked = !!data.enabled;
+        var dc = document.getElementById('dailyCount');
+        if (dc) dc.value = data.dailyCount || 5;
+        var ph = document.getElementById('publishHourUtc');
+        if (ph) ph.value = (data.publishHourUtc !== undefined && data.publishHourUtc !== null) ? data.publishHourUtc : 1;
+        var top = document.getElementById('dailyTopics');
+        if (top) top.value = (data.topics || []).join(',');
+      } catch (e) {}
+    }
+
+    async function saveDailySettings() {
+      var body = {
+        enabled: document.getElementById('dailyEnabled').checked,
+        dailyCount: parseInt(document.getElementById('dailyCount').value || '5', 10),
+        publishHourUtc: parseInt(document.getElementById('publishHourUtc').value || '1', 10),
+        topics: document.getElementById('dailyTopics').value.split(',').map(function(s) { return s.trim(); }).filter(Boolean),
+      };
+      var res = await fetch(API + '/content-jobs/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token() },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) { alert('保存失败'); return; }
+      alert('保存成功');
+    }
+
+    async function generateNow(count) {
+      var topics = document.getElementById('dailyTopics').value.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+      var res = await fetch(API + '/content-jobs/generate-now', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token() },
+        body: JSON.stringify({ count: count, topics: topics }),
+      });
+      var data = await res.json().catch(function() { return {}; });
+      if (!res.ok) { alert(data.detail || '生成失败'); return; }
+      alert('已生成 ' + (data.created || 0) + ' 条内容');
+      loadLatestPosts();
+    }
+
+    async function loadLatestPosts() {
+      var tbody = document.querySelector('#dailyContentTable tbody');
+      if (!tbody) return;
+      try {
+        var r = await fetch(API + '/posts?limit=80&order=latest', { headers: headers() });
+        if (!r.ok) { tbody.innerHTML = '<tr><td colspan="4" class="empty">加载失败</td></tr>'; return; }
+        var data = await r.json();
+        var items = data.items || [];
+        var todayUtc = new Date().toISOString().slice(0, 10);
+        var rows = items.filter(function(p) {
+          var c = p.createdAt;
+          if (!c) return false;
+          var s = typeof c === 'string' ? c : String(c);
+          return s.indexOf(todayUtc) === 0;
+        });
+        if (rows.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="empty">今日暂无帖子（按 UTC 日期筛选）。</td></tr>';
+          return;
+        }
+        tbody.innerHTML = rows.map(function(p) {
+          var pid = p.postId || p.id || '';
+          return '<tr><td>' + escHtml(pid) + '</td><td>' + escHtml(p.title) + '</td><td>' + escHtml(p.status) + '</td><td>' + escHtml(p.createdAt) + '</td></tr>';
+        }).join('');
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty">加载失败</td></tr>';
+      }
+    }
 
     async function approve(postId) {
       try {

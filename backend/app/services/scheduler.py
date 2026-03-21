@@ -44,9 +44,8 @@ async def run_daily_generation() -> None:
         return
     count = int(cfg.get("dailyCount", 5))
     topics = cfg.get("topics") or []
-    use_gemini = bool(cfg.get("useGemini", True))
     try:
-        created = await generate_daily_posts(count, topics, use_gemini=use_gemini)
+        created = await generate_daily_posts(count, topics)
         logger.info("Daily content generation finished: created=%s (requested=%s)", created, count)
     except Exception:
         logger.exception("Daily content generation failed")
