@@ -13,6 +13,7 @@ class PostModel {
   final List<String> topics;
   final String authorId;
   final int likeCount;
+  final int downvoteCount;
   final int commentCount;
   final double score;
   /// 国家/地区码，用于按国家展示 Feed（如 CN、US、JP）
@@ -38,6 +39,7 @@ class PostModel {
     this.topics = const [],
     required this.authorId,
     this.likeCount = 0,
+    this.downvoteCount = 0,
     this.commentCount = 0,
     this.score = 0,
     this.countryCode = '',
@@ -74,6 +76,7 @@ class PostModel {
       'topics': topics,
       'authorId': authorId,
       'likeCount': likeCount,
+      'downvoteCount': downvoteCount,
       'commentCount': commentCount,
       'score': score,
       'countryCode': countryCode,
@@ -105,6 +108,7 @@ class PostModel {
       topics: List<String>.from(map['topics'] as List? ?? []),
       authorId: map['authorId'] as String? ?? '',
       likeCount: (map['likeCount'] as num?)?.toInt() ?? 0,
+      downvoteCount: (map['downvoteCount'] as num?)?.toInt() ?? 0,
       commentCount: (map['commentCount'] as num?)?.toInt() ?? 0,
       score: (map['score'] as num?)?.toDouble() ?? 0,
       countryCode: map['countryCode'] as String? ?? '',

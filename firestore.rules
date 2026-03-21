@@ -24,8 +24,9 @@ service cloud.firestore {
       return isSignedIn() && catOwnerId(catId) == request.auth.uid;
     }
     function isPostCounterOnlyUpdate() {
-      return request.resource.data.diff(resource.data).changedKeys().hasOnly(['likeCount', 'commentCount', 'updatedAt'])
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly(['likeCount', 'downvoteCount', 'commentCount', 'updatedAt'])
         && request.resource.data.likeCount is int
+        && request.resource.data.downvoteCount is int
         && request.resource.data.commentCount is int;
     }
 

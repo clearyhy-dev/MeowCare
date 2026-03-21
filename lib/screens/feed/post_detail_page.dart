@@ -73,7 +73,10 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
     }
     final post = _post!;
     final user = ref.watch(currentUserAsyncProvider).valueOrNull;
-    final isLikedAsync = ref.watch(isLikedProvider(widget.postId));
+    final myVote = ref.watch(myEffectiveVoteProvider(widget.postId));
+    final voteUi = ref.watch(voteUiStateProvider(widget.postId));
+    final displayedUp = post.likeCount + (voteUi?.upDelta ?? 0);
+    final displayedDown = post.downvoteCount + (voteUi?.downDelta ?? 0);
     final scheme = Theme.of(context).colorScheme;
     final onVar = scheme.onSurfaceVariant;
     final hasCategory = post.topics.isNotEmpty;
@@ -92,7 +95,7 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                 ),
           ),
           IconButton(
-            icon: Icon(isLikedAsync.valueOrNull == true ? Icons.favorite : Icons.favorite_border),
+            icon: Icon(Icons.arrow_upward, color: myVote == 1 ? scheme.primary : null),
             onPressed: () async {
               if (user == null) {
                 if (mounted) {
@@ -100,8 +103,23 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                 }
                 return;
               }
-              await toggleLike(ref, widget.postId);
+              await toggleUpvote(ref, widget.postId);
               _load();
+              clearVoteUiState(ref, widget.postId);
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.arrow_downward, color: myVote == -1 ? scheme.error : null),
+            onPressed: () async {
+              if (user == null) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.signInForFullFeatures)));
+                }
+                return;
+              }
+              await toggleDownvote(ref, widget.postId);
+              _load();
+              clearVoteUiState(ref, widget.postId);
             },
           ),
           IconButton(
@@ -181,9 +199,9 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
                         icon: Icon(
-                          isLikedAsync.valueOrNull == true ? Icons.favorite : Icons.favorite_border,
+                          Icons.arrow_upward,
                           size: 18,
-                          color: isLikedAsync.valueOrNull == true ? scheme.primary : onVar,
+                          color: myVote == 1 ? scheme.primary : onVar,
                         ),
                         onPressed: () async {
                           final messenger = ScaffoldMessenger.of(context);
@@ -195,8 +213,9 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                             return;
                           }
                           try {
-                            await toggleLike(ref, widget.postId);
+                            await toggleUpvote(ref, widget.postId);
                             _load();
+                            clearVoteUiState(ref, widget.postId);
                           } catch (e) {
                             messenger.showSnackBar(
                               SnackBar(content: Text(l10n.errorWithMessage(e.toString()))),
@@ -205,29 +224,66 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                         },
                       ),
                       const SizedBox(width: 4),
-                      Text('${post.likeCount}', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: onVar)),
+                      Text('${displayedUp < 0 ? 0 : displayedUp}', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: onVar)),
+                      const SizedBox(width: 12),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                        icon: Icon(Icons.arrow_downward, size: 18, color: myVote == -1 ? scheme.error : onVar),
+                        onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final l10n = context.l10n;
+                          if (user == null) {
+                            messenger.showSnackBar(
+                              SnackBar(content: Text(l10n.signInForFullFeatures)),
+                            );
+                            return;
+                          }
+                          try {
+                            await toggleDownvote(ref, widget.postId);
+                            _load();
+                            clearVoteUiState(ref, widget.postId);
+                          } catch (e) {
+                            messenger.showSnackBar(
+                              SnackBar(content: Text(l10n.errorWithMessage(e.toString()))),
+                            );
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 4),
+                      Text('${displayedDown < 0 ? 0 : displayedDown}', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: onVar)),
                       const SizedBox(width: 18),
-                      Icon(Icons.chat_bubble_outline, size: 17, color: onVar),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                        icon: Icon(Icons.chat_bubble_outline, size: 17, color: onVar),
+                        onPressed: () => _openCommentsSheet(
+                          context,
+                          uid: user?.uid,
+                          displayName: user?.displayName,
+                          email: user?.email,
+                          photoUrl: user?.photoUrl,
+                        ),
+                      ),
                       const SizedBox(width: 4),
                       Text('${post.commentCount}', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: onVar)),
+                      const SizedBox(width: 18),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                        icon: Icon(Icons.repeat, size: 18, color: onVar),
+                        onPressed: () => MeowShare.sharePost(context, postId: widget.postId, title: post.title),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
                   Divider(height: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
                   const SizedBox(height: 16),
                   _linkedPostContent(context, post.content),
-                  const SizedBox(height: 24),
-                  Divider(height: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
-                  const SizedBox(height: 12),
-                  Text(context.l10n.comments, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
-                  CommentList(
-                    postId: widget.postId,
-                    currentUid: user?.uid,
-                    onCommentAdded: _load,
-                    currentUserDisplayName: user != null && user.displayName.isNotEmpty ? user.displayName : user?.email,
-                    currentUserPhotoUrl: user != null && user.photoUrl.isNotEmpty ? user.photoUrl : null,
-                  ),
                 ],
               ),
             ),
@@ -278,6 +334,54 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
+  }
+
+  Future<void> _openCommentsSheet(
+    BuildContext context, {
+    required String? uid,
+    required String? displayName,
+    required String? email,
+    required String? photoUrl,
+  }) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 8,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 12,
+            ),
+            child: SizedBox(
+              height: MediaQuery.of(ctx).size.height * 0.8,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.l10n.comments,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: CommentList(
+                      postId: widget.postId,
+                      currentUid: uid,
+                      onCommentAdded: _load,
+                      currentUserDisplayName: (displayName != null && displayName.isNotEmpty) ? displayName : email,
+                      currentUserPhotoUrl: (photoUrl != null && photoUrl.isNotEmpty) ? photoUrl : null,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showReportDialog(BuildContext context) {

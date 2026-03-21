@@ -390,8 +390,10 @@ class _PostCard extends ConsumerWidget {
     final timeText = _formatTime(post.createdAt);
     final hasCategory = post.topics.isNotEmpty;
     final categoryText = hasCategory ? feedTopicCategoryLabel(context, post.topics.first) : '';
-    final likedAsync = ref.watch(isLikedProvider(post.postId));
-    final isLiked = likedAsync.valueOrNull == true;
+    final myVote = ref.watch(myEffectiveVoteProvider(post.postId));
+    final voteUi = ref.watch(voteUiStateProvider(post.postId));
+    final displayedUp = post.likeCount + (voteUi?.upDelta ?? 0);
+    final displayedDown = post.downvoteCount + (voteUi?.downDelta ?? 0);
 
     return Material(
       color: scheme.surface,
@@ -466,9 +468,9 @@ class _PostCard extends ConsumerWidget {
               Row(
                 children: [
                   _PostActionIcon(
-                    icon: isLiked ? Icons.favorite : Icons.favorite_border,
-                    label: '${post.likeCount}',
-                    color: isLiked ? scheme.primary : onSurfaceVariant,
+                    icon: Icons.arrow_upward,
+                    label: '${displayedUp < 0 ? 0 : displayedUp}',
+                    color: myVote == 1 ? scheme.primary : onSurfaceVariant,
                     tooltip: context.l10n.likes,
                     onPressed: () async {
                       final messenger = ScaffoldMessenger.of(context);
@@ -481,7 +483,31 @@ class _PostCard extends ConsumerWidget {
                         return;
                       }
                       try {
-                        await toggleLike(ref, post.postId);
+                        await toggleUpvote(ref, post.postId);
+                      } catch (e) {
+                        messenger.showSnackBar(
+                          SnackBar(content: Text(l10n.errorWithMessage(e.toString()))),
+                        );
+                      }
+                    },
+                  ),
+                  _PostActionIcon(
+                    icon: Icons.arrow_downward,
+                    label: '${displayedDown < 0 ? 0 : displayedDown}',
+                    color: myVote == -1 ? scheme.error : onSurfaceVariant,
+                    tooltip: 'Downvote',
+                    onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final l10n = context.l10n;
+                      final user = ref.read(currentUserAsyncProvider).valueOrNull;
+                      if (user == null) {
+                        messenger.showSnackBar(
+                          SnackBar(content: Text(l10n.signInForFullFeatures)),
+                        );
+                        return;
+                      }
+                      try {
+                        await toggleDownvote(ref, post.postId);
                       } catch (e) {
                         messenger.showSnackBar(
                           SnackBar(content: Text(l10n.errorWithMessage(e.toString()))),

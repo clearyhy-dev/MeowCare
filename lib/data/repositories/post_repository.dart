@@ -97,6 +97,7 @@ class PostRepository {
       topics: topics,
       authorId: authorId,
       likeCount: 0,
+      downvoteCount: 0,
       commentCount: 0,
       score: 0,
       countryCode: countryCode,

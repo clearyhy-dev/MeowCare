@@ -177,11 +177,9 @@ class MainShell extends StatelessWidget {
         onDestinationSelected: (i) => _onTap(context, i),
         destinations: [
           NavigationDestination(icon: const Icon(Icons.home), label: context.l10n.home),
-          NavigationDestination(icon: const Icon(Icons.pets), label: context.l10n.cats),
           NavigationDestination(icon: const Icon(Icons.check_circle_outline), label: context.l10n.tasks),
           NavigationDestination(icon: const Icon(Icons.favorite_border), label: context.l10n.health),
           NavigationDestination(icon: const Icon(Icons.smart_toy_outlined), label: context.l10n.aiNavLabel),
-          NavigationDestination(icon: const Icon(Icons.settings), label: context.l10n.settings),
         ],
 
 
@@ -191,11 +189,9 @@ class MainShell extends StatelessWidget {
 
   int _selectedIndex(BuildContext context) {
     final path = GoRouterState.of(context).uri.path;
-    if (path.startsWith('/cats')) return 1;
-    if (path.startsWith('/tasks')) return 2;
-    if (path.startsWith('/health')) return 3;
-    if (path.startsWith('/ai')) return 4;
-    if (path.startsWith('/settings')) return 5;
+    if (path.startsWith('/tasks')) return 1;
+    if (path.startsWith('/health')) return 2;
+    if (path.startsWith('/ai')) return 3;
     return 0;
   }
 
@@ -205,19 +201,13 @@ class MainShell extends StatelessWidget {
         context.go(AppRouter.home);
         break;
       case 1:
-        context.go('${AppRouter.home}cats');
-        break;
-      case 2:
         context.go('${AppRouter.home}tasks');
         break;
-      case 3:
+      case 2:
         context.go('${AppRouter.home}health');
         break;
-      case 4:
+      case 3:
         context.go('${AppRouter.home}ai');
-        break;
-      case 5:
-        context.go('${AppRouter.home}settings');
         break;
     }
   }
