@@ -9,7 +9,6 @@ import '../../core/utils/meow_share.dart';
 import '../../core/utils/topic_l10n.dart';
 import '../../data/repositories/report_repository.dart';
 import '../../models/post_model.dart';
-import '../../providers/bookmark_provider.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/like_provider.dart';
 import '../../providers/user_provider.dart';
@@ -75,7 +74,6 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
     final post = _post!;
     final user = ref.watch(currentUserAsyncProvider).valueOrNull;
     final isLikedAsync = ref.watch(isLikedProvider(widget.postId));
-    final isBookmarkedAsync = ref.watch(isBookmarkedProvider(widget.postId));
     final scheme = Theme.of(context).colorScheme;
     final onVar = scheme.onSurfaceVariant;
     final hasCategory = post.topics.isNotEmpty;
@@ -105,19 +103,6 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
               await toggleLike(ref, widget.postId);
               ref.invalidate(feedProvider);
               _load();
-            },
-          ),
-          IconButton(
-            icon: Icon(isBookmarkedAsync.valueOrNull == true ? Icons.bookmark : Icons.bookmark_border),
-            onPressed: () async {
-              if (user == null) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.signInForFullFeatures)));
-                }
-                return;
-              }
-              await toggleBookmark(ref, widget.postId);
-              ref.invalidate(isBookmarkedProvider(widget.postId));
             },
           ),
           IconButton(

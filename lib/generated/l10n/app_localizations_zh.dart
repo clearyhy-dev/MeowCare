@@ -610,6 +610,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get feedLoadFailed => '加载动态失败，请重试。';
 
   @override
+  String get feedNoContent => 'No content for this topic yet.';
+
+  @override
   String get aiNavLabel => 'AI';
 
   @override

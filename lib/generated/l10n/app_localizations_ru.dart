@@ -614,6 +614,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get feedLoadFailed => 'Не удалось загрузить ленту. Повторите попытку.';
 
   @override
+  String get feedNoContent => 'No content for this topic yet.';
+
+  @override
   String get aiNavLabel => 'ИИ';
 
   @override

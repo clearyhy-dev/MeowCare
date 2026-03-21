@@ -23,6 +23,11 @@ service cloud.firestore {
     function isCatOwner(catId) {
       return isSignedIn() && catOwnerId(catId) == request.auth.uid;
     }
+    function isPostCounterOnlyUpdate() {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly(['likeCount', 'commentCount', 'updatedAt'])
+        && request.resource.data.likeCount is int
+        && request.resource.data.commentCount is int;
+    }
 
     match /users/{uid} {
       allow read, write: if isSignedIn() && isOwner(uid);
@@ -64,20 +69,20 @@ service cloud.firestore {
     }
 
     match /posts/{postId} {
-      allow read: if isSignedIn() && (
-        resource.data.status == 'published'
-        || resource.data.authorId == request.auth.uid
-      );
+      allow read: if resource.data.status == 'published'
+        || (isSignedIn() && resource.data.authorId == request.auth.uid);
       allow create: if isSignedIn()
         && request.resource.data.authorId == request.auth.uid
         && request.resource.data.type == 'ugc'
         && request.resource.data.status in ['draft', 'pending', 'published'];
 
-      allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+      allow update: if (isSignedIn() && resource.data.authorId == request.auth.uid)
+        || (isSignedIn() && isPostCounterOnlyUpdate());
+      allow delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
     }
 
     match /comments/{commentId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
       allow update: if false;
       allow delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
@@ -103,7 +108,7 @@ service cloud.firestore {
     }
 
     match /breeds/{breedId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isAdmin();
     }
 

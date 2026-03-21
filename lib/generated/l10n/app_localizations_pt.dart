@@ -617,6 +617,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get feedLoadFailed => 'Failed to load feed. Please retry.';
 
   @override
+  String get feedNoContent => 'No content for this topic yet.';
+
+  @override
   String get aiNavLabel => 'AI';
 
   @override

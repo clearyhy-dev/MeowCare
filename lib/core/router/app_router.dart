@@ -15,7 +15,6 @@ import '../../screens/feed/post_detail_page.dart';
 import '../../screens/feed/create_post_page.dart';
 import '../../screens/cats/my_cats_page.dart';
 import '../../screens/cats/cat_edit_page.dart';
-import '../../screens/bookmark/bookmark_page.dart';
 import '../../screens/health/health_screen.dart';
 import '../../screens/plan/plan_page.dart';
 import '../../screens/reminder/reminder_page.dart';
@@ -43,7 +42,6 @@ class AppRouter {
   static const String postCreate = '/post/create';
   static const String myCats = '/my-cats';
   static const String catEdit = '/cat/edit';
-  static const String bookmarks = '/bookmarks';
   static const String plan = '/plan';
   static const String reminder = '/reminder';
 
@@ -62,7 +60,7 @@ class AppRouter {
 
         if (location == splash) {
           final fbu = refreshNotifier.firebaseUser;
-          if (fbu == null) return auth;
+          if (fbu == null) return home;
           final user = refreshNotifier.profile;
           if (user == null || user.familyId == null || user.familyId!.isEmpty) {
             return createFamily;
@@ -72,8 +70,8 @@ class AppRouter {
 
         final fbu = refreshNotifier.firebaseUser;
         if (fbu == null) {
-          if (location == auth) return null;
-          return auth;
+          if (location == createFamily || location == joinFamily) return auth;
+          return null;
         }
 
         final user = refreshNotifier.profile;
@@ -106,7 +104,6 @@ class AppRouter {
             GoRoute(path: 'post/:id', builder: (context, state) => PostDetailPage(postId: state.pathParameters['id']!)),
             GoRoute(path: 'my-cats', builder: (context, state) => const MyCatsPage()),
             GoRoute(path: 'cat/edit/:id', builder: (context, state) => CatEditPage(catId: state.pathParameters['id']!)),
-            GoRoute(path: 'bookmarks', builder: (context, state) => const BookmarkPage()),
             GoRoute(path: 'plan', builder: (context, state) => const PlanPage()),
             GoRoute(path: 'reminder', builder: (context, state) => const ReminderPage()),
           ],

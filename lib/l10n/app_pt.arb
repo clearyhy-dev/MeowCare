@@ -223,6 +223,7 @@
   "topicBehavior": "Behavior",
   "loadingRegionContent": "Loading content for this region…",
   "feedLoadFailed": "Failed to load feed. Please retry.",
+  "feedNoContent": "No content for this topic yet.",
   "aiNavLabel": "AI",
   "aiErrorDescribeSymptom": "Please describe the symptom",
   "aiErrorFreeLimit": "Free limit: {count} AI requests per day. Upgrade to Pro for unlimited.",

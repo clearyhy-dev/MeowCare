@@ -1276,6 +1276,12 @@ abstract class AppLocalizations {
   /// **'Failed to load feed. Please retry.'**
   String get feedLoadFailed;
 
+  /// No description provided for @feedNoContent.
+  ///
+  /// In en, this message translates to:
+  /// **'No content for this topic yet.'**
+  String get feedNoContent;
+
   /// No description provided for @aiNavLabel.
   ///
   /// In en, this message translates to:

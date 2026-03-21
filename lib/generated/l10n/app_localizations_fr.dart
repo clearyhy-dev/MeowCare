@@ -618,6 +618,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Échec du chargement du fil. Veuillez réessayer.';
 
   @override
+  String get feedNoContent => 'No content for this topic yet.';
+
+  @override
   String get aiNavLabel => 'IA';
 
   @override

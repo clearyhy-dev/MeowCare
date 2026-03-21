@@ -611,6 +611,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get feedLoadFailed => '피드를 불러오지 못했습니다. 다시 시도해 주세요.';
 
   @override
+  String get feedNoContent => 'No content for this topic yet.';
+
+  @override
   String get aiNavLabel => 'AI';
 
   @override

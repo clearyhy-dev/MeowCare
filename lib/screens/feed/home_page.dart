@@ -9,7 +9,6 @@ import '../../core/utils/meow_share.dart';
 import '../../core/i18n/app_language_display.dart';
 import '../../core/utils/topic_l10n.dart';
 import '../../models/post_model.dart';
-import '../../providers/bookmark_provider.dart';
 import '../../providers/breed_provider.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/like_provider.dart';
@@ -78,7 +77,6 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
         title: Text(context.l10n.feed),
         actions: [
           if (user != null) IconButton(icon: const Icon(Icons.pets), onPressed: () => context.push('${AppRouter.home}my-cats')),
-          if (user != null) IconButton(icon: const Icon(Icons.bookmark_border), onPressed: () => context.push('${AppRouter.home}bookmarks')),
           IconButton(icon: const Icon(Icons.person), onPressed: () => context.push('${AppRouter.home}settings')),
           if (user != null)
             IconButton(icon: const Icon(Icons.add), onPressed: () => context.push('${AppRouter.home}post/create')),
@@ -185,7 +183,16 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                     ],
                   ),
                 )
-              : RefreshIndicator(
+              : (!feedState.loading && feedState.posts.isEmpty)
+                  ? Center(
+                      child: Text(
+                        context.l10n.feedNoContent,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    )
+                  : RefreshIndicator(
                   onRefresh: () async {
                     ref.invalidate(redditTrendingProvider);
                     final country = ref.read(appCountryProvider).valueOrNull;
@@ -384,9 +391,7 @@ class _PostCard extends ConsumerWidget {
     final hasCategory = post.topics.isNotEmpty;
     final categoryText = hasCategory ? feedTopicCategoryLabel(context, post.topics.first) : '';
     final likedAsync = ref.watch(isLikedProvider(post.postId));
-    final savedAsync = ref.watch(isBookmarkedProvider(post.postId));
     final isLiked = likedAsync.valueOrNull == true;
-    final isSaved = savedAsync.valueOrNull == true;
 
     return Material(
       color: scheme.surface,
@@ -466,15 +471,23 @@ class _PostCard extends ConsumerWidget {
                     color: isLiked ? scheme.primary : onSurfaceVariant,
                     tooltip: context.l10n.likes,
                     onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final l10n = context.l10n;
                       final user = ref.read(currentUserAsyncProvider).valueOrNull;
                       if (user == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(context.l10n.signInForFullFeatures)),
+                        messenger.showSnackBar(
+                          SnackBar(content: Text(l10n.signInForFullFeatures)),
                         );
                         return;
                       }
-                      await toggleLike(ref, post.postId);
-                      ref.invalidate(feedProvider);
+                      try {
+                        await toggleLike(ref, post.postId);
+                        ref.invalidate(feedProvider);
+                      } catch (e) {
+                        messenger.showSnackBar(
+                          SnackBar(content: Text(l10n.errorWithMessage(e.toString()))),
+                        );
+                      }
                     },
                   ),
                   _PostActionIcon(
@@ -498,27 +511,6 @@ class _PostCard extends ConsumerWidget {
                         postId: post.postId,
                         title: post.title,
                       );
-                    },
-                  ),
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-                    tooltip: context.l10n.save,
-                    icon: Icon(
-                      isSaved ? Icons.bookmark : Icons.bookmark_border,
-                      size: 20,
-                      color: isSaved ? scheme.primary : onSurfaceVariant,
-                    ),
-                    onPressed: () async {
-                      final user = ref.read(currentUserAsyncProvider).valueOrNull;
-                      if (user == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(context.l10n.signInForFullFeatures)),
-                        );
-                        return;
-                      }
-                      await toggleBookmark(ref, post.postId);
                     },
                   ),
                 ],

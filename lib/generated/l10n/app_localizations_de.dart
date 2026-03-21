@@ -623,6 +623,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Feed konnte nicht geladen werden. Bitte erneut versuchen.';
 
   @override
+  String get feedNoContent => 'No content for this topic yet.';
+
+  @override
   String get aiNavLabel => 'KI';
 
   @override

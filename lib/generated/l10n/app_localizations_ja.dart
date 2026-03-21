@@ -611,6 +611,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get feedLoadFailed => 'フィードの読み込みに失敗しました。再試行してください。';
 
   @override
+  String get feedNoContent => 'No content for this topic yet.';
+
+  @override
   String get aiNavLabel => 'AI';
 
   @override

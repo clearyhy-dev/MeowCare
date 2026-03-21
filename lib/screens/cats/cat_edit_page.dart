@@ -68,7 +68,12 @@ class _CatEditPageState extends ConsumerState<CatEditPage> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final x = await picker.pickImage(source: ImageSource.gallery);
+    final x = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1440,
+      maxHeight: 1440,
+      imageQuality: 78,
+    );
     if (x == null) return;
     final user = ref.read(currentUserAsyncProvider).valueOrNull;
     if (user == null) return;
