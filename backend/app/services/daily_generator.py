@@ -14,6 +14,7 @@ from typing import Any
 from firebase_admin import firestore
 
 from app.config import GEMINI_API_KEY
+from app.firestore_utils import datetime_to_timestamp
 from app.services.cat_sources import fetch_cat_image, fetch_wiki_summary_and_thumbnail
 
 logger = logging.getLogger(__name__)
@@ -907,7 +908,7 @@ async def build_post_dict(
     else:
         status = "scheduled"
         sched_dt = scheduled_publish_at or compute_scheduled_publish_timestamp(cfg)
-        sched_ts = firestore.Timestamp.from_datetime(sched_dt)
+        sched_ts = datetime_to_timestamp(sched_dt)
 
     content_len = len(content)
     author_id, author_display, author_avatar = resolve_publisher_for_language(cfg, lang)
