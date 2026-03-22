@@ -18,6 +18,7 @@ class CommentList extends ConsumerStatefulWidget {
     required this.onCommentAdded,
     this.currentUserDisplayName,
     this.currentUserPhotoUrl,
+    this.commentFocusNode,
   });
 
   final String postId;
@@ -27,6 +28,7 @@ class CommentList extends ConsumerStatefulWidget {
   final String? currentUserDisplayName;
   /// 当前用户头像 URL
   final String? currentUserPhotoUrl;
+  final FocusNode? commentFocusNode;
 
   @override
   ConsumerState<CommentList> createState() => _CommentListState();
@@ -145,6 +147,8 @@ class _CommentListState extends ConsumerState<CommentList> {
           controller: _contentController,
           enabled: (widget.currentUid ?? '').isNotEmpty,
           onSubmit: _submit,
+          focusNode: widget.commentFocusNode,
+          onTap: widget.commentFocusNode != null ? () => widget.commentFocusNode!.requestFocus() : null,
         ),
         const SizedBox(height: 16),
         if (_loading && _comments.isEmpty)

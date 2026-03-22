@@ -195,6 +195,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       return PostCard(
                         post: post,
                         onOpenPost: () => context.push('${AppRouter.postDetail}/${post.postId}'),
+                        onCommentTap: () => context.push('${AppRouter.postDetail}/${post.postId}?focusComment=1'),
                       );
                     },
                   ),

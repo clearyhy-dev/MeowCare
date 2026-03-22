@@ -23,11 +23,14 @@ service cloud.firestore {
     function isCatOwner(catId) {
       return isSignedIn() && catOwnerId(catId) == request.auth.uid;
     }
+    // Only these fields may change; validate int type only for keys that are actually updated
+    // (old posts may omit likeCount/downvoteCount — requiring them to be int on every update caused permission-denied).
     function isPostCounterOnlyUpdate() {
-      return request.resource.data.diff(resource.data).changedKeys().hasOnly(['likeCount', 'downvoteCount', 'commentCount', 'updatedAt'])
-        && request.resource.data.likeCount is int
-        && request.resource.data.downvoteCount is int
-        && request.resource.data.commentCount is int;
+      let changed = request.resource.data.diff(resource.data).changedKeys();
+      return changed.hasOnly(['likeCount', 'downvoteCount', 'commentCount', 'updatedAt'])
+        && (!changed.hasAny(['likeCount']) || request.resource.data.likeCount is int)
+        && (!changed.hasAny(['downvoteCount']) || request.resource.data.downvoteCount is int)
+        && (!changed.hasAny(['commentCount']) || request.resource.data.commentCount is int);
     }
 
     match /users/{uid} {

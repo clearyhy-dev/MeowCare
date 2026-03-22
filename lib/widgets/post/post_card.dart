@@ -14,10 +14,13 @@ class PostCard extends StatelessWidget {
     super.key,
     required this.post,
     required this.onOpenPost,
+    this.onCommentTap,
   });
 
   final PostModel post;
   final VoidCallback onOpenPost;
+  /// Defaults to [onOpenPost] if null. Use `?focusComment=1` on detail route to open keyboard on composer.
+  final VoidCallback? onCommentTap;
 
   static String _formatTime(DateTime? t) {
     if (t == null) return '';
@@ -117,7 +120,7 @@ class PostCard extends StatelessWidget {
               likeCount: post.likeCount,
               downvoteCount: post.downvoteCount,
               commentCount: post.commentCount,
-              onCommentTap: onOpenPost,
+              onCommentTap: onCommentTap ?? onOpenPost,
               compact: true,
             ),
           ],

@@ -15,9 +15,15 @@ import '../../widgets/post/post_action_bar.dart';
 import '../../widgets/app/app_section_header.dart';
 
 class PostDetailPage extends ConsumerStatefulWidget {
-  const PostDetailPage({super.key, required this.postId});
+  const PostDetailPage({
+    super.key,
+    required this.postId,
+    this.focusCommentOnOpen = false,
+  });
 
   final String postId;
+  /// Opened from feed comment tap (`?focusComment=1`): scroll to composer and focus.
+  final bool focusCommentOnOpen;
 
   @override
   ConsumerState<PostDetailPage> createState() => _PostDetailPageState();
@@ -27,6 +33,11 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
   static const _kErrorPostNotFound = 'post_not_found';
   static const double _heroImageHeight = 160;
   static const double _imageRadius = 11;
+
+  final _scrollController = ScrollController();
+  final _commentFocusNode = FocusNode();
+  final GlobalKey _commentsHeaderKey = GlobalKey();
+  bool _didAutoFocusComment = false;
 
   PostModel? _post;
   bool _loading = true;
@@ -41,6 +52,11 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
         _loading = false;
         if (post == null) _error = 'post_not_found';
       });
+      if (post != null && widget.focusCommentOnOpen && !_didAutoFocusComment) {
+        _didAutoFocusComment = true;
+        final uid = ref.read(currentUserAsyncProvider).valueOrNull?.uid ?? '';
+        _scrollCommentsIntoViewAndFocus(requestKeyboard: uid.isNotEmpty);
+      }
     }
   }
 
@@ -48,6 +64,44 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _commentFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _scrollCommentsIntoViewAndFocus({required bool requestKeyboard}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final headerCtx = _commentsHeaderKey.currentContext;
+      if (headerCtx != null) {
+        Scrollable.ensureVisible(
+          headerCtx,
+          alignment: 0.1,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+        );
+      }
+      if (!requestKeyboard) return;
+      Future<void>.delayed(const Duration(milliseconds: 320), () {
+        if (mounted) _commentFocusNode.requestFocus();
+      });
+    });
+  }
+
+  void _onCommentShortcutPressed() {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
+    final uid = ref.read(currentUserAsyncProvider).valueOrNull?.uid ?? '';
+    if (uid.isEmpty) {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.signInForFullFeatures)));
+      _scrollCommentsIntoViewAndFocus(requestKeyboard: false);
+      return;
+    }
+    _scrollCommentsIntoViewAndFocus(requestKeyboard: true);
   }
 
   static String _formatTime(DateTime? t) {
@@ -95,12 +149,14 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
           likeCount: post.likeCount,
           downvoteCount: post.downvoteCount,
           commentCount: post.commentCount,
+          onCommentTap: _onCommentShortcutPressed,
         ),
       ),
       body: Column(
         children: [
           Expanded(
             child: SingleChildScrollView(
+              controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -165,7 +221,20 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                   const SizedBox(height: 16),
                   _linkedPostContent(context, post.content),
                   const SizedBox(height: 12),
-                  AppSectionHeader(title: '${context.l10n.comments} (${post.commentCount})'),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _onCommentShortcutPressed,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: AppSectionHeader(
+                          key: _commentsHeaderKey,
+                          title: '${context.l10n.comments} (${post.commentCount})',
+                        ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   CommentList(
                     postId: widget.postId,
@@ -173,6 +242,7 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                     onCommentAdded: _load,
                     currentUserDisplayName: ((user?.displayName ?? '').isNotEmpty) ? user?.displayName : user?.email,
                     currentUserPhotoUrl: ((user?.photoUrl ?? '').isNotEmpty) ? user?.photoUrl : null,
+                    commentFocusNode: _commentFocusNode,
                   ),
                   const SizedBox(height: 80),
                 ],

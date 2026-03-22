@@ -103,7 +103,13 @@ class AppRouter {
             GoRoute(path: 'subscription', builder: (context, state) => const SubscriptionScreen()),
             GoRoute(path: 'settings', builder: (context, state) => const SettingsScreen()),
             GoRoute(path: 'post/create', builder: (context, state) => const CreatePostPage()),
-            GoRoute(path: 'post/:id', builder: (context, state) => PostDetailPage(postId: state.pathParameters['id']!)),
+            GoRoute(
+              path: 'post/:id',
+              builder: (context, state) => PostDetailPage(
+                postId: state.pathParameters['id']!,
+                focusCommentOnOpen: state.uri.queryParameters['focusComment'] == '1',
+              ),
+            ),
             GoRoute(path: 'my-cats', builder: (context, state) => const MyCatsPage()),
             GoRoute(path: 'cat/edit/:id', builder: (context, state) => CatEditPage(catId: state.pathParameters['id']!)),
             GoRoute(path: 'plan', builder: (context, state) => const PlanPage()),
