@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 import urllib.parse
 from urllib.parse import unquote, urlparse
 
 import httpx
 
 from app.config import THE_CAT_API_KEY
+
+logger = logging.getLogger(__name__)
 
 CAT_API_BASE = "https://api.thecatapi.com/v1"
 USER_AGENT = "MeowCare/1.0 (content; contact: app)"
@@ -24,10 +27,20 @@ async def _fetch_images_search(params: dict[str, str]) -> list[dict]:
         headers["x-api-key"] = THE_CAT_API_KEY
     q = urllib.parse.urlencode(params)
     url = f"{CAT_API_BASE}/images/search?{q}"
-    async with httpx.AsyncClient(timeout=25.0) as client:
-        r = await client.get(url, headers=headers)
-        r.raise_for_status()
-        return r.json() or []
+    try:
+        async with httpx.AsyncClient(timeout=25.0) as client:
+            r = await client.get(url, headers=headers)
+            r.raise_for_status()
+            return r.json() or []
+    except httpx.HTTPStatusError as e:
+        logger.warning(
+            "TheCatAPI HTTP %s for images/search — daily gen will fall back if needed",
+            e.response.status_code,
+        )
+        return []
+    except httpx.RequestError as e:
+        logger.warning("TheCatAPI request failed: %s", e)
+        return []
 
 
 async def fetch_cat_image() -> dict:

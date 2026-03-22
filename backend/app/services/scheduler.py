@@ -16,7 +16,12 @@ scheduler = AsyncIOScheduler()
 
 
 async def run_daily_generation() -> None:
-    await run_daily_content_pipeline(check_publish_hour=True)
+    result = await run_daily_content_pipeline(check_publish_hour=True)
+    if result is None:
+        # 仅在 settings.publishHourUtc（UTC）整点执行生成；其它小时属正常跳过。
+        logger.debug(
+            "content_daily_hourly: skipped until publishHourUtc (see settings/content_generation)"
+        )
 
 
 async def run_publish_scheduled_tick() -> None:

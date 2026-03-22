@@ -13,6 +13,7 @@
     {"collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "countryCode", "order": "ASCENDING"}, {"fieldPath": "score", "order": "DESCENDING"}]},
 
     {"collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "breedIds", "arrayConfig": "CONTAINS"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
+    {"collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "countryCode", "order": "ASCENDING"}, {"fieldPath": "breedIds", "arrayConfig": "CONTAINS"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
     {"collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "topics", "arrayConfig": "CONTAINS"}, {"fieldPath": "score", "order": "DESCENDING"}]},
     {"collectionGroup": "comments", "queryScope": "COLLECTION", "fields": [{"fieldPath": "postId", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
     {"collectionGroup": "bookmarks", "queryScope": "COLLECTION", "fields": [{"fieldPath": "uid", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},

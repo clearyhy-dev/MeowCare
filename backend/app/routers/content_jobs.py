@@ -104,7 +104,14 @@ async def generate_now(body: dict[str, Any], _uid: str = Depends(require_admin))
         cfg["imageRequired"] = bool(body["imageRequired"])
     topics = normalize_content_topics(body["topics"]) if "topics" in body else cfg["topics"]
     created = await generate_daily_posts(count, topics, cfg_override=cfg)
-    return {"ok": True, "created": created}
+    out: dict[str, Any] = {"ok": True, "created": created}
+    if created == 0:
+        out["hint"] = (
+            "未写入新帖：常见为当日同 sourceKey 已存在（重复点生成）；"
+            "或 14 次尝试内未抽到可用品种/话题组合。可改话题勾选或次日再试。"
+            "若开启「必须配图」且无 THE_CAT_API_KEY，帖子可能进 draft，请在「每日内容」表格或帖子管理中查看。"
+        )
+    return out
 
 
 def _verify_content_job_secret(request: Request) -> None:

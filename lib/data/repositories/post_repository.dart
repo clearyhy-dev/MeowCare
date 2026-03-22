@@ -9,7 +9,7 @@ class PostRepository {
   final FirebaseFirestore _firestore;
 
   /// Fetch published posts with limit and startAfter for pagination.
-  /// orderByCreated: true = newest first (publishedAt DESC, 仅已到上线时间)；false = score DESC（热榜，客户端再滤 publishedAt）。
+  /// orderByCreated: true = 按 createdAt 最新，客户端再滤 [isPubliclyVisibleInFeed]；false = score DESC（热榜，客户端再滤）。
   /// Returns list and the last document snapshot for next page (null if fewer than limit).
   Future<({List<PostModel> list, DocumentSnapshot? lastDoc})> getPosts({
     required int limit,
@@ -19,7 +19,6 @@ class PostRepository {
     List<String>? topics,
     String? countryCode,
   }) async {
-    final nowTs = Timestamp.fromDate(DateTime.now().toUtc());
     Query<Map<String, dynamic>> q = _firestore
         .collection(AppConstants.postsCollection)
         .where('status', isEqualTo: 'published');
@@ -33,10 +32,10 @@ class PostRepository {
       q = q.where('breedIds', arrayContains: breedIds.first);
     }
 
+    // Latest：按 createdAt，避免 `publishedAt` 缺失的已发布帖被 Firestore 不等式整段排除。
+    // 定时上线帖在客户端用 [PostModel.isPubliclyVisibleInFeed] 过滤（与 Hot 一致）。
     if (orderByCreated) {
-      q = q
-          .where('publishedAt', isLessThanOrEqualTo: nowTs)
-          .orderBy('publishedAt', descending: true);
+      q = q.orderBy('createdAt', descending: true);
     } else {
       q = q.orderBy('score', descending: true);
     }
@@ -48,15 +47,13 @@ class PostRepository {
     // topic 筛选使用客户端兜底，避免依赖线上尚未创建完成的复合索引导致切换失败。
     final hasTopicFilter = topics != null && topics.isNotEmpty;
     final fetchLimit = orderByCreated
-        ? (hasTopicFilter ? limit * 4 : limit)
+        ? (hasTopicFilter ? limit * 4 : limit * 3)
         : (hasTopicFilter ? limit * 5 : limit * 8);
     q = q.limit(fetchLimit);
 
     final snap = await q.get();
     var list = snap.docs.map((d) => PostModel.fromMap(d.data(), d.id)).toList();
-    if (!orderByCreated) {
-      list = list.where((p) => p.isPubliclyVisibleInFeed).toList();
-    }
+    list = list.where((p) => p.isPubliclyVisibleInFeed).toList();
     if (hasTopicFilter) {
       final wanted = topics.first;
       list = list.where((p) => p.topics.contains(wanted)).take(limit).toList();

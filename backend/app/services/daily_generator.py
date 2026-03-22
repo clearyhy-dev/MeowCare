@@ -101,6 +101,16 @@ TOPIC_ANGLE_EN: dict[str, str] = {
     "litter_box": "litter box setup, cleaning cadence, and stress links",
 }
 
+# The Cat API 限流/网络失败时用占位数据，避免整日 0 条。
+_EMPTY_CAT_FOR_GENERATION: dict[str, str] = {
+    "image_url": "",
+    "breed_name": "Cat",
+    "temperament": "",
+    "origin": "",
+    "description": "",
+    "wikipedia_url": "",
+}
+
 DEFAULT_SCHEDULE_WINDOWS_UTC: list[dict[str, Any]] = [
     {"label": "morning", "weight": 0.30, "startHour": 6, "endHour": 11},
     {"label": "noon", "weight": 0.25, "startHour": 11, "endHour": 15},
@@ -980,8 +990,11 @@ async def generate_daily_posts(
             try:
                 cat = await fetch_cat_image()
             except Exception as e:
-                logger.warning("fetch_cat_image failed: %s", e)
-                continue
+                logger.warning(
+                    "fetch_cat_image failed, using generic breed (TheCatAPI/network?): %s",
+                    e,
+                )
+                cat = dict(_EMPTY_CAT_FOR_GENERATION)
 
             breed = (cat.get("breed_name") or "Cat").strip() or "Cat"
             st = normalize_content_style(content_style)
