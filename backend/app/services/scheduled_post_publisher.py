@@ -7,8 +7,6 @@ from datetime import datetime, timezone
 
 from firebase_admin import firestore
 
-from app.firestore_utils import datetime_to_timestamp
-
 logger = logging.getLogger(__name__)
 
 db = firestore.client()
@@ -20,12 +18,15 @@ def publish_due_scheduled_posts(*, limit: int = 50, now: datetime | None = None)
     Returns number of documents updated.
     """
     now = now or datetime.now(timezone.utc)
-    now_ts = datetime_to_timestamp(now)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    else:
+        now = now.astimezone(timezone.utc)
     limit = max(1, min(int(limit), 200))
     q = (
         db.collection("posts")
         .where("status", "==", "scheduled")
-        .where("scheduledPublishAt", "<=", now_ts)
+        .where("scheduledPublishAt", "<=", now)
         .order_by("scheduledPublishAt")
         .limit(limit)
     )

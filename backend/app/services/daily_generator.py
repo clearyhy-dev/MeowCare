@@ -14,7 +14,6 @@ from typing import Any
 from firebase_admin import firestore
 
 from app.config import GEMINI_API_KEY
-from app.firestore_utils import datetime_to_timestamp
 from app.services.cat_sources import fetch_cat_image, fetch_wiki_summary_and_thumbnail
 
 logger = logging.getLogger(__name__)
@@ -904,11 +903,14 @@ async def build_post_dict(
 
     if image_required and not has_image:
         status = "draft"
-        sched_ts = None
+        sched_publish_at: datetime | None = None
     else:
         status = "scheduled"
-        sched_dt = scheduled_publish_at or compute_scheduled_publish_timestamp(cfg)
-        sched_ts = datetime_to_timestamp(sched_dt)
+        sched_publish_at = scheduled_publish_at or compute_scheduled_publish_timestamp(cfg)
+        if sched_publish_at.tzinfo is None:
+            sched_publish_at = sched_publish_at.replace(tzinfo=timezone.utc)
+        else:
+            sched_publish_at = sched_publish_at.astimezone(timezone.utc)
 
     content_len = len(content)
     author_id, author_display, author_avatar = resolve_publisher_for_language(cfg, lang)
@@ -949,8 +951,9 @@ async def build_post_dict(
             "usedGemini": used_gemini,
         },
     }
-    if sched_ts is not None:
-        doc["scheduledPublishAt"] = sched_ts
+    if sched_publish_at is not None:
+        # Firestore set() 需要 datetime，不能用 protobuf Timestamp（会触发 encode 报错）。
+        doc["scheduledPublishAt"] = sched_publish_at
     return doc
 
 
