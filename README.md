@@ -1,111 +1,141 @@
 # MeowCare
 
-Flutter 家庭养猫护理应用：Feed、猫档案、任务与健康提醒、7 天计划、UGC 发帖与审核、FastAPI 后台与 AI 润色。
+家庭养猫护理与社区应用：**Flutter** 客户端 + **Firebase**（Auth / Firestore / Storage / Analytics）+ **FastAPI** 后台（管理、UGC 审核、AI、每日内容）+ **Cloud Functions**（通知与定时发帖辅助）。
 
-## 1. Firebase 配置
+---
 
-1. **创建项目**：在 [Firebase Console](https://console.firebase.google.com) 创建项目，启用 **Authentication**、**Firestore**、**Storage**。
-2. **认证**：在 Authentication 中启用 **Google** 登录（Flutter 用户端仅使用 Google；Email/Password 可在控制台关闭，不影响 FastAPI 管理页账号密码）。
-3. **应用**：为 Android/iOS/Web 添加应用，下载 `google-services.json`（Android）与 `GoogleService-Info.plist`（iOS），放入项目对应位置。
-4. **详细步骤**：见 [docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md)。
+## 功能概览
 
-## 2. 管理员（后台鉴权）
+| 模块 | 说明 |
+|------|------|
+| **Feed** | 帖子流；最新 / 热门；品种与话题筛选；搜索 |
+| **UGC** | 发帖、点赞、评论、收藏、举报；待审核 / 已发布 |
+| **账号与社区** | 设置内：我的帖子、我的评论、收藏、通知；Feed 头像未读角标 |
+| **通知** | Firestore `notifications`；评论 / 回复 / 点赞 / 审核结果；Callable 标记已读（`asia-east1`） |
+| **猫与家庭** | 多猫档案、家庭与邀请码、任务与健康记录 |
+| **计划与提醒** | 7 天新手计划、本地提醒 |
+| **AI** | 症状引导（仅供参考）；发帖润色走后端 |
+| **后台** | `/admin` 管理品种、UGC、举报、Reddit 导入、**每日内容生成**配置与手动触发 |
 
-**后台管理页面（账号密码登录）**：访问 `https://你的后端地址/admin`，使用账号 **admin**、密码 **wu2612103** 登录（可在 `.env` 中通过 `ADMIN_USERNAME`、`ADMIN_PASSWORD` 修改）。登录后可管理品种、待审 UGC、举报等。  
-**Cloud Run 上若用 `--update-env-vars` 设密码仍无法登录**：Windows 下密码里的 `!` 会被解释，请改用 Secret Manager 存密码，见 [docs/CLOUD_RUN_DEPLOY.md#后台管理员密码](docs/CLOUD_RUN_DEPLOY.md)。
+---
 
+## 仓库结构
 
-**API 鉴权**：后台 API 同时支持 (1) 上述管理页登录后获得的 JWT，和 (2) Firebase ID Token + Firestore/custom claim 管理员。  
-- **方式 A**：在 Firebase Auth 中为该用户设置 **Custom Claim** `admin: true`（通过 Admin SDK 或云函数）。  
-- **方式 B**：在 Firestore 中创建 **admins** 集合，文档 ID 为管理员 uid。
-
-仅管理员可访问：breeds 写、官方 post、UGC 审核、reports 处理。
-
-
-## 3. Firestore 规则与索引
-
-在项目根目录执行：
-
-```bash
-firebase deploy --only firestore:rules,firestore:indexes
+```
+lib/                    # Flutter 源码（路由、Repository、页面、l10n）
+android/ ios/ web/ …    # 各端工程
+backend/app/            # FastAPI：main、routers、services
+functions/              # Firebase Cloud Functions（TypeScript，编译输出在 lib/，勿提交）
+firestore.rules         # Firestore 安全规则
+firestore.indexes.json # 复合索引
+docs/                   # 部署与排障说明
 ```
 
-确保根目录存在 `firestore.rules` 与 `firestore.indexes.json`。索引与查询一一对应（见 `firestore.indexes.json`）。
+---
 
-## 4. Storage 规则
+## 1. Firebase 与客户端
 
-在 Firebase Console → Storage → 规则中，允许认证用户按路径读写本人资源，例如：
+1. 在 [Firebase Console](https://console.firebase.google.com) 创建项目，启用 **Authentication（Google）**、**Firestore**、**Storage**。
+2. 添加 Android / iOS 应用，放入 `google-services.json`、`GoogleService-Info.plist`。
+3. 详细步骤：[docs/firebase_setup.md](docs/firebase_setup.md)。
 
-- `avatars/{uid}/{id}.jpg`：仅 uid 可写；
-- `covers/{postId}.jpg`：创建者或约定规则。
-
-具体与项目 `firestore.rules` 中 Storage 部分一致（若已单独配置）。
-
-## 5. Flutter 运行
+### Flutter 运行
 
 ```bash
 flutter pub get
+flutter gen-l10n   # 若修改了 lib/l10n/*.arb
 flutter run
 ```
 
-默认已使用 Cloud Run 后端（如 `https://meowcare-api-xxx.asia-east1.run.app`），发帖页「AI 润色」会请求该地址。如需改用本地后端：
+指定后端（默认见 `lib/core/constants/app_constants.dart`）：
 
 ```bash
-flutter run --dart-define=MEOWCARE_BACKEND_URL=http://10.0.2.2:8000
+flutter run --dart-define=MEOWCARE_BACKEND_URL=https://你的-api.run.app
 ```
 
-（Android 模拟器用 `10.0.2.2` 表示本机；iOS 模拟器可用 `http://localhost:8000`。）
+模拟器访问本机后端：`http://10.0.2.2:8000`（Android）或 `http://localhost:8000`（iOS）。
 
-分享功能使用 `share_plus`；应用下载链接与帖子 Web 链接可在构建时覆盖：
+### 部署 Firebase（规则、索引、Functions）
 
-- `MEOWCARE_APP_URL`：默认 Google Play 包名链接；
-- `MEOWCARE_POST_WEB_BASE`：默认 `https://meowcare.app/post`（占位，有正式站点后替换）。
+```bash
+# 首次在 functions/ 目录：npm install && npm run build
+firebase deploy --only "firestore:rules,firestore:indexes,functions"
+```
 
-## 6. FastAPI 后台运行
+Cloud Functions **第 2 代** 每个导出函数在 Cloud Run 中会显示为**独立服务**，属正常现象。
+
+---
+
+## 2. FastAPI 后台
 
 ```bash
 cd backend
 pip install -r requirements.txt
-```
-
-复制 `.env.example` 为 `.env`，配置：
-
-- `GOOGLE_APPLICATION_CREDENTIALS`：Firebase 服务账号 JSON 路径；
-- `GEMINI_API_KEY`（可选）：用于 AI 润色与生成；
-- `PORT`（可选）：默认 8000。
-
-启动：
-
-```bash
+cp .env.example .env   # 按说明填写
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-CORS 已允许 Flutter 域名/本地访问；生产环境请按需限制 `allow_origins`。
+常见环境变量：
 
-**Cloud Run 重新部署**（改代码、改环境变量、强制重启、删除重建）：见 [docs/CLOUD_RUN_DEPLOY.md](docs/CLOUD_RUN_DEPLOY.md)。
+| 变量 | 说明 |
+|------|------|
+| `GOOGLE_APPLICATION_CREDENTIALS` | 服务账号 JSON 路径（本地） |
+| `GEMINI_API_KEY` | AI 润色、每日多语言生成（可选但推荐） |
+| `THE_CAT_API_KEY` | The Cat API（每日配图，可选） |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | 管理页登录；生产须强密码 |
+| `SECRET_KEY` | JWT 签名；生产必填 |
+| `ENV=production` | 生产校验上述必填项 |
+| `CONTENT_JOB_SECRET` | `POST /content-jobs/daily-run` 等 Cron 鉴权（可选） |
+
+管理页：`https://<你的CloudRun地址>/admin`  
+Cloud Run 部署与管理员密码注意项：[docs/cloud_run_deploy.md](docs/cloud_run_deploy.md)。
+
+```bash
+cd backend
+gcloud run deploy meowcare-api --source . --region asia-east1 --allow-unauthenticated
+```
 
 ---
 
-## 验收清单（按功能）
+## 3. 每日官方内容
 
+- 配置写入 Firestore：`settings/content_generation`（后台「每日内容」页保存）。
+- **手动生成**：后台按钮调用 `POST /content-jobs/generate-now`。
+- **定时**：进程内 APScheduler（容器存活时）+ 可选 Cloud Scheduler 调 `POST /content-jobs/daily-run`（需 `CONTENT_JOB_SECRET`）。
+- 定时将 `scheduled` 帖发布为 `published`：后台任务 `publish_due_scheduled_posts`（约每 5 分钟）。
 
-| 功能 | 验收方式 |
+写入 Firestore 的 `scheduledPublishAt` 使用 **Python `datetime`（UTC）**，勿使用 protobuf `Timestamp` 直接 `set`。
+
+---
+
+## 4. 通知与规则要点
+
+- 客户端**不可**直接创建/修改 `notifications` 文档；已读通过 **Callable**：`markNotificationRead`、`markAllNotificationsRead`。
+- `users.notificationUnreadCount` 仅可信端（Functions / Admin SDK）递增；客户端规则限制篡改。
+- Flutter 需使用 `FirebaseFunctions.instanceFor(region: 'asia-east1')` 与函数区域一致。
+
+---
+
+## 5. 验收与测试建议
+
+| 能力 | 建议自测 |
 |------|----------|
-| **猫档案** | 创建猫可选品种、上传头像、勾选公开、填写 ownerNotes；列表仅显示本人的猫；公开猫可被其他用户看到（若做「发现猫」列表）。 |
-| **Feed** | 首页为帖子流；可筛品种、主题；可切最新/热门；滚动加载更多（limit+startAfter）；卡片显示点赞数、评论数。 |
-| **点赞** | 详情页点赞/取消，post.likeCount 同步变化；列表刷新后数量一致。 |
-| **评论** | 详情页评论列表分页；发表评论后 commentCount +1，新评论出现。 |
-| **收藏** | 详情页收藏/取消；收藏列表页仅显示已收藏且 published 的帖子；分页。 |
-| **7 天计划** | 首次进入可触发 7 天计划；标记某天完成，users.planProgress 更新。 |
-| **提醒** | 为某猫设置驱虫/洗澡周期或疫苗日期；首页或提醒页显示今日待办。 |
-| **UGC 发帖** | 提交后 status=pending；后台审核通过后 Feed 可见；AI 润色仅回填不发布。 |
-| **后台** | 使用 ID Token + admin 可访问 breeds、官方 post、ugc 审核、reports 处理；`POST /ai/rewrite` 返回润色文本。 |
+| Feed | 最新 / 热门、筛选、分页、详情跳转 |
+| 社区入口 | 设置内四项 + 通知角标 |
+| 通知 | 双账号评论 / 回复 / 点赞；审核通过/拒绝；已读与全部已读 |
+| UGC | pending → 后台通过 → Feed 可见 |
+| 每日内容 | 后台生成；列表含 `scheduled` / `draft`；到期变 `published` |
 
 ---
 
-## 项目结构摘要
+## 相关文档
 
-- **Flutter**：`lib/` — 路由、Repository、Feed/帖子/猫/收藏/计划/提醒页面；`lib/core/constants/app_constants.dart` 含集合名与 `backendBaseUrl`。
-- **Firestore**：`firestore.rules`、`firestore.indexes.json`；种子数据 `scripts/seed_breeds.json`。
-- **FastAPI**：`backend/app/` — `main.py`、`dependencies.py`（鉴权与 admin）、`routers/`（breeds、posts、ugc、reports、ai）。
+- [docs/firebase_setup.md](docs/firebase_setup.md)
+- [docs/cloud_run_deploy.md](docs/cloud_run_deploy.md)
+- [docs/admin_login_debug.md](docs/admin_login_debug.md)
 
+---
+
+## 许可证与说明
+
+内部 / 私有项目用途；对外分发请自行补充许可证与隐私政策。AI 与社区内容仅为信息参考，不能替代兽医诊疗。

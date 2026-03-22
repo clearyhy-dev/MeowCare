@@ -2,7 +2,11 @@
 *.class
 *.log
 *.pyc
+*.pyo
+*.pyd
 *.swp
+*.swo
+*~
 .DS_Store
 .atom/
 .build/
@@ -11,57 +15,103 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# IntelliJ related
+# IntelliJ / Android Studio
 *.iml
 *.ipr
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code（个人本地配置不提交；团队可改为跟踪 .vscode/）
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
 
-# Flutter/Dart/Pub related
+# Flutter / Dart
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
+.packages
 .pub-cache/
 .pub/
 /build/
 /coverage/
 
-# Symbolication related
+# Symbolication / obfuscation
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# Android
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/.gradle
+/android/captures/
+/android/local.properties
+*.apk
+*.aab
+*.ap_
+*.dex
 
-# Android signing (do not commit)
+# Android 签名（勿提交）
 /android/key.properties
 /android/app/*.jks
+/android/app/*.keystore
 
-# Environment & local secrets (templates 可提交)
+# iOS / macOS
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/**/DerivedData/
+**/macos/Flutter/ephemeral/
+**/macos/Pods/
+
+# Windows / Linux（Flutter 桌面）
+**/windows/flutter/ephemeral/
+**/linux/flutter/ephemeral/
+
+# Python（backend）
+**/__pycache__/
+**/*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+venv/
+.venv/
+**/venv/
+**/.venv/
+
+# 环境变量与密钥（模板可提交）
 **/.env
+**/.env.local
+**/.env.*.local
 !**/.env.example
 
-# Cloud Functions (TypeScript)
+# Cloud Functions（TypeScript）
 functions/node_modules/
 functions/lib/
+functions/.firebase/
+functions/*.log
 
-# Firebase / GCP 服务账号密钥（勿入仓库）
+# Firebase / GCP 服务账号（勿入仓库）
 *firebase-adminsdk*.json
 **/*-adminsdk-*.json
 **/serviceAccountKey.json
+**/google-services.json.bak
 
-# 私有名单导出（测试邮箱等）
+# 私有导出（测试用户名单等）
 *testers*.csv
 *tester*emails*.csv
 
+# FVM（若使用）
+.fvm/flutter_sdk
+
+# 覆盖率与其它
+*.lcov
+htmlcov/
