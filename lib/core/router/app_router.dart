@@ -18,6 +18,10 @@ import '../../screens/cats/cat_edit_page.dart';
 import '../../screens/health/health_screen.dart';
 import '../../screens/plan/plan_page.dart';
 import '../../screens/reminder/reminder_page.dart';
+import '../../screens/me/my_comments_page.dart';
+import '../../screens/me/my_posts_page.dart';
+import '../../screens/me/notifications_page.dart';
+import '../../screens/me/saved_posts_page.dart';
 import '../../screens/settings/settings_screen.dart';
 import '../../screens/subscription/subscription_screen.dart';
 import '../../screens/tasks/tasks_screen.dart';
@@ -114,6 +118,10 @@ class AppRouter {
             GoRoute(path: 'cat/edit/:id', builder: (context, state) => CatEditPage(catId: state.pathParameters['id']!)),
             GoRoute(path: 'plan', builder: (context, state) => const PlanPage()),
             GoRoute(path: 'reminder', builder: (context, state) => const ReminderPage()),
+            GoRoute(path: 'me/posts', builder: (context, state) => const MyPostsPage()),
+            GoRoute(path: 'me/comments', builder: (context, state) => const MyCommentsPage()),
+            GoRoute(path: 'me/notifications', builder: (context, state) => const NotificationsPage()),
+            GoRoute(path: 'me/saved', builder: (context, state) => const SavedPostsPage()),
           ],
         ),
 

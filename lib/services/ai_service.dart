@@ -8,6 +8,7 @@ import '../core/constants/app_constants.dart';
 import '../core/constants/enums.dart';
 import '../core/utils/date_utils.dart';
 import '../models/health_model.dart';
+import '../models/symptom_advice_result.dart';
 
 /// 当前使用的 AI 模型显示名（与后端一致，无后端时展示用）
 const String kAIModelDisplayName = 'Gemini 2.5 Flash';
@@ -49,12 +50,15 @@ class AIService {
     return request;
   }
 
-  /// Returns (advice, modelDisplayName). Uses backend /ai/symptom with [locale] for language-matched advice; fallback to localized mock if backend unavailable.
-  Future<({String advice, String modelDisplayName})> getAIResponse(
+  /// Uses backend `/ai/symptom` with BCP 47 [localeTag], [appLanguage] (UI code), optional [userLanguageHint].
+  /// Falls back to structured offline placeholders when backend is unavailable or payload is incomplete.
+  Future<SymptomAdviceResult> getAIResponse(
     String requestId,
     String symptom,
     Severity severity, {
-    required String locale,
+    required String localeTag,
+    required String appLanguage,
+    String userLanguageHint = '',
   }) async {
     final baseUrl = AppConstants.backendBaseUrl;
     if (baseUrl.isNotEmpty) {
@@ -62,6 +66,8 @@ class AIService {
       if (token != null) {
         try {
           final uri = Uri.parse('$baseUrl/ai/symptom');
+          final tag = localeTag.trim().isEmpty ? 'en' : localeTag.trim();
+          final appLang = appLanguage.trim().isEmpty ? 'en' : appLanguage.trim().toLowerCase();
           final res = await http.post(
             uri,
             headers: {
@@ -71,16 +77,38 @@ class AIService {
             body: jsonEncode({
               'symptom': symptom,
               'severity': severity.value,
-              'locale': locale.isEmpty ? 'en' : locale,
+              'locale': tag,
+              'app_language': appLang,
+              'user_language': userLanguageHint.trim(),
             }),
           );
           if (res.statusCode == 200) {
-            final data = jsonDecode(res.body) as Map<String, dynamic>?;
-            final advice = data?['advice'] as String? ?? '';
-            final model = data?['model'] as String?;
-            if (advice.isNotEmpty) {
-              return (advice: advice, modelDisplayName: _formatModelName(model));
+            Map<String, dynamic>? data;
+            try {
+              final decoded = jsonDecode(res.body);
+              if (decoded is Map<String, dynamic>) data = decoded;
+            } catch (_) {
+              data = null;
             }
+            if (data != null) {
+              final modelName = _formatModelName(data['model'] as String?);
+              var parsed = SymptomAdviceResult.fromApiJson(data, modelName);
+              if (!parsed.hasUsableContent) {
+                final flat = parsed.flatAdvice.isNotEmpty ? parsed.flatAdvice : (data['advice'] as String? ?? '');
+                if (flat.trim().isNotEmpty) {
+                  parsed = parsed.copyWith(sections: parsed.sections.copyWith(summary: flat.trim()));
+                }
+              }
+              if (parsed.hasUsableContent) {
+                return parsed;
+              }
+            }
+            return SymptomAdviceResult.offlineFallback(
+              symptom: symptom,
+              severity: severity,
+              appLanguageCode: appLang,
+              modelDisplayName: kAIModelDisplayName,
+            );
           } else {
             final msg = res.body.isNotEmpty ? res.body : 'HTTP ${res.statusCode}';
             throw Exception(msg);
@@ -88,13 +116,15 @@ class AIService {
         } catch (e) {
           rethrow;
         }
-
       }
     }
 
     await Future.delayed(const Duration(milliseconds: 300));
-    return (
-      advice: _fallbackAdvice(symptom, severity, locale),
+    final appLang = appLanguage.trim().isEmpty ? 'en' : appLanguage.trim().toLowerCase();
+    return SymptomAdviceResult.offlineFallback(
+      symptom: symptom,
+      severity: severity,
+      appLanguageCode: appLang,
       modelDisplayName: kAIModelDisplayName,
     );
   }
@@ -109,19 +139,5 @@ class AIService {
     return raw;
   }
 
-  static String _fallbackAdvice(String symptom, Severity severity, String locale) {
-    final severityStr = severity.value;
-    if (locale.startsWith('zh')) {
-      return '以上仅供参考，不能替代兽医诊断。症状：“$symptom”（严重程度：$severityStr）。建议尽快咨询兽医以获取正确诊断。';
-    }
-    if (locale.startsWith('ja')) {
-      return '参考までです。獣医の診断の代わりにはなりません。症状：「$symptom」（程度：$severityStr）。獣医にご相談ください。';
-    }
-    if (locale.startsWith('ko')) {
-      return '참고용이며 수의사 진단을 대체하지 않습니다. 증상: "$symptom" (심각도: $severityStr). 수의사 상담을 권합니다.';
-    }
-    return 'This is informational guidance only, not a substitute for veterinary care. '
-        'For symptom: "$symptom" (severity: $severityStr), please consider consulting a veterinarian for proper diagnosis.';
-  }
 }
 

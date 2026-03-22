@@ -628,6 +628,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiModelLabel => '현재 모델';
 
   @override
+  String get aiAdviceSectionSummary => 'Summary';
+
+  @override
+  String get aiAdviceSectionHomeCare => 'Home care';
+
+  @override
+  String get aiAdviceSectionRedFlags => 'Red flags';
+
+  @override
+  String get aiAdviceSectionVet => 'When to see a vet';
+
+  @override
+  String get aiAdviceSectionReassurance => 'A note for you';
+
+  @override
+  String get aiAdviceSectionDisclaimer => 'Disclaimer';
+
+  @override
   String get retry => '다시 시도';
 
   @override
@@ -750,4 +768,55 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get collapseReplies => 'Collapse replies';
+
+  @override
+  String get communitySectionTitle => '커뮤니티';
+
+  @override
+  String get myPostsTitle => '내 게시물';
+
+  @override
+  String get myCommentsTitle => '내 댓글';
+
+  @override
+  String get savedPostsTitle => '저장됨';
+
+  @override
+  String get notificationsTitle => '알림';
+
+  @override
+  String get markAllNotificationsRead => '모두 읽음';
+
+  @override
+  String get notificationsEmpty => '알림이 없습니다.';
+
+  @override
+  String get myPostsEmpty => '이 탭에 게시물이 없습니다.';
+
+  @override
+  String get myCommentsEmpty => '아직 댓글이 없습니다.';
+
+  @override
+  String get savedPostsEmpty => '저장된 게시물이 없습니다.';
+
+  @override
+  String get postStatusDraft => '초안';
+
+  @override
+  String get postStatusPending => '검토 중';
+
+  @override
+  String get postStatusPublished => '게시됨';
+
+  @override
+  String get postStatusRejected => '거부됨';
+
+  @override
+  String get postTitleUnknown => '게시물';
+
+  @override
+  String get notificationMarkReadFailed => '알림을 업데이트할 수 없습니다.';
+
+  @override
+  String get notificationsAllMarkedRead => '모든 알림을 읽음으로 표시했습니다.';
 }

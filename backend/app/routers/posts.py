@@ -23,9 +23,10 @@ def _get_post_ref(post_id: str):
 @router.post("")
 async def create_official_post(body: dict[str, Any], uid: str = Depends(require_admin)):
     ref = db.collection("posts").document()
+    st = body.get("status", "draft")
     data = {
         "type": "official",
-        "status": body.get("status", "draft"),
+        "status": st,
         "title": body.get("title", ""),
         "content": body.get("content", ""),
         "coverUrl": body.get("coverUrl", ""),
@@ -38,6 +39,8 @@ async def create_official_post(body: dict[str, Any], uid: str = Depends(require_
         "createdAt": firestore.SERVER_TIMESTAMP,
         "updatedAt": firestore.SERVER_TIMESTAMP,
     }
+    if st == "published":
+        data["publishedAt"] = firestore.SERVER_TIMESTAMP
     ref.set(data)
     return {"postId": ref.id}
 
@@ -56,7 +59,13 @@ async def update_post(post_id: str, body: dict[str, Any], uid: str = Depends(req
 @router.post("/{post_id}/publish")
 async def publish_post(post_id: str, uid: str = Depends(require_admin)):
     ref = _get_post_ref(post_id)
-    ref.update({"status": "published", "updatedAt": firestore.SERVER_TIMESTAMP})
+    ref.update(
+        {
+            "status": "published",
+            "publishedAt": firestore.SERVER_TIMESTAMP,
+            "updatedAt": firestore.SERVER_TIMESTAMP,
+        }
+    )
     return {"ok": True}
 
 
@@ -77,7 +86,7 @@ async def list_posts_admin(
     """管理员分页拉取帖子列表（最新或热门），用于后台「最新/热门管理」."""
     limit = min(max(1, limit), 100)
     coll = db.collection("posts")
-    q = coll.where("status", "==", "published")
+    q = coll.where("status", "in", ["published", "scheduled"])
     if order == "hot":
         q = q.order_by("score", direction=FirestoreQuery.DESCENDING)
     else:

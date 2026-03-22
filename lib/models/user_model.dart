@@ -12,6 +12,8 @@ class UserModel {
   final String? familyId;
   final bool planStarted;
   final int planProgress;
+  /// 未读通知数；仅服务端/Functions 写入，客户端只读。
+  final int notificationUnreadCount;
 
   const UserModel({
     required this.uid,
@@ -23,6 +25,7 @@ class UserModel {
     this.familyId,
     this.planStarted = false,
     this.planProgress = 0,
+    this.notificationUnreadCount = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -62,6 +65,7 @@ class UserModel {
     String? familyId,
     bool? planStarted,
     int? planProgress,
+    int? notificationUnreadCount,
   }) {
     return UserModel(
       uid: uid,
@@ -73,6 +77,7 @@ class UserModel {
       familyId: familyId ?? this.familyId,
       planStarted: planStarted ?? this.planStarted,
       planProgress: planProgress ?? this.planProgress,
+      notificationUnreadCount: notificationUnreadCount ?? this.notificationUnreadCount,
     );
   }
 }

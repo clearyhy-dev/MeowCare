@@ -627,6 +627,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiModelLabel => '当前模型';
 
   @override
+  String get aiAdviceSectionSummary => '摘要';
+
+  @override
+  String get aiAdviceSectionHomeCare => '居家护理';
+
+  @override
+  String get aiAdviceSectionRedFlags => '危险信号';
+
+  @override
+  String get aiAdviceSectionVet => '何时就医';
+
+  @override
+  String get aiAdviceSectionReassurance => '温馨提示';
+
+  @override
+  String get aiAdviceSectionDisclaimer => '免责说明';
+
+  @override
   String get retry => '重试';
 
   @override
@@ -749,4 +767,55 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get collapseReplies => '收起回复';
+
+  @override
+  String get communitySectionTitle => '社区';
+
+  @override
+  String get myPostsTitle => '我的帖子';
+
+  @override
+  String get myCommentsTitle => '我的评论';
+
+  @override
+  String get savedPostsTitle => '收藏';
+
+  @override
+  String get notificationsTitle => '通知';
+
+  @override
+  String get markAllNotificationsRead => '全部已读';
+
+  @override
+  String get notificationsEmpty => '暂无通知';
+
+  @override
+  String get myPostsEmpty => '此分类下还没有帖子';
+
+  @override
+  String get myCommentsEmpty => '你还没有发表评论';
+
+  @override
+  String get savedPostsEmpty => '暂无收藏帖子';
+
+  @override
+  String get postStatusDraft => '草稿';
+
+  @override
+  String get postStatusPending => '待审核';
+
+  @override
+  String get postStatusPublished => '已发布';
+
+  @override
+  String get postStatusRejected => '未通过';
+
+  @override
+  String get postTitleUnknown => '帖子';
+
+  @override
+  String get notificationMarkReadFailed => '无法更新通知，请稍后重试。';
+
+  @override
+  String get notificationsAllMarkedRead => '已全部标为已读。';
 }

@@ -58,4 +58,40 @@ class CommentRepository {
       tx.update(postRef, {'commentCount': currentCount + 1});
     });
   }
+
+  Future<({List<CommentModel> comments, Map<String, String> postTitles, DocumentSnapshot? lastDoc})>
+      getMyCommentsWithPostTitles({
+    required String authorId,
+    required int limit,
+    DocumentSnapshot? startAfter,
+  }) async {
+    Query<Map<String, dynamic>> q = _firestore
+        .collection(AppConstants.commentsCollection)
+        .where('authorId', isEqualTo: authorId)
+        .orderBy('createdAt', descending: true)
+        .limit(limit);
+    if (startAfter != null) {
+      q = q.startAfterDocument(startAfter);
+    }
+    final snap = await q.get();
+    final comments = snap.docs.map((d) => CommentModel.fromMap(d.data(), d.id)).toList();
+    final postIds = comments.map((c) => c.postId).toSet().toList();
+    final postTitles = <String, String>{};
+    const chunk = 30;
+    for (var i = 0; i < postIds.length; i += chunk) {
+      final end = i + chunk > postIds.length ? postIds.length : i + chunk;
+      final slice = postIds.sublist(i, end);
+      final docs = await Future.wait(
+        slice.map((id) => _firestore.collection(AppConstants.postsCollection).doc(id).get()),
+      );
+      for (final doc in docs) {
+        if (doc.exists && doc.data() != null) {
+          final t = doc.data()!['title'] as String? ?? '';
+          postTitles[doc.id] = t;
+        }
+      }
+    }
+    final lastDoc = snap.docs.length == limit && snap.docs.isNotEmpty ? snap.docs.last : null;
+    return (comments: comments, postTitles: postTitles, lastDoc: lastDoc);
+  }
 }

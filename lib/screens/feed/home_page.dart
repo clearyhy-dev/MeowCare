@@ -7,6 +7,7 @@ import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/topic_l10n.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../widgets/app/app_empty_state.dart';
 import '../../widgets/feed/feed_control_bar.dart';
@@ -58,6 +59,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final feedState = ref.watch(feedProvider);
     final user = ref.watch(currentUserAsyncProvider).valueOrNull;
+    final unreadAsync = ref.watch(notificationUnreadCountProvider);
+    final unread = unreadAsync.valueOrNull ?? 0;
     ref.listen<AsyncValue<String?>>(appCountryProvider, (prev, next) {
       if (!next.hasValue) return;
       final nextCountry = next.valueOrNull;
@@ -86,7 +89,15 @@ class _HomePageState extends ConsumerState<HomePage> {
         title: Text(context.l10n.feed),
         actions: [
           if (user != null) IconButton(icon: const Icon(Icons.pets), onPressed: () => context.push('${AppRouter.home}my-cats')),
-          IconButton(icon: const Icon(Icons.person), onPressed: () => context.push('${AppRouter.home}settings')),
+          IconButton(
+            onPressed: () => context.push('${AppRouter.home}settings'),
+            icon: unread > 0
+                ? Badge(
+                    label: Text(unread > 99 ? '99+' : '$unread'),
+                    child: const Icon(Icons.person),
+                  )
+                : const Icon(Icons.person),
+          ),
           if (user != null)
             IconButton(icon: const Icon(Icons.add), onPressed: () => context.push('${AppRouter.home}post/create')),
         ],

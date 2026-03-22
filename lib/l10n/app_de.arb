@@ -179,6 +179,12 @@
   "aiErrorFreeLimit": "Kostenlos: {count} KI-Anfragen pro Tag. Upgrade auf Pro für unbegrenzt.",
   "@aiErrorFreeLimit": {"placeholders": {"count": {"type": "int"}}},
   "aiModelLabel": "Aktuelles Modell",
+  "aiAdviceSectionSummary": "Summary",
+  "aiAdviceSectionHomeCare": "Home care",
+  "aiAdviceSectionRedFlags": "Red flags",
+  "aiAdviceSectionVet": "When to see a vet",
+  "aiAdviceSectionReassurance": "A note for you",
+  "aiAdviceSectionDisclaimer": "Disclaimer",
   "retry": "Erneut versuchen",
   "backendUrlNotConfigured": "Backend-URL nicht konfiguriert.",
   "pleaseSignIn": "Bitte anmelden.",
@@ -195,7 +201,24 @@
   "planDay4": "Tag 4: Erster Tierarztbesuch",
   "planDay5": "Tag 5: Pflege",
   "planDay6": "Tag 6: Spielen und Bindung",
-  "planDay7": "Tag 7: Routine"
+  "planDay7": "Tag 7: Routine",
+  "communitySectionTitle": "Community",
+  "myPostsTitle": "Meine Beiträge",
+  "myCommentsTitle": "Meine Kommentare",
+  "savedPostsTitle": "Gespeichert",
+  "notificationsTitle": "Benachrichtigungen",
+  "markAllNotificationsRead": "Alle als gelesen",
+  "notificationsEmpty": "Noch keine Benachrichtigungen.",
+  "myPostsEmpty": "Keine Beiträge in diesem Tab.",
+  "myCommentsEmpty": "Du hast noch nicht kommentiert.",
+  "savedPostsEmpty": "Noch keine gespeicherten Beiträge.",
+  "postStatusDraft": "Entwurf",
+  "postStatusPending": "Ausstehend",
+  "postStatusPublished": "Veröffentlicht",
+  "postStatusRejected": "Abgelehnt",
+  "postTitleUnknown": "Beitrag",
+  "notificationMarkReadFailed": "Benachrichtigung konnte nicht aktualisiert werden.",
+  "notificationsAllMarkedRead": "Alle Benachrichtigungen als gelesen markiert."
 }
 
 

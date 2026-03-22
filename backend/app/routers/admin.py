@@ -839,6 +839,7 @@ async def admin_reddit_import(body: RedditImportBody, uid: str = Depends(require
         thumbnail = d.get("thumbnail") or ""
         cover_url = thumbnail if (thumbnail and thumbnail.startswith("http")) else ""
         ref = posts_coll.document()
+        now_utc = datetime.now(timezone.utc)
         ref.set({
             "type": "official",
             "status": "published",
@@ -856,7 +857,8 @@ async def admin_reddit_import(body: RedditImportBody, uid: str = Depends(require
             "redditId": reddit_id,
             "redditPermalink": permalink[:2000],
             "createdAt": created_dt,
-            "updatedAt": datetime.now(timezone.utc),
+            "updatedAt": now_utc,
+            "publishedAt": now_utc,
         })
         imported_coll.document(reddit_id).set({"postId": ref.id})
         imported += 1

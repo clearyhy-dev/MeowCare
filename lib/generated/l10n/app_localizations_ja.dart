@@ -628,6 +628,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get aiModelLabel => '現在のモデル';
 
   @override
+  String get aiAdviceSectionSummary => 'Summary';
+
+  @override
+  String get aiAdviceSectionHomeCare => 'Home care';
+
+  @override
+  String get aiAdviceSectionRedFlags => 'Red flags';
+
+  @override
+  String get aiAdviceSectionVet => 'When to see a vet';
+
+  @override
+  String get aiAdviceSectionReassurance => 'A note for you';
+
+  @override
+  String get aiAdviceSectionDisclaimer => 'Disclaimer';
+
+  @override
   String get retry => '再試行';
 
   @override
@@ -750,4 +768,55 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collapseReplies => 'Collapse replies';
+
+  @override
+  String get communitySectionTitle => 'コミュニティ';
+
+  @override
+  String get myPostsTitle => '自分の投稿';
+
+  @override
+  String get myCommentsTitle => '自分のコメント';
+
+  @override
+  String get savedPostsTitle => '保存済み';
+
+  @override
+  String get notificationsTitle => '通知';
+
+  @override
+  String get markAllNotificationsRead => 'すべて既読';
+
+  @override
+  String get notificationsEmpty => '通知はまだありません。';
+
+  @override
+  String get myPostsEmpty => 'このタブに投稿はありません。';
+
+  @override
+  String get myCommentsEmpty => 'まだコメントしていません。';
+
+  @override
+  String get savedPostsEmpty => '保存した投稿はありません。';
+
+  @override
+  String get postStatusDraft => '下書き';
+
+  @override
+  String get postStatusPending => '審査中';
+
+  @override
+  String get postStatusPublished => '公開済み';
+
+  @override
+  String get postStatusRejected => '却下';
+
+  @override
+  String get postTitleUnknown => '投稿';
+
+  @override
+  String get notificationMarkReadFailed => '通知を更新できませんでした。後でもう一度お試しください。';
+
+  @override
+  String get notificationsAllMarkedRead => 'すべて既読にしました。';
 }

@@ -635,6 +635,24 @@ class AppLocalizationsFr extends AppLocalizations {
   String get aiModelLabel => 'Modèle actuel';
 
   @override
+  String get aiAdviceSectionSummary => 'Summary';
+
+  @override
+  String get aiAdviceSectionHomeCare => 'Home care';
+
+  @override
+  String get aiAdviceSectionRedFlags => 'Red flags';
+
+  @override
+  String get aiAdviceSectionVet => 'When to see a vet';
+
+  @override
+  String get aiAdviceSectionReassurance => 'A note for you';
+
+  @override
+  String get aiAdviceSectionDisclaimer => 'Disclaimer';
+
+  @override
   String get retry => 'Réessayer';
 
   @override
@@ -757,4 +775,57 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get collapseReplies => 'Collapse replies';
+
+  @override
+  String get communitySectionTitle => 'Communauté';
+
+  @override
+  String get myPostsTitle => 'Mes publications';
+
+  @override
+  String get myCommentsTitle => 'Mes commentaires';
+
+  @override
+  String get savedPostsTitle => 'Enregistrés';
+
+  @override
+  String get notificationsTitle => 'Notifications';
+
+  @override
+  String get markAllNotificationsRead => 'Tout marquer lu';
+
+  @override
+  String get notificationsEmpty => 'Aucune notification pour l\'instant.';
+
+  @override
+  String get myPostsEmpty => 'Aucune publication dans cet onglet.';
+
+  @override
+  String get myCommentsEmpty => 'Vous n\'avez pas encore commenté.';
+
+  @override
+  String get savedPostsEmpty => 'Aucune publication enregistrée.';
+
+  @override
+  String get postStatusDraft => 'Brouillon';
+
+  @override
+  String get postStatusPending => 'En attente';
+
+  @override
+  String get postStatusPublished => 'Publié';
+
+  @override
+  String get postStatusRejected => 'Refusé';
+
+  @override
+  String get postTitleUnknown => 'Publication';
+
+  @override
+  String get notificationMarkReadFailed =>
+      'Impossible de mettre à jour la notification.';
+
+  @override
+  String get notificationsAllMarkedRead =>
+      'Toutes les notifications sont marquées comme lues.';
 }

@@ -1306,6 +1306,42 @@ abstract class AppLocalizations {
   /// **'Current model'**
   String get aiModelLabel;
 
+  /// No description provided for @aiAdviceSectionSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary'**
+  String get aiAdviceSectionSummary;
+
+  /// No description provided for @aiAdviceSectionHomeCare.
+  ///
+  /// In en, this message translates to:
+  /// **'Home care'**
+  String get aiAdviceSectionHomeCare;
+
+  /// No description provided for @aiAdviceSectionRedFlags.
+  ///
+  /// In en, this message translates to:
+  /// **'Red flags'**
+  String get aiAdviceSectionRedFlags;
+
+  /// No description provided for @aiAdviceSectionVet.
+  ///
+  /// In en, this message translates to:
+  /// **'When to see a vet'**
+  String get aiAdviceSectionVet;
+
+  /// No description provided for @aiAdviceSectionReassurance.
+  ///
+  /// In en, this message translates to:
+  /// **'A note for you'**
+  String get aiAdviceSectionReassurance;
+
+  /// No description provided for @aiAdviceSectionDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Disclaimer'**
+  String get aiAdviceSectionDisclaimer;
+
   /// No description provided for @retry.
   ///
   /// In en, this message translates to:
@@ -1539,6 +1575,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Collapse replies'**
   String get collapseReplies;
+
+  /// No description provided for @communitySectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Community'**
+  String get communitySectionTitle;
+
+  /// No description provided for @myPostsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My posts'**
+  String get myPostsTitle;
+
+  /// No description provided for @myCommentsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My comments'**
+  String get myCommentsTitle;
+
+  /// No description provided for @savedPostsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get savedPostsTitle;
+
+  /// No description provided for @notificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notificationsTitle;
+
+  /// No description provided for @markAllNotificationsRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all read'**
+  String get markAllNotificationsRead;
+
+  /// No description provided for @notificationsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications yet.'**
+  String get notificationsEmpty;
+
+  /// No description provided for @myPostsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No posts in this tab.'**
+  String get myPostsEmpty;
+
+  /// No description provided for @myCommentsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'You have not commented yet.'**
+  String get myCommentsEmpty;
+
+  /// No description provided for @savedPostsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved posts yet.'**
+  String get savedPostsEmpty;
+
+  /// No description provided for @postStatusDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get postStatusDraft;
+
+  /// No description provided for @postStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get postStatusPending;
+
+  /// No description provided for @postStatusPublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Published'**
+  String get postStatusPublished;
+
+  /// No description provided for @postStatusRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get postStatusRejected;
+
+  /// No description provided for @postTitleUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Post'**
+  String get postTitleUnknown;
+
+  /// No description provided for @notificationMarkReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update notification. Try again later.'**
+  String get notificationMarkReadFailed;
+
+  /// No description provided for @notificationsAllMarkedRead.
+  ///
+  /// In en, this message translates to:
+  /// **'All notifications marked as read.'**
+  String get notificationsAllMarkedRead;
 }
 
 class _AppLocalizationsDelegate

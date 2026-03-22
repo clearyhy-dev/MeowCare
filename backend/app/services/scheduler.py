@@ -1,58 +1,26 @@
-"""Hourly tick: at configured UTC hour, generate daily posts once per day (Firestore lock)."""
+"""Hourly tick: daily batch + frequent promotion of scheduled posts."""
 
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from firebase_admin import firestore
 
-from app.services.daily_generator import generate_daily_posts, get_content_generation_settings
+from app.services.content_generation_job import run_daily_content_pipeline
+from app.services.scheduled_post_publisher import publish_due_scheduled_posts_async
 
 logger = logging.getLogger(__name__)
 
-db = firestore.client()
 scheduler = AsyncIOScheduler()
 
 
-def _try_acquire_daily_lock(today_iso: str) -> bool:
-    ref = db.collection("_scheduler_locks").document(f"content_daily_{today_iso}")
-    try:
-        ref.create({"at": firestore.SERVER_TIMESTAMP})
-        return True
-    except Exception as e:
-        name = type(e).__name__
-        msg = str(e).lower()
-        if name in ("AlreadyExists", "Conflict") or "already exists" in msg or "409" in msg:
-            return False
-        logger.exception("Daily lock acquire error")
-        raise
-
-
 async def run_daily_generation() -> None:
-    cfg = get_content_generation_settings()
-    if not cfg.get("enabled", True):
-        return
-    now = datetime.now(timezone.utc)
-    if now.hour != int(cfg.get("publishHourUtc", 1)):
-        return
-    today = now.date().isoformat()
-    if not _try_acquire_daily_lock(today):
-        logger.info("Daily content generation already ran for %s", today)
-        return
-    count = int(cfg.get("dailyCount", 5))
-    topics = cfg.get("topics") or []
-    try:
-        created = await generate_daily_posts(count, topics)
-        logger.info("Daily content generation finished: created=%s (requested=%s)", created, count)
-    except Exception:
-        logger.exception("Daily content generation failed")
-        try:
-            db.collection("_scheduler_locks").document(f"content_daily_{today}").delete()
-        except Exception:
-            pass
+    await run_daily_content_pipeline(check_publish_hour=True)
+
+
+async def run_publish_scheduled_tick() -> None:
+    await publish_due_scheduled_posts_async(limit=80)
 
 
 def start_scheduler() -> None:
@@ -64,8 +32,16 @@ def start_scheduler() -> None:
         id="content_daily_hourly",
         replace_existing=True,
     )
+    scheduler.add_job(
+        run_publish_scheduled_tick,
+        CronTrigger(minute="*/5"),
+        id="publish_scheduled_every_5m",
+        replace_existing=True,
+    )
     scheduler.start()
-    logger.info("APScheduler started (content daily check every hour at :00 UTC)")
+    logger.info(
+        "APScheduler started (content daily at :00 UTC; publish scheduled every 5 min)"
+    )
 
 
 def shutdown_scheduler() -> None:

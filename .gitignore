@@ -52,6 +52,10 @@ app.*.map.json
 **/.env
 !**/.env.example
 
+# Cloud Functions (TypeScript)
+functions/node_modules/
+functions/lib/
+
 # Firebase / GCP 服务账号密钥（勿入仓库）
 *firebase-adminsdk*.json
 **/*-adminsdk-*.json

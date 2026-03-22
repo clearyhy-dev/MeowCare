@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,8 @@ import '../../core/constants/app_constants.dart';
 import '../../core/constants/enums.dart';
 import '../../core/router/app_router.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../core/utils/user_language_hint.dart';
+import '../../models/symptom_advice_result.dart';
 import '../../providers/cat_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../providers/locale_provider.dart';
@@ -23,7 +26,7 @@ class _AIScreenState extends ConsumerState<AIScreen> {
   final _symptomController = TextEditingController();
   Severity _severity = Severity.green;
   bool _loading = false;
-  String? _response;
+  SymptomAdviceResult? _result;
 
   String? _error;
 
@@ -39,7 +42,9 @@ class _AIScreenState extends ConsumerState<AIScreen> {
       setState(() => _error = context.l10n.aiErrorDescribeSymptom);
       return;
     }
-    final locale = ref.read(effectiveUILanguageCodeProvider);
+    final appLanguage = ref.read(effectiveUILanguageCodeProvider);
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
+    final userHint = userLanguageHintFromText(symptom);
     final uid = ref.read(authServiceProvider).currentUid;
 
     if (uid == null) return;
@@ -50,16 +55,22 @@ class _AIScreenState extends ConsumerState<AIScreen> {
       setState(() => _error = context.l10n.aiErrorFreeLimit(AppConstants.freeAiRequestsPerDay));
       return;
     }
-    setState(() { _loading = true; _error = null; _response = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+      _result = null;
+    });
     try {
       final request = await ref.read(aiServiceProvider).submitRequest(uid, symptom, _severity);
-      final result = await ref.read(aiServiceProvider).getAIResponse(
+      final advice = await ref.read(aiServiceProvider).getAIResponse(
             request.requestId,
             symptom,
             _severity,
-            locale: locale,
+            localeTag: localeTag,
+            appLanguage: appLanguage,
+            userLanguageHint: userHint,
           );
-      if (mounted) setState(() { _loading = false; _response = result.advice; });
+      if (mounted) setState(() { _loading = false; _result = advice; });
     } catch (e) {
       if (mounted) setState(() { _loading = false; _error = e.toString(); });
     }
@@ -74,6 +85,8 @@ class _AIScreenState extends ConsumerState<AIScreen> {
     final firstCatName = cats != null && cats.isNotEmpty ? cats.first.name : null;
 
     final aiTitle = firstCatName != null ? context.l10n.aiTitleWithName(firstCatName) : context.l10n.aiTitleGeneric;
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -93,15 +106,15 @@ class _AIScreenState extends ConsumerState<AIScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.pets, color: Theme.of(context).colorScheme.primary, size: 28),
+                Icon(Icons.pets, color: scheme.primary, size: 28),
                 const SizedBox(width: 12),
-                Expanded(child: Text(aiTitle, style: Theme.of(context).textTheme.titleLarge)),
+                Expanded(child: Text(aiTitle, style: textTheme.titleLarge)),
               ],
             ),
             const SizedBox(height: 8),
             Text(
               context.l10n.aiSubtitle,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline),
+              style: textTheme.bodySmall?.copyWith(color: scheme.outline),
             ),
             const SizedBox(height: 16),
 
@@ -117,7 +130,7 @@ class _AIScreenState extends ConsumerState<AIScreen> {
               onChanged: (_) => setState(() => _error = null),
             ),
             const SizedBox(height: 12),
-            Text(context.l10n.severity, style: Theme.of(context).textTheme.labelLarge),
+            Text(context.l10n.severity, style: textTheme.labelLarge),
             Row(
               children: [
                 Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(context.l10n.severityGreen), selected: _severity == Severity.green, onSelected: (_) => setState(() => _severity = Severity.green))),
@@ -127,34 +140,91 @@ class _AIScreenState extends ConsumerState<AIScreen> {
             ),
             if (_error != null) ...[
               const SizedBox(height: 8),
-              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              Text(_error!, style: TextStyle(color: scheme.error)),
             ],
             const SizedBox(height: 16),
             FilledButton(
               onPressed: _loading ? null : _submit,
               child: _loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(context.l10n.getGuidance),
             ),
-            if (_response != null) ...[
+            if (_result != null) ...[
               const SizedBox(height: 24),
               const Divider(),
-              Text(context.l10n.guidance, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(_response ?? ''),
-
+              Text(context.l10n.guidance, style: textTheme.titleMedium),
+              const SizedBox(height: 12),
+              _adviceSectionCard(context, context.l10n.aiAdviceSectionSummary, _result!.sections.summary),
+              _adviceSectionCard(context, context.l10n.aiAdviceSectionHomeCare, _result!.sections.homeCare),
+              _adviceSectionCard(
+                context,
+                context.l10n.aiAdviceSectionRedFlags,
+                _result!.sections.riskWarnings,
+                titleColor: scheme.error,
               ),
+              _adviceSectionCard(context, context.l10n.aiAdviceSectionVet, _result!.sections.vetWhen),
+              if (_result!.sections.reassurance.trim().isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  _result!.sections.reassurance,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: scheme.primary,
+                  ),
+                ),
+              ],
+              _adviceSectionCard(context, context.l10n.aiAdviceSectionDisclaimer, _result!.sections.disclaimer),
+              const SizedBox(height: 8),
+              Text(
+                '${context.l10n.aiModelLabel}: ${_result!.modelDisplayName}',
+                style: textTheme.bodySmall?.copyWith(color: scheme.outline),
+              ),
+              if (kDebugMode &&
+                  (_result!.detectedLanguage.isNotEmpty || _result!.responseLanguage.isNotEmpty)) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'detected=${_result!.detectedLanguage} · response=${_result!.responseLanguage}',
+                  style: textTheme.bodySmall?.copyWith(color: scheme.outline, fontSize: 11),
+                ),
+              ],
               const SizedBox(height: 8),
               Text(
                 context.l10n.aiSubtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline),
+                style: textTheme.bodySmall?.copyWith(color: scheme.outline),
               ),
-
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _adviceSectionCard(
+    BuildContext context,
+    String title,
+    String body, {
+    Color? titleColor,
+  }) {
+    if (body.trim().isEmpty) return const SizedBox.shrink();
+    final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      color: scheme.surfaceContainerHighest,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              title,
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: titleColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(body, style: textTheme.bodyMedium),
           ],
         ),
       ),
@@ -163,4 +233,3 @@ class _AIScreenState extends ConsumerState<AIScreen> {
 }
 
 final aiServiceProvider = Provider<AIService>((ref) => AIService());
-

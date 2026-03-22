@@ -66,6 +66,22 @@ DEFAULT_CONTENT_GENERATION = {
     "useGemini": True,
     "minContentLength": 400,
     "imageRequired": False,
+    "seasonHemisphere": "north",
+    "publisher": {
+        "authorId": "meowcare_editorial",
+        "authorAvatarUrl": "",
+        "displayNames": {
+            "en": "MeowCare Editorial",
+            "zh": "MeowCare 编辑部",
+            "ja": "MeowCare 編集部",
+            "es": "Redacción MeowCare",
+            "fr": "Rédaction MeowCare",
+            "de": "MeowCare Redaktion",
+            "pt": "Redação MeowCare",
+            "ru": "Редакция MeowCare",
+            "ko": "MeowCare 편집부",
+        },
+    },
 }
 
 
@@ -130,6 +146,12 @@ def backfill_posts_fields(*, dry_run: bool, limit: int = 1000) -> None:
             upd["createdAt"] = firestore.SERVER_TIMESTAMP
         if "updatedAt" not in data:
             upd["updatedAt"] = firestore.SERVER_TIMESTAMP
+        if data.get("status") == "published" and "publishedAt" not in data:
+            ca = data.get("createdAt")
+            if ca is not None:
+                upd["publishedAt"] = ca
+            else:
+                upd["publishedAt"] = firestore.SERVER_TIMESTAMP
         if not upd:
             continue
         touched += 1

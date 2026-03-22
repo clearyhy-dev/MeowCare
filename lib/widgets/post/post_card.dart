@@ -63,7 +63,9 @@ class PostCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'MeowCare',
+                    post.authorDisplayName.trim().isNotEmpty
+                        ? post.authorDisplayName.trim()
+                        : context.l10n.appTitle,
                     style: theme.textTheme.labelLarge,
                   ),
                 ),

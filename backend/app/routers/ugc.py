@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from firebase_admin import firestore
 
 from app.dependencies import require_admin
+from app.services.notification_writer import notify_post_moderation
 
 router = APIRouter()
 db = firestore.client()
@@ -25,7 +26,17 @@ async def list_pending(uid: str = Depends(require_admin)):
 @router.post("/{post_id}/approve")
 async def approve(post_id: str, uid: str = Depends(require_admin)):
     ref = _get_post_ref(post_id)
-    ref.update({"status": "published", "updatedAt": firestore.SERVER_TIMESTAMP})
+    ref.update(
+        {
+            "status": "published",
+            "publishedAt": firestore.SERVER_TIMESTAMP,
+            "updatedAt": firestore.SERVER_TIMESTAMP,
+        }
+    )
+    try:
+        notify_post_moderation(post_id=post_id.strip(), approved=True)
+    except Exception:
+        pass
     return {"ok": True}
 
 
@@ -33,4 +44,8 @@ async def approve(post_id: str, uid: str = Depends(require_admin)):
 async def reject(post_id: str, uid: str = Depends(require_admin)):
     ref = _get_post_ref(post_id)
     ref.update({"status": "rejected", "updatedAt": firestore.SERVER_TIMESTAMP})
+    try:
+        notify_post_moderation(post_id=post_id.strip(), approved=False)
+    except Exception:
+        pass
     return {"ok": True}

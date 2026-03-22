@@ -26,6 +26,7 @@ class AppConstants {
   static const String commentsCollection = 'comments';
   static const String likesCollection = 'likes';
   static const String bookmarksCollection = 'bookmarks';
+  static const String notificationsCollection = 'notifications';
   static const String reportsCollection = 'reports';
   static const String breedsCollection = 'breeds';
   static const String adminsCollection = 'admins';

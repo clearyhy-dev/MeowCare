@@ -640,6 +640,24 @@ class AppLocalizationsDe extends AppLocalizations {
   String get aiModelLabel => 'Aktuelles Modell';
 
   @override
+  String get aiAdviceSectionSummary => 'Summary';
+
+  @override
+  String get aiAdviceSectionHomeCare => 'Home care';
+
+  @override
+  String get aiAdviceSectionRedFlags => 'Red flags';
+
+  @override
+  String get aiAdviceSectionVet => 'When to see a vet';
+
+  @override
+  String get aiAdviceSectionReassurance => 'A note for you';
+
+  @override
+  String get aiAdviceSectionDisclaimer => 'Disclaimer';
+
+  @override
   String get retry => 'Erneut versuchen';
 
   @override
@@ -762,4 +780,57 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get collapseReplies => 'Collapse replies';
+
+  @override
+  String get communitySectionTitle => 'Community';
+
+  @override
+  String get myPostsTitle => 'Meine Beiträge';
+
+  @override
+  String get myCommentsTitle => 'Meine Kommentare';
+
+  @override
+  String get savedPostsTitle => 'Gespeichert';
+
+  @override
+  String get notificationsTitle => 'Benachrichtigungen';
+
+  @override
+  String get markAllNotificationsRead => 'Alle als gelesen';
+
+  @override
+  String get notificationsEmpty => 'Noch keine Benachrichtigungen.';
+
+  @override
+  String get myPostsEmpty => 'Keine Beiträge in diesem Tab.';
+
+  @override
+  String get myCommentsEmpty => 'Du hast noch nicht kommentiert.';
+
+  @override
+  String get savedPostsEmpty => 'Noch keine gespeicherten Beiträge.';
+
+  @override
+  String get postStatusDraft => 'Entwurf';
+
+  @override
+  String get postStatusPending => 'Ausstehend';
+
+  @override
+  String get postStatusPublished => 'Veröffentlicht';
+
+  @override
+  String get postStatusRejected => 'Abgelehnt';
+
+  @override
+  String get postTitleUnknown => 'Beitrag';
+
+  @override
+  String get notificationMarkReadFailed =>
+      'Benachrichtigung konnte nicht aktualisiert werden.';
+
+  @override
+  String get notificationsAllMarkedRead =>
+      'Alle Benachrichtigungen als gelesen markiert.';
 }

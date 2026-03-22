@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/enums.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../providers/notification_provider.dart';
 import '../../core/i18n/app_language_display.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/meow_share.dart';
@@ -27,6 +28,8 @@ class SettingsScreen extends ConsumerWidget {
     final user = userAsync.valueOrNull;
     final family = familyAsync.valueOrNull;
     final isOwner = family?.ownerUid == user?.uid;
+    final unreadAsync = ref.watch(notificationUnreadCountProvider);
+    final unread = unreadAsync.valueOrNull ?? 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -49,6 +52,53 @@ class SettingsScreen extends ConsumerWidget {
                     tooltip: context.l10n.signOut,
                     icon: const Icon(Icons.logout),
                     onPressed: () => _signOut(context, ref),
+                  ),
+                ),
+                const Divider(),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(AppInsets.screenPadding, AppInsets.sectionSpacing / 2, AppInsets.screenPadding, 8),
+                  child: Text(
+                    context.l10n.communitySectionTitle,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Card(
+                  margin: EdgeInsets.symmetric(horizontal: AppInsets.screenPadding, vertical: AppInsets.listItemSpacing / 2),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: Icon(Icons.article_outlined, color: Theme.of(context).colorScheme.primary),
+                        title: Text(context.l10n.myPostsTitle),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.push('${AppRouter.home}me/posts'),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: Icon(Icons.chat_bubble_outline, color: Theme.of(context).colorScheme.primary),
+                        title: Text(context.l10n.myCommentsTitle),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.push('${AppRouter.home}me/comments'),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: Icon(Icons.bookmark_border, color: Theme.of(context).colorScheme.primary),
+                        title: Text(context.l10n.savedPostsTitle),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.push('${AppRouter.home}me/saved'),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: Icon(Icons.notifications_outlined, color: Theme.of(context).colorScheme.primary),
+                        title: Text(context.l10n.notificationsTitle),
+                        trailing: unread > 0
+                            ? Badge(
+                                label: Text(unread > 99 ? '99+' : '$unread'),
+                                child: const Icon(Icons.chevron_right),
+                              )
+                            : const Icon(Icons.chevron_right),
+                        onTap: () => context.push('${AppRouter.home}me/notifications'),
+                      ),
+                    ],
                   ),
                 ),
                 const Divider(),

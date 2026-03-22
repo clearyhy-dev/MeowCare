@@ -4,16 +4,22 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from firebase_admin import firestore
 
+from app.config import CONTENT_JOB_SECRET
 from app.dependencies import require_admin
+from app.services.content_generation_job import run_daily_content_pipeline
 from app.services.daily_generator import (
+    ALLOWED_LANGUAGES,
     content_generation_doc_defaults,
     generate_daily_posts,
     normalize_content_topics,
+    normalize_hemisphere,
     normalize_language,
+    normalize_schedule_windows,
 )
+from app.services.scheduled_post_publisher import publish_due_scheduled_posts_async
 
 router = APIRouter()
 db = firestore.client()
@@ -47,9 +53,39 @@ async def update_settings(body: dict[str, Any], _uid: str = Depends(require_admi
         current["minContentLength"] = max(100, min(int(body["minContentLength"]), 8000))
     if "imageRequired" in body:
         current["imageRequired"] = bool(body["imageRequired"])
+    if "seasonHemisphere" in body:
+        current["seasonHemisphere"] = normalize_hemisphere(body["seasonHemisphere"])
+    if "publisher" in body and isinstance(body["publisher"], dict):
+        p = body["publisher"]
+        merged_pub = dict(current.get("publisher") or {})
+        if "authorId" in p:
+            merged_pub["authorId"] = str(p["authorId"] or "").strip() or merged_pub.get(
+                "authorId", "meowcare_editorial"
+            )
+        if "authorAvatarUrl" in p:
+            merged_pub["authorAvatarUrl"] = str(p.get("authorAvatarUrl") or "").strip()
+        if "displayNames" in p and isinstance(p["displayNames"], dict):
+            dns = dict(merged_pub.get("displayNames") or {})
+            for k, v in p["displayNames"].items():
+                kk = str(k).strip().lower()
+                if kk in ALLOWED_LANGUAGES:
+                    dns[kk] = str(v).strip()
+            merged_pub["displayNames"] = dns
+        current["publisher"] = merged_pub
+    if "scheduleWindowsUtc" in body:
+        current["scheduleWindowsUtc"] = normalize_schedule_windows(body["scheduleWindowsUtc"])
+    if "minMinutesBetweenPosts" in body:
+        try:
+            m = int(body["minMinutesBetweenPosts"])
+            current["minMinutesBetweenPosts"] = max(1, min(m, 720))
+        except (TypeError, ValueError):
+            pass
+    if "publishScheduleTimezone" in body:
+        current["publishScheduleTimezone"] = str(body.get("publishScheduleTimezone") or "").strip()
 
-    db.collection("settings").document("content_generation").set(current, merge=True)
-    return {"ok": True, **current}
+    final = content_generation_doc_defaults(current)
+    db.collection("settings").document("content_generation").set(final, merge=True)
+    return {"ok": True, **final}
 
 
 @router.post("/generate-now")
@@ -69,3 +105,41 @@ async def generate_now(body: dict[str, Any], _uid: str = Depends(require_admin))
     topics = normalize_content_topics(body["topics"]) if "topics" in body else cfg["topics"]
     created = await generate_daily_posts(count, topics, cfg_override=cfg)
     return {"ok": True, "created": created}
+
+
+def _verify_content_job_secret(request: Request) -> None:
+    if not CONTENT_JOB_SECRET:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    auth = request.headers.get("Authorization") or ""
+    token = auth[7:].strip() if auth.startswith("Bearer ") else ""
+    header_key = (request.headers.get("X-MeowCare-Job-Key") or "").strip()
+    if token != CONTENT_JOB_SECRET and header_key != CONTENT_JOB_SECRET:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+
+@router.post("/daily-run")
+async def daily_run_for_cron(request: Request) -> dict[str, Any]:
+    """
+    For Cloud Scheduler / external cron: same Firestore daily lock + batch as in-process scheduler,
+    without requiring admin JWT. Set CONTENT_JOB_SECRET and send:
+    Authorization: Bearer <secret>  OR  X-MeowCare-Job-Key: <secret>
+    """
+    _verify_content_job_secret(request)
+    result = await run_daily_content_pipeline(check_publish_hour=False)
+    if result is None:
+        result = {"skipped": True, "reason": "internal", "created": 0, "requested": 0}
+    return {"ok": True, **result}
+
+
+@router.post("/publish-scheduled")
+async def publish_scheduled_for_cron(
+    request: Request,
+    body: dict[str, Any] = Body(default_factory=dict),
+) -> dict[str, Any]:
+    """Promote due scheduled posts (same auth as /daily-run). Optional JSON body: {\"limit\": 80}"""
+    _verify_content_job_secret(request)
+    limit = 80
+    if isinstance(body.get("limit"), int):
+        limit = max(1, min(int(body["limit"]), 200))
+    n = await publish_due_scheduled_posts_async(limit=limit)
+    return {"ok": True, "published": n}

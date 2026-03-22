@@ -229,6 +229,12 @@
   "aiErrorFreeLimit": "Free limit: {count} AI requests per day. Upgrade to Pro for unlimited.",
   "@aiErrorFreeLimit": {"placeholders": {"count": {"type": "int"}}},
   "aiModelLabel": "Current model",
+  "aiAdviceSectionSummary": "Summary",
+  "aiAdviceSectionHomeCare": "Home care",
+  "aiAdviceSectionRedFlags": "Red flags",
+  "aiAdviceSectionVet": "When to see a vet",
+  "aiAdviceSectionReassurance": "A note for you",
+  "aiAdviceSectionDisclaimer": "Disclaimer",
   "retry": "Retry",
   "searchPostsHint": "Search by title, content, or #topic",
   "noResultFound": "No matching posts found.",
@@ -281,6 +287,23 @@
       }
     }
   },
-  "collapseReplies": "Collapse replies"
+  "collapseReplies": "Collapse replies",
+  "communitySectionTitle": "Community",
+  "myPostsTitle": "My posts",
+  "myCommentsTitle": "My comments",
+  "savedPostsTitle": "Saved",
+  "notificationsTitle": "Notifications",
+  "markAllNotificationsRead": "Mark all read",
+  "notificationsEmpty": "No notifications yet.",
+  "myPostsEmpty": "No posts in this tab.",
+  "myCommentsEmpty": "You have not commented yet.",
+  "savedPostsEmpty": "No saved posts yet.",
+  "postStatusDraft": "Draft",
+  "postStatusPending": "Pending",
+  "postStatusPublished": "Published",
+  "postStatusRejected": "Rejected",
+  "postTitleUnknown": "Post",
+  "notificationMarkReadFailed": "Could not update notification. Try again later.",
+  "notificationsAllMarkedRead": "All notifications marked as read."
 }
 

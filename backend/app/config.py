@@ -24,6 +24,9 @@ if IS_PRODUCTION and (not _secret or _secret.strip() == ""):
     raise ValueError("SECRET_KEY must be set in production (set ENV=production)")
 SECRET_KEY = (_secret or "meowcare-admin-secret-change-in-production").strip() or "meowcare-admin-secret-change-in-production"
 
+# Optional: Bearer token for POST /content-jobs/daily-run (Cloud Scheduler / cron). If unset, endpoint returns 404.
+CONTENT_JOB_SECRET = (os.getenv("CONTENT_JOB_SECRET") or "").strip()
+
 # CORS: production 应从环境变量读取允许的源，如 CORS_ORIGINS=https://app.example.com,https://admin.example.com
 CORS_ORIGINS_RAW = os.getenv("CORS_ORIGINS", "").strip()
 CORS_ORIGINS = [o.strip() for o in CORS_ORIGINS_RAW.split(",") if o.strip()] if CORS_ORIGINS_RAW else []

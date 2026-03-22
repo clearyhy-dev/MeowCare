@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class PostModel {
   final String postId;
   final String type; // 'official' | 'ugc'
-  final String status; // 'published' | 'draft' | 'pending' | 'rejected'
+  final String status; // 'published' | 'scheduled' | 'draft' | 'pending' | 'rejected'
   final String title;
   final String content;
   final String coverUrl;
@@ -12,6 +12,8 @@ class PostModel {
   final List<String> breedIds;
   final List<String> topics;
   final String authorId;
+  /// 官方帖等：展示用名称（如编辑部）；为空时 UI 可回退应用名。
+  final String authorDisplayName;
   final int likeCount;
   final int downvoteCount;
   final int commentCount;
@@ -26,6 +28,8 @@ class PostModel {
   final bool? hasImage;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  /// 实际上线时间；已发布且晚于当前时间则不应在 Feed 展示（新数据由后端写入）。
+  final DateTime? publishedAt;
 
   const PostModel({
     required this.postId,
@@ -38,6 +42,7 @@ class PostModel {
     this.breedIds = const [],
     this.topics = const [],
     required this.authorId,
+    this.authorDisplayName = '',
     this.likeCount = 0,
     this.downvoteCount = 0,
     this.commentCount = 0,
@@ -48,12 +53,22 @@ class PostModel {
     this.hasImage,
     this.createdAt,
     this.updatedAt,
+    this.publishedAt,
   });
 
   /// 列表展示用图片 URL：优先缩略图，否则封面。
   String get displayImageUrl {
     if (thumbnailUrl.isNotEmpty) return thumbnailUrl;
     return coverUrl;
+  }
+
+  /// 是否应对外展示（已发布且 publishedAt 已到；旧数据无 publishedAt 视为可见）。
+  bool get isPubliclyVisibleInFeed {
+    if (status != 'published') return false;
+    final pa = publishedAt;
+    if (pa == null) return true;
+    final now = DateTime.now().toUtc();
+    return !pa.toUtc().isAfter(now);
   }
 
   /// 是否渲染图片区域（无 URL 或显式 false 则不占位）。
@@ -75,6 +90,7 @@ class PostModel {
       'breedIds': breedIds,
       'topics': topics,
       'authorId': authorId,
+      if (authorDisplayName.isNotEmpty) 'authorDisplayName': authorDisplayName,
       'likeCount': likeCount,
       'downvoteCount': downvoteCount,
       'commentCount': commentCount,
@@ -85,12 +101,14 @@ class PostModel {
       if (hasImage != null) 'hasImage': hasImage,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : FieldValue.serverTimestamp(),
+      if (publishedAt != null) 'publishedAt': Timestamp.fromDate(publishedAt!),
     };
   }
 
   static PostModel fromMap(Map<String, dynamic> map, String postId) {
     final createdAt = map['createdAt'];
     final updatedAt = map['updatedAt'];
+    final publishedAtRaw = map['publishedAt'];
     final hasImageRaw = map['hasImage'];
     bool? hasImage;
     if (hasImageRaw is bool) {
@@ -107,6 +125,7 @@ class PostModel {
       breedIds: List<String>.from(map['breedIds'] as List? ?? []),
       topics: List<String>.from(map['topics'] as List? ?? []),
       authorId: map['authorId'] as String? ?? '',
+      authorDisplayName: map['authorDisplayName'] as String? ?? '',
       likeCount: (map['likeCount'] as num?)?.toInt() ?? 0,
       downvoteCount: (map['downvoteCount'] as num?)?.toInt() ?? 0,
       commentCount: (map['commentCount'] as num?)?.toInt() ?? 0,
@@ -117,6 +136,7 @@ class PostModel {
       hasImage: hasImage,
       createdAt: createdAt is Timestamp ? createdAt.toDate() : null,
       updatedAt: updatedAt is Timestamp ? updatedAt.toDate() : null,
+      publishedAt: publishedAtRaw is Timestamp ? publishedAtRaw.toDate() : null,
     );
   }
 }

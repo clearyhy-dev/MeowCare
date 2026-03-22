@@ -631,6 +631,24 @@ class AppLocalizationsRu extends AppLocalizations {
   String get aiModelLabel => 'Текущая модель';
 
   @override
+  String get aiAdviceSectionSummary => 'Summary';
+
+  @override
+  String get aiAdviceSectionHomeCare => 'Home care';
+
+  @override
+  String get aiAdviceSectionRedFlags => 'Red flags';
+
+  @override
+  String get aiAdviceSectionVet => 'When to see a vet';
+
+  @override
+  String get aiAdviceSectionReassurance => 'A note for you';
+
+  @override
+  String get aiAdviceSectionDisclaimer => 'Disclaimer';
+
+  @override
   String get retry => 'Повторить';
 
   @override
@@ -753,4 +771,56 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get collapseReplies => 'Collapse replies';
+
+  @override
+  String get communitySectionTitle => 'Сообщество';
+
+  @override
+  String get myPostsTitle => 'Мои записи';
+
+  @override
+  String get myCommentsTitle => 'Мои комментарии';
+
+  @override
+  String get savedPostsTitle => 'Сохранённые';
+
+  @override
+  String get notificationsTitle => 'Уведомления';
+
+  @override
+  String get markAllNotificationsRead => 'Прочитать все';
+
+  @override
+  String get notificationsEmpty => 'Пока нет уведомлений.';
+
+  @override
+  String get myPostsEmpty => 'В этой вкладке нет записей.';
+
+  @override
+  String get myCommentsEmpty => 'Вы ещё не комментировали.';
+
+  @override
+  String get savedPostsEmpty => 'Нет сохранённых записей.';
+
+  @override
+  String get postStatusDraft => 'Черновик';
+
+  @override
+  String get postStatusPending => 'На модерации';
+
+  @override
+  String get postStatusPublished => 'Опубликовано';
+
+  @override
+  String get postStatusRejected => 'Отклонено';
+
+  @override
+  String get postTitleUnknown => 'Запись';
+
+  @override
+  String get notificationMarkReadFailed => 'Не удалось обновить уведомление.';
+
+  @override
+  String get notificationsAllMarkedRead =>
+      'Все уведомления отмечены прочитанными.';
 }

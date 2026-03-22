@@ -633,6 +633,24 @@ class AppLocalizationsEs extends AppLocalizations {
   String get aiModelLabel => 'Modelo actual';
 
   @override
+  String get aiAdviceSectionSummary => 'Summary';
+
+  @override
+  String get aiAdviceSectionHomeCare => 'Home care';
+
+  @override
+  String get aiAdviceSectionRedFlags => 'Red flags';
+
+  @override
+  String get aiAdviceSectionVet => 'When to see a vet';
+
+  @override
+  String get aiAdviceSectionReassurance => 'A note for you';
+
+  @override
+  String get aiAdviceSectionDisclaimer => 'Disclaimer';
+
+  @override
   String get retry => 'Reintentar';
 
   @override
@@ -755,4 +773,57 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get collapseReplies => 'Collapse replies';
+
+  @override
+  String get communitySectionTitle => 'Comunidad';
+
+  @override
+  String get myPostsTitle => 'Mis publicaciones';
+
+  @override
+  String get myCommentsTitle => 'Mis comentarios';
+
+  @override
+  String get savedPostsTitle => 'Guardados';
+
+  @override
+  String get notificationsTitle => 'Notificaciones';
+
+  @override
+  String get markAllNotificationsRead => 'Marcar todo leído';
+
+  @override
+  String get notificationsEmpty => 'Aún no hay notificaciones.';
+
+  @override
+  String get myPostsEmpty => 'No hay publicaciones en esta pestaña.';
+
+  @override
+  String get myCommentsEmpty => 'Aún no has comentado.';
+
+  @override
+  String get savedPostsEmpty => 'Aún no hay publicaciones guardadas.';
+
+  @override
+  String get postStatusDraft => 'Borrador';
+
+  @override
+  String get postStatusPending => 'Pendiente';
+
+  @override
+  String get postStatusPublished => 'Publicado';
+
+  @override
+  String get postStatusRejected => 'Rechazado';
+
+  @override
+  String get postTitleUnknown => 'Publicación';
+
+  @override
+  String get notificationMarkReadFailed =>
+      'No se pudo actualizar la notificación.';
+
+  @override
+  String get notificationsAllMarkedRead =>
+      'Todas las notificaciones marcadas como leídas.';
 }

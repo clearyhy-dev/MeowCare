@@ -31,6 +31,7 @@ class BookmarkRepository {
     required String uid,
     required int limit,
     DocumentSnapshot? startAfter,
+    bool onlyPublicInFeed = true,
   }) async {
     Query<Map<String, dynamic>> q = _firestore
         .collection(AppConstants.bookmarksCollection)
@@ -45,8 +46,11 @@ class BookmarkRepository {
     final posts = <PostModel>[];
     for (final id in postIds) {
       final postDoc = await _firestore.collection(AppConstants.postsCollection).doc(id).get();
-      if (postDoc.exists && postDoc.data() != null && (postDoc.data()!['status'] == 'published')) {
-        posts.add(PostModel.fromMap(postDoc.data()!, postDoc.id));
+      if (postDoc.exists && postDoc.data() != null) {
+        final p = PostModel.fromMap(postDoc.data()!, postDoc.id);
+        if (!onlyPublicInFeed || p.isPubliclyVisibleInFeed) {
+          posts.add(p);
+        }
       }
     }
     final lastDoc = snap.docs.length == limit && snap.docs.isNotEmpty ? snap.docs.last : null;

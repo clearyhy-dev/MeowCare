@@ -33,8 +33,23 @@ service cloud.firestore {
         && (!changed.hasAny(['commentCount']) || request.resource.data.commentCount is int);
     }
 
+    function userPreservesNotificationUnreadCount() {
+      return request.resource.data.get('notificationUnreadCount', 0)
+        == resource.data.get('notificationUnreadCount', 0);
+    }
+
     match /users/{uid} {
-      allow read, write: if isSignedIn() && isOwner(uid);
+      allow read: if isSignedIn() && isOwner(uid);
+      allow create: if isSignedIn() && isOwner(uid)
+        && (!('notificationUnreadCount' in request.resource.data)
+          || request.resource.data.notificationUnreadCount == 0);
+      allow update: if isSignedIn() && isOwner(uid) && userPreservesNotificationUnreadCount();
+      allow delete: if isSignedIn() && isOwner(uid);
+    }
+
+    match /notifications/{nid} {
+      allow read: if isSignedIn() && resource.data.recipientUserId == request.auth.uid;
+      allow create, update, delete: if false;
     }
 
     match /families/{familyId} {
