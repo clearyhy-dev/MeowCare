@@ -12,6 +12,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from firebase_admin import firestore
+from google.protobuf.timestamp_pb2 import Timestamp as PbTimestamp
 
 from app.config import GEMINI_API_KEY
 from app.services.cat_sources import fetch_cat_image, fetch_wiki_summary_and_thumbnail
@@ -19,6 +20,22 @@ from app.services.cat_sources import fetch_cat_image, fetch_wiki_summary_and_thu
 logger = logging.getLogger(__name__)
 
 db = firestore.client()
+
+
+def _coerce_value_for_firestore(obj: Any) -> Any:
+    """Firestore Python SDK 无法编码 protobuf Timestamp；递归转为带 UTC 的 datetime。"""
+    if isinstance(obj, dict):
+        return {k: _coerce_value_for_firestore(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_coerce_value_for_firestore(v) for v in obj]
+    if isinstance(obj, PbTimestamp):
+        return obj.ToDatetime(tzinfo=timezone.utc)
+    if isinstance(obj, datetime):
+        if obj.tzinfo is None:
+            return obj.replace(tzinfo=timezone.utc)
+        return obj.astimezone(timezone.utc)
+    return obj
+
 
 SOURCE_TYPE_VALUE = "meowcare:auto:thecatapi_wikipedia_gemini"
 GEMINI_MODEL_ID = "gemini-2.5-flash"
@@ -1038,7 +1055,7 @@ async def generate_daily_posts(
             if not doc_final:
                 continue
 
-            db.collection("posts").document().set(doc_final)
+            db.collection("posts").document().set(_coerce_value_for_firestore(doc_final))
             created += 1
             recent_pairs.append((topic, content_style))
             placed = True
