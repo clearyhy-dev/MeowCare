@@ -4,18 +4,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/enums.dart';
-import '../../core/router/app_router.dart';
-import '../../core/theme/app_theme.dart';
-import '../../providers/notification_provider.dart';
 import '../../core/i18n/app_language_display.dart';
+import '../../core/router/app_router.dart';
+import '../../core/theme/app_radii.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/meow_share.dart';
-import '../../providers/locale_provider.dart';
-import '../../widgets/app/app_empty_state.dart';
-import '../../widgets/settings/app_language_sheet.dart';
+import '../../providers/ads_visibility_provider.dart';
 import '../../providers/family_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/ads/meow_adaptive_banner.dart';
+import '../../widgets/app/app_button.dart';
+import '../../widgets/app/app_empty_state.dart';
+import '../../widgets/settings/app_language_sheet.dart';
+import '../../widgets/settings/community_hub_section.dart';
+import '../../widgets/settings/settings_section_header.dart';
+import '../../widgets/settings/settings_tile.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -25,183 +32,254 @@ class SettingsScreen extends ConsumerWidget {
     final userAsync = ref.watch(currentUserAsyncProvider);
     final familyAsync = ref.watch(currentFamilyProvider);
     final statusAsync = ref.watch(subscriptionStatusProvider);
+    final showAds = ref.watch(shouldShowAdsProvider);
     final user = userAsync.valueOrNull;
     final family = familyAsync.valueOrNull;
     final isOwner = family?.ownerUid == user?.uid;
-    final unreadAsync = ref.watch(notificationUnreadCountProvider);
-    final unread = unreadAsync.valueOrNull ?? 0;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(context.l10n.settings),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
+        leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => context.pop()),
       ),
       body: user == null
           ? _buildNotSignedIn(context, ref)
           : ListView(
+              padding: const EdgeInsets.only(bottom: 28),
               children: [
-                const SizedBox(height: 16),
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: user.photoUrl.isNotEmpty ? NetworkImage(user.photoUrl) : null,
-                    child: user.photoUrl.isEmpty ? const Icon(Icons.person) : null,
-                  ),
-                  title: Text(user.displayName.isNotEmpty ? user.displayName : context.l10n.me),
-                  subtitle: Text(user.email),
-                  trailing: IconButton(
-                    tooltip: context.l10n.signOut,
-                    icon: const Icon(Icons.logout),
-                    onPressed: () => _signOut(context, ref),
-                  ),
-                ),
-                const Divider(),
+                const SizedBox(height: 12),
                 Padding(
-                  padding: EdgeInsets.fromLTRB(AppInsets.screenPadding, AppInsets.sectionSpacing / 2, AppInsets.screenPadding, 8),
-                  child: Text(
-                    context.l10n.communitySectionTitle,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+                  padding: EdgeInsets.symmetric(horizontal: AppInsets.screenPadding),
+                  child: Material(
+                    color: Theme.of(context).colorScheme.surfaceContainerLow.withValues(alpha: 0.65),
+                    borderRadius: BorderRadius.circular(AppRadii.md),
+                    clipBehavior: Clip.antiAlias,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.md + 2,
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 28,
+                            backgroundImage:
+                                user.photoUrl.isNotEmpty ? NetworkImage(user.photoUrl) : null,
+                            child: user.photoUrl.isEmpty ? const Icon(Icons.person_rounded) : null,
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  user.displayName.isNotEmpty ? user.displayName : context.l10n.me,
+                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  user.email,
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          AppIconButton(
+                            icon: Icons.logout_rounded,
+                            tooltip: context.l10n.signOut,
+                            onPressed: () => _signOut(context, ref),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                Card(
-                  margin: EdgeInsets.symmetric(horizontal: AppInsets.screenPadding, vertical: AppInsets.listItemSpacing / 2),
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: Icon(Icons.article_outlined, color: Theme.of(context).colorScheme.primary),
-                        title: Text(context.l10n.myPostsTitle),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => context.push('${AppRouter.home}me/posts'),
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: Icon(Icons.chat_bubble_outline, color: Theme.of(context).colorScheme.primary),
-                        title: Text(context.l10n.myCommentsTitle),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => context.push('${AppRouter.home}me/comments'),
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: Icon(Icons.bookmark_border, color: Theme.of(context).colorScheme.primary),
-                        title: Text(context.l10n.savedPostsTitle),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => context.push('${AppRouter.home}me/saved'),
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: Icon(Icons.notifications_outlined, color: Theme.of(context).colorScheme.primary),
-                        title: Text(context.l10n.notificationsTitle),
-                        trailing: unread > 0
-                            ? Badge(
-                                label: Text(unread > 99 ? '99+' : '$unread'),
-                                child: const Icon(Icons.chevron_right),
-                              )
-                            : const Icon(Icons.chevron_right),
-                        onTap: () => context.push('${AppRouter.home}me/notifications'),
-                      ),
-                    ],
+                SizedBox(height: AppSpacing.xl),
+                const CommunityHubSection(),
+                SizedBox(height: AppSpacing.xl),
+                Divider(
+                  height: 1,
+                  indent: AppInsets.screenPadding,
+                  endIndent: AppInsets.screenPadding,
+                ),
+                SizedBox(height: AppSpacing.md),
+                SettingsSectionHeader(
+                  title: context.l10n.settingsSectionShare,
+                  padding: EdgeInsets.fromLTRB(
+                    AppInsets.screenPadding,
+                    AppSpacing.sm,
+                    AppInsets.screenPadding,
+                    AppSpacing.xs,
                   ),
                 ),
-                const Divider(),
-                ListTile(
-                  leading: Icon(Icons.ios_share_outlined, color: Theme.of(context).colorScheme.primary),
-                  title: Text(context.l10n.shareAppMenu),
+                SettingsTile(
+                  leading: Icon(Icons.ios_share_rounded, color: Theme.of(context).colorScheme.primary),
+                  title: context.l10n.shareAppMenu,
                   onTap: () => MeowShare.shareApp(context),
                 ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.workspace_premium),
-                  title: Text(context.l10n.subscription),
-                  subtitle: Text(statusAsync.valueOrNull == SubscriptionStatus.pro ? context.l10n.pro : context.l10n.free),
-                  trailing: const Icon(Icons.chevron_right),
+                SizedBox(height: AppSpacing.sm),
+                SettingsTile(
+                  leading: Icon(Icons.workspace_premium_outlined,
+                      color: Theme.of(context).colorScheme.primary),
+                  title: context.l10n.subscription,
+                  subtitle: statusAsync.valueOrNull == SubscriptionStatus.pro
+                      ? context.l10n.pro
+                      : context.l10n.free,
+                  trailing: Icon(Icons.chevron_right_rounded,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.45)),
                   onTap: () => context.push('${AppRouter.home}subscription'),
                 ),
-                const Divider(),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(AppInsets.screenPadding, AppInsets.sectionSpacing / 2, AppInsets.screenPadding, 8),
-                  child: Text(context.l10n.family, style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600)),
+                SizedBox(height: AppSpacing.lg),
+                SettingsSectionHeader(
+                  title: context.l10n.family,
+                  padding: EdgeInsets.fromLTRB(
+                    AppInsets.screenPadding,
+                    AppSpacing.sm,
+                    AppInsets.screenPadding,
+                    AppSpacing.xs,
+                  ),
                 ),
                 if (family != null) ...[
-                  ListTile(
-                    title: Text(context.l10n.inviteCode),
-                    subtitle: SelectableText(family.inviteCode),
-                    trailing: IconButton(icon: const Icon(Icons.copy), onPressed: () => _copyInviteCode(context, family.inviteCode)),
+                  SettingsTile(
+                    title: context.l10n.inviteCode,
+                    subtitleWidget: SelectableText(family.inviteCode),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.copy_rounded),
+                      onPressed: () => _copyInviteCode(context, family.inviteCode),
+                    ),
                   ),
                   FutureBuilder<int>(
                     future: ref.read(familyServiceProvider).getMemberCount(family.familyId),
-                    builder: (context, snap) => ListTile(
-                      title: Text(context.l10n.members),
-                      subtitle: Text('${snap.data ?? 0}'),
+                    builder: (context, snap) => SettingsTile(
+                      title: context.l10n.members,
+                      subtitle: '${snap.data ?? 0}',
                     ),
                   ),
                   if (isOwner)
-                    ListTile(
-                      title: Text(context.l10n.manageMembers),
-                      trailing: const Icon(Icons.chevron_right),
+                    SettingsTile(
+                      title: context.l10n.manageMembers,
+                      trailing: Icon(Icons.chevron_right_rounded,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.45)),
                       onTap: () => _showMembersInfo(context, ref, family.familyId),
                     )
                   else
-                    ListTile(
-                      title: Text(context.l10n.leaveFamily, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                    SettingsTile(
+                      title: context.l10n.leaveFamily,
+                      titleColor: Theme.of(context).colorScheme.error,
                       onTap: () => _leaveFamily(context, ref, family.familyId, user.uid),
                     ),
                 ],
-                const Divider(),
-                ListTile(
-                  leading: Icon(Icons.language_outlined, color: Theme.of(context).colorScheme.primary),
-                  title: Text(context.l10n.appLanguage),
-                  subtitle: Text(
-                    ref.watch(appLocaleProvider).valueOrNull == null
-                        ? '${context.l10n.languageFollowSystem} · ${AppLanguageDisplay.fullName(ref.watch(effectiveUILanguageCodeProvider), context.l10n)}'
-                        : AppLanguageDisplay.fullName(ref.watch(appLocaleProvider).valueOrNull!.languageCode, context.l10n),
-                    style: Theme.of(context).textTheme.bodySmall,
+                SizedBox(height: AppSpacing.lg),
+                Divider(
+                  height: 1,
+                  indent: AppInsets.screenPadding,
+                  endIndent: AppInsets.screenPadding,
+                ),
+                SettingsSectionHeader(
+                  title: context.l10n.appLanguage,
+                  subtitle: ref.watch(appLocaleProvider).valueOrNull == null
+                      ? '${context.l10n.languageFollowSystem} · ${AppLanguageDisplay.fullName(ref.watch(effectiveUILanguageCodeProvider), context.l10n)}'
+                      : AppLanguageDisplay.fullName(
+                          ref.watch(appLocaleProvider).valueOrNull!.languageCode, context.l10n),
+                  padding: EdgeInsets.fromLTRB(
+                    AppInsets.screenPadding,
+                    AppSpacing.lg,
+                    AppInsets.screenPadding,
+                    AppSpacing.xs,
                   ),
-                  trailing: const Icon(Icons.chevron_right),
+                ),
+                SettingsTile(
+                  leading: Icon(Icons.language_rounded, color: Theme.of(context).colorScheme.primary),
+                  title: context.l10n.appLanguage,
+                  subtitle: ref.watch(appLocaleProvider).valueOrNull == null
+                      ? '${context.l10n.languageFollowSystem} · ${AppLanguageDisplay.fullName(ref.watch(effectiveUILanguageCodeProvider), context.l10n)}'
+                      : AppLanguageDisplay.fullName(
+                          ref.watch(appLocaleProvider).valueOrNull!.languageCode, context.l10n),
+                  trailing: Icon(Icons.chevron_right_rounded,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.45)),
                   onTap: () => showAppLanguageSheet(context, ref),
                 ),
+                if (showAds) ...[
+                  SizedBox(height: AppSpacing.xl),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: AppInsets.screenPadding),
+                    child: MeowAdaptiveBanner(show: showAds),
+                  ),
+                ],
               ],
             ),
     );
   }
 
   Widget _buildNotSignedIn(BuildContext context, WidgetRef ref) {
+    final showAds = ref.watch(shouldShowAdsProvider);
     return ListView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.symmetric(horizontal: AppInsets.screenPadding, vertical: AppSpacing.lg),
       children: [
         AppEmptyState(
           message: context.l10n.signInForFullFeatures,
           icon: Icons.lock_outline_rounded,
-          action: OutlinedButton.icon(
-            icon: const Icon(Icons.account_circle_outlined),
-            label: Text(context.l10n.signInWithGoogle),
+          action: AppButton(
+            label: context.l10n.signInWithGoogle,
+            variant: AppButtonVariant.primary,
+            icon: const Icon(Icons.account_circle_outlined, size: 22),
             onPressed: () => context.push(AppRouter.auth),
           ),
         ),
-        const SizedBox(height: 14),
-        const Divider(),
-        ListTile(
-          leading: Icon(Icons.language_outlined, color: Theme.of(context).colorScheme.primary),
-          title: Text(context.l10n.appLanguage),
-          subtitle: Text(
-            ref.watch(appLocaleProvider).valueOrNull == null
-                ? '${context.l10n.languageFollowSystem} · ${AppLanguageDisplay.fullName(ref.watch(effectiveUILanguageCodeProvider), context.l10n)}'
-                : AppLanguageDisplay.fullName(ref.watch(appLocaleProvider).valueOrNull!.languageCode, context.l10n),
-            style: Theme.of(context).textTheme.bodySmall,
+        SizedBox(height: AppSpacing.xxl),
+        Divider(height: 1),
+        SizedBox(height: AppSpacing.md),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppInsets.screenPadding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SettingsSectionHeader(
+                title: context.l10n.appLanguage,
+                subtitle: ref.watch(appLocaleProvider).valueOrNull == null
+                    ? '${context.l10n.languageFollowSystem} · ${AppLanguageDisplay.fullName(ref.watch(effectiveUILanguageCodeProvider), context.l10n)}'
+                    : AppLanguageDisplay.fullName(
+                        ref.watch(appLocaleProvider).valueOrNull!.languageCode, context.l10n),
+                padding: EdgeInsets.zero,
+              ),
+              const SizedBox(height: 8),
+              SettingsTile(
+                useScreenHorizontalPadding: false,
+                leading: Icon(Icons.language_rounded, color: Theme.of(context).colorScheme.primary),
+                title: context.l10n.appLanguage,
+                subtitle: ref.watch(appLocaleProvider).valueOrNull == null
+                    ? '${context.l10n.languageFollowSystem} · ${AppLanguageDisplay.fullName(ref.watch(effectiveUILanguageCodeProvider), context.l10n)}'
+                    : AppLanguageDisplay.fullName(
+                        ref.watch(appLocaleProvider).valueOrNull!.languageCode, context.l10n),
+                trailing: Icon(Icons.chevron_right_rounded,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.45)),
+                onTap: () => showAppLanguageSheet(context, ref),
+              ),
+            ],
           ),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => showAppLanguageSheet(context, ref),
         ),
-        const SizedBox(height: 8),
-        TextButton.icon(
-          icon: const Icon(Icons.ios_share_outlined, size: 20),
-          label: Text(context.l10n.shareAppMenu),
-          onPressed: () => MeowShare.shareApp(context),
+        SizedBox(height: AppSpacing.md),
+        Center(
+          child: AppButton(
+            label: context.l10n.shareAppMenu,
+            variant: AppButtonVariant.ghost,
+            icon: const Icon(Icons.ios_share_rounded, size: 20),
+            onPressed: () => MeowShare.shareApp(context),
+          ),
         ),
+        if (showAds) ...[
+          SizedBox(height: AppSpacing.xl),
+          MeowAdaptiveBanner(show: showAds),
+        ],
       ],
     );
   }
 
   void _copyInviteCode(BuildContext context, String code) {
-
     Clipboard.setData(ClipboardData(text: code));
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.inviteCodeCopied)));
   }
@@ -219,7 +297,9 @@ class SettingsScreen extends ConsumerWidget {
               children: members.map((m) => ListTile(title: Text(m.uid), subtitle: Text(m.role.value))).toList(),
             ),
           ),
-          actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.ok))],
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.ok)),
+          ],
         ),
       );
     });
@@ -233,8 +313,11 @@ class SettingsScreen extends ConsumerWidget {
         title: Text(context.l10n.leaveFamilyConfirm),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: Text(context.l10n.cancel)),
-          TextButton(onPressed: () => Navigator.pop(c, true), child: Text(context.l10n.leave)),
-
+          TextButton(
+            onPressed: () => Navigator.pop(c, true),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(c).colorScheme.error),
+            child: Text(context.l10n.leave),
+          ),
         ],
       ),
     );
@@ -256,4 +339,3 @@ class SettingsScreen extends ConsumerWidget {
     if (context.mounted) context.go(AppRouter.auth);
   }
 }
-

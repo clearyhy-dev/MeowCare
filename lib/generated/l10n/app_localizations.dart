@@ -1677,6 +1677,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All notifications marked as read.'**
   String get notificationsAllMarkedRead;
+
+  /// No description provided for @communityHubTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Community hub'**
+  String get communityHubTitle;
+
+  /// No description provided for @communityHubSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage your posts, notifications, and social preferences'**
+  String get communityHubSubtitle;
+
+  /// No description provided for @communityHubPostsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drafts, pending, and published'**
+  String get communityHubPostsSubtitle;
+
+  /// No description provided for @communityHubCommentsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Threads and replies you joined'**
+  String get communityHubCommentsSubtitle;
+
+  /// No description provided for @communityHubSavedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Posts you saved for later'**
+  String get communityHubSavedSubtitle;
+
+  /// No description provided for @communityHubNotificationsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Likes, comments, and mentions'**
+  String get communityHubNotificationsSubtitle;
+
+  /// No description provided for @communityHubPreferencesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Defaults for your community experience'**
+  String get communityHubPreferencesSubtitle;
+
+  /// No description provided for @communityHubLanguageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App language and formats'**
+  String get communityHubLanguageSubtitle;
+
+  /// No description provided for @communityHubBlockedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Muted people and hidden content'**
+  String get communityHubBlockedSubtitle;
+
+  /// No description provided for @communityHubGuidelinesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety, respect, and help'**
+  String get communityHubGuidelinesSubtitle;
+
+  /// No description provided for @communityPreferencesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Community preferences'**
+  String get communityPreferencesTitle;
+
+  /// No description provided for @communityPreferencesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tune how MeowCare feels in the feed. More options will roll out here.'**
+  String get communityPreferencesSubtitle;
+
+  /// No description provided for @communityComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get communityComingSoon;
+
+  /// No description provided for @communityBlockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked & hidden'**
+  String get communityBlockedTitle;
+
+  /// No description provided for @communityBlockedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll be able to manage blocked users and hidden posts here in a future update.'**
+  String get communityBlockedBody;
+
+  /// No description provided for @communityGuidelinesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Community guidelines'**
+  String get communityGuidelinesTitle;
+
+  /// No description provided for @communityGuidelinesLead.
+  ///
+  /// In en, this message translates to:
+  /// **'MeowCare is a kind space for cat parents. Help us keep it welcoming for everyone.'**
+  String get communityGuidelinesLead;
+
+  /// No description provided for @communityGuidelinesP1.
+  ///
+  /// In en, this message translates to:
+  /// **'Be respectful. Debate ideas, not people. No harassment, hate, or targeted attacks.'**
+  String get communityGuidelinesP1;
+
+  /// No description provided for @communityGuidelinesP2.
+  ///
+  /// In en, this message translates to:
+  /// **'Share accurate, safe pet care info. This app does not replace a veterinarian for medical decisions.'**
+  String get communityGuidelinesP2;
+
+  /// No description provided for @communityGuidelinesP3.
+  ///
+  /// In en, this message translates to:
+  /// **'No spam, scams, or misleading links. Report content that breaks these rules.'**
+  String get communityGuidelinesP3;
+
+  /// No description provided for @settingsSectionShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share & support'**
+  String get settingsSectionShare;
+
+  /// No description provided for @settingsSectionAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account & billing'**
+  String get settingsSectionAccount;
 }
 
 class _AppLocalizationsDelegate

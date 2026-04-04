@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/utils/l10n_ext.dart';
+import 'app/app_button.dart';
 
 /// Shown when free user hits limit (e.g. second cat or second member).
 void showUpgradeDialog(BuildContext context, {VoidCallback? onSeePro}) {
@@ -16,16 +17,18 @@ void showUpgradeDialog(BuildContext context, {VoidCallback? onSeePro}) {
       ),
       content: Text(context.l10n.upgradeForFamilySharingBody),
       actions: [
-        TextButton(
+        AppButton(
+          label: context.l10n.cancel,
+          variant: AppButtonVariant.ghost,
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(context.l10n.cancel),
         ),
-        FilledButton(
+        AppButton(
+          label: context.l10n.goToSubscription,
+          variant: AppButtonVariant.primary,
           onPressed: () {
             Navigator.of(context).pop();
             onSeePro?.call();
           },
-          child: Text(context.l10n.goToSubscription),
         ),
       ],
     ),

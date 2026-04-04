@@ -818,4 +818,70 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notificationsAllMarkedRead => '已全部标为已读。';
+
+  @override
+  String get communityHubTitle => '社区中心';
+
+  @override
+  String get communityHubSubtitle => '管理帖子、通知与社区偏好';
+
+  @override
+  String get communityHubPostsSubtitle => '草稿、待审与已发布';
+
+  @override
+  String get communityHubCommentsSubtitle => '你参与的讨论与回复';
+
+  @override
+  String get communityHubSavedSubtitle => '稍后阅读的收藏帖子';
+
+  @override
+  String get communityHubNotificationsSubtitle => '点赞、评论与提及';
+
+  @override
+  String get communityHubPreferencesSubtitle => '社区与动态默认体验';
+
+  @override
+  String get communityHubLanguageSubtitle => '应用语言与格式';
+
+  @override
+  String get communityHubBlockedSubtitle => '屏蔽用户与隐藏内容';
+
+  @override
+  String get communityHubGuidelinesSubtitle => '安全、尊重与帮助';
+
+  @override
+  String get communityPreferencesTitle => '社区偏好';
+
+  @override
+  String get communityPreferencesSubtitle => '调整动态与社区体验，更多选项将陆续推出。';
+
+  @override
+  String get communityComingSoon => '即将推出';
+
+  @override
+  String get communityBlockedTitle => '屏蔽与隐藏';
+
+  @override
+  String get communityBlockedBody => '后续可在此管理屏蔽用户与隐藏内容。';
+
+  @override
+  String get communityGuidelinesTitle => '社区准则';
+
+  @override
+  String get communityGuidelinesLead => 'MeowCare 希望成为友善的养猫社区，请一起维护良好氛围。';
+
+  @override
+  String get communityGuidelinesP1 => '保持尊重：就事论事，不人身攻击、不骚扰、不仇恨言论。';
+
+  @override
+  String get communityGuidelinesP2 => '分享真实、安全的养宠信息；应用不能替代兽医的专业诊疗。';
+
+  @override
+  String get communityGuidelinesP3 => '禁止垃圾信息、诈骗与误导链接；发现违规内容请举报。';
+
+  @override
+  String get settingsSectionShare => '分享与支持';
+
+  @override
+  String get settingsSectionAccount => '账户与订阅';
 }

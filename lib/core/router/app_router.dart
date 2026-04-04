@@ -22,6 +22,8 @@ import '../../screens/me/my_comments_page.dart';
 import '../../screens/me/my_posts_page.dart';
 import '../../screens/me/notifications_page.dart';
 import '../../screens/me/saved_posts_page.dart';
+import '../../screens/settings/community_guidelines_page.dart';
+import '../../screens/settings/community_preferences_page.dart';
 import '../../screens/settings/settings_screen.dart';
 import '../../screens/subscription/subscription_screen.dart';
 import '../../screens/tasks/tasks_screen.dart';
@@ -122,6 +124,14 @@ class AppRouter {
             GoRoute(path: 'me/comments', builder: (context, state) => const MyCommentsPage()),
             GoRoute(path: 'me/notifications', builder: (context, state) => const NotificationsPage()),
             GoRoute(path: 'me/saved', builder: (context, state) => const SavedPostsPage()),
+            GoRoute(
+              path: 'me/community-preferences',
+              builder: (context, state) => const CommunityPreferencesPage(),
+            ),
+            GoRoute(
+              path: 'me/community-guidelines',
+              builder: (context, state) => const CommunityGuidelinesPage(),
+            ),
           ],
         ),
 

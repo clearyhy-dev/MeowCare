@@ -14,45 +14,49 @@ Future<void> showAppLanguageSheet(BuildContext context, WidgetRef ref) async {
   await showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
+    isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
     ),
     builder: (ctx) {
+      final maxH = MediaQuery.sizeOf(ctx).height * 0.88;
       return SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-              child: Text(
-                l10n.chooseAppLanguage,
-                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxH),
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.only(bottom: 8),
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                child: Text(
+                  l10n.chooseAppLanguage,
+                  style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
               ),
-            ),
-            _LanguageTile(
-              title: l10n.languageFollowSystem,
-              subtitle: AppLanguageDisplay.fullName(resolvedCode, l10n),
-              selected: manual == null,
-              onTap: () async {
-                await ref.read(appLocaleProvider.notifier).setLanguageCode(null);
-                if (ctx.mounted) Navigator.pop(ctx);
-              },
-            ),
-            const Divider(height: 1),
-            ...kSupportedAppLanguageCodes.map((code) {
-              return _LanguageTile(
-                title: AppLanguageDisplay.fullName(code, l10n),
-                subtitle: AppLanguageDisplay.chipLabel(code, l10n),
-                selected: manual?.languageCode == code,
+              _LanguageTile(
+                title: l10n.languageFollowSystem,
+                subtitle: AppLanguageDisplay.fullName(resolvedCode, l10n),
+                selected: manual == null,
                 onTap: () async {
-                  await ref.read(appLocaleProvider.notifier).setLanguageCode(code);
+                  await ref.read(appLocaleProvider.notifier).setLanguageCode(null);
                   if (ctx.mounted) Navigator.pop(ctx);
                 },
-              );
-            }),
-            const SizedBox(height: 8),
-          ],
+              ),
+              const Divider(height: 1),
+              ...kSupportedAppLanguageCodes.map((code) {
+                return _LanguageTile(
+                  title: AppLanguageDisplay.fullName(code, l10n),
+                  subtitle: AppLanguageDisplay.chipLabel(code, l10n),
+                  selected: manual?.languageCode == code,
+                  onTap: () async {
+                    await ref.read(appLocaleProvider.notifier).setLanguageCode(code);
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  },
+                );
+              }),
+            ],
+          ),
         ),
       );
     },

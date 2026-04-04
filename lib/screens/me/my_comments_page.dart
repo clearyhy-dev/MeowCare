@@ -12,6 +12,7 @@ import '../../models/comment_model.dart';
 import '../../providers/comment_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../widgets/app/app_empty_state.dart';
+import '../../widgets/app/skeleton_shimmer.dart';
 
 class MyCommentsPage extends ConsumerStatefulWidget {
   const MyCommentsPage({super.key});
@@ -94,13 +95,28 @@ class _MyCommentsPageState extends ConsumerState<MyCommentsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(context.l10n.myCommentsTitle),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
+        leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => context.pop()),
       ),
       body: user == null
           ? AppEmptyState(message: context.l10n.signInForFullFeatures, icon: Icons.lock_outline_rounded)
-          : _comments.isEmpty && !_loading
-              ? AppEmptyState(message: context.l10n.myCommentsEmpty, icon: Icons.chat_bubble_outline)
-              : ListView.builder(
+          : _loading && _comments.isEmpty
+              ? ShimmerScope(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                    children: const [
+                      SkeletonNotificationTile(),
+                      SizedBox(height: AppSpacing.sm),
+                      SkeletonNotificationTile(),
+                      SizedBox(height: AppSpacing.sm),
+                      SkeletonNotificationTile(),
+                      SizedBox(height: AppSpacing.sm),
+                      SkeletonNotificationTile(),
+                    ],
+                  ),
+                )
+              : _comments.isEmpty && !_loading
+                  ? AppEmptyState(message: context.l10n.myCommentsEmpty, icon: Icons.chat_bubble_outline)
+                  : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
                   itemCount: _comments.length + (_hasMore ? 1 : 0),
                   itemBuilder: (context, index) {

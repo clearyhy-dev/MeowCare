@@ -6,6 +6,7 @@ import '../../core/router/app_router.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../providers/family_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/app/app_button.dart';
 
 class CreateFamilyScreen extends ConsumerStatefulWidget {
   const CreateFamilyScreen({super.key});
@@ -77,9 +78,10 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
         const SizedBox(height: 8),
         SelectableText(_inviteCode!, style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
         const SizedBox(height: 24),
-        FilledButton(
+        AppButton(
+          label: context.l10n.continueToApp,
+          variant: AppButtonVariant.primary,
           onPressed: () => context.go(AppRouter.home),
-          child: Text(context.l10n.continueToApp),
         ),
       ],
     );

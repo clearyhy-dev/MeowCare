@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/constants/enums.dart';
 import '../core/utils/date_utils.dart';
 import '../core/utils/l10n_ext.dart';
+import 'app/app_button.dart';
 
 class ReminderDialog extends StatefulWidget {
   const ReminderDialog({
@@ -101,14 +102,19 @@ class _ReminderDialogState extends State<ReminderDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(context.l10n.cancel)),
-        FilledButton(
+        AppButton(
+          label: context.l10n.cancel,
+          variant: AppButtonVariant.ghost,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        AppButton(
+          label: context.l10n.save,
+          variant: AppButtonVariant.primary,
           onPressed: () {
             final timeStr = AppDateUtils.timeOfDayToHHmm(_time);
             widget.onSave?.call(timeStr, _repeatType, _intervalDays);
             Navigator.of(context).pop();
           },
-          child: Text(context.l10n.save),
         ),
       ],
     );

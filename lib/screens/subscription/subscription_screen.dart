@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../providers/subscription_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/app/app_button.dart';
 
 class SubscriptionScreen extends ConsumerWidget {
   const SubscriptionScreen({super.key});
@@ -22,7 +23,7 @@ class SubscriptionScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(context.l10n.subscription),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/')),
+        leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => context.go('/')),
       ),
       body: ListView(
         padding: EdgeInsets.symmetric(horizontal: AppInsets.screenPadding, vertical: AppInsets.sectionSpacing / 2),
@@ -67,16 +68,21 @@ class SubscriptionScreen extends ConsumerWidget {
                 Text('• ${context.l10n.unlimitedAi}', style: Theme.of(context).textTheme.bodyLarge),
                 Text('• ${context.l10n.advancedReminders}', style: Theme.of(context).textTheme.bodyLarge),
                 const SizedBox(height: 20),
-                FilledButton(
+                AppButton(
+                  label: isPro ? context.l10n.currentPlan : context.l10n.upgradeToPro,
+                  variant: AppButtonVariant.primary,
                   onPressed: isPro || uid == null
                       ? null
                       : () async {
                           await ref.read(subscriptionServiceProvider).setPro(uid);
                           ref.invalidate(subscriptionStatusProvider);
                           ref.invalidate(currentUserAsyncProvider);
-                          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.proActivated)));
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(context.l10n.proActivated)),
+                            );
+                          }
                         },
-                  child: Text(isPro ? context.l10n.currentPlan : context.l10n.upgradeToPro),
                 ),
               ],
             ),

@@ -92,16 +92,71 @@ TONES: tuple[str, ...] = (
     "gentle_humor",
 )
 
-DEFAULT_PUBLISHER_NAMES: dict[str, str] = {
-    "en": "MeowCare Editorial",
-    "zh": "MeowCare 编辑部",
-    "ja": "MeowCare 編集部",
-    "es": "Redacción MeowCare",
-    "fr": "Rédaction MeowCare",
-    "de": "MeowCare Redaktion",
-    "pt": "Redação MeowCare",
-    "ru": "Редакция MeowCare",
-    "ko": "MeowCare 편집부",
+# 自动生成帖展示名：随机社区用户风格，避免「编辑部」观感（可被 Firestore publisher.displayNames 覆盖）。
+UGC_STYLE_NICKNAMES: dict[str, list[str]] = {
+    "en": [
+        "tabby_and_me",
+        "quiet_cat_home",
+        "MochisHuman",
+        "orange_sofa_cat",
+        "2am_zoomies",
+        "rescue_mom_03",
+        "indoor_only_ok",
+    ],
+    "zh": [
+        "橘座铲屎官",
+        "三花家长",
+        "凌晨跑酷选手",
+        "领养第三年",
+        "室内养猫笔记",
+        "铲屎练习生",
+        "猫砂盆观察员",
+    ],
+    "ja": [
+        "しろちゃんの記録",
+        "保護猫3年目",
+        "夜ふかし猫部",
+        "室内飼いママ",
+        "ちゅ〜る買いすぎ",
+        "毛玉処理係",
+    ],
+    "es": [
+        "gato_naranja_casa",
+        "mama_gatuna",
+        "adoptado2023",
+        "arena_y_siestas",
+        "ronroneo_nocturno",
+    ],
+    "fr": [
+        "chat_gris_du_salon",
+        "famille_3_chats",
+        "calin_du_soir",
+        "litiere_et_cie",
+    ],
+    "de": [
+        "stubentiger_mia",
+        "katzengluck2022",
+        "nachts_um_drei",
+        "nur_innen",
+    ],
+    "pt": [
+        "laranja_no_sofa",
+        "mae_de_gato",
+        "adotei_em_2021",
+        "caixa_limpa",
+    ],
+    "ru": [
+        "рыжий_диван",
+        "кошатница_омск",
+        "ночной_зум",
+        "только_дома",
+    ],
+    "ko": [
+        "캣맘_기록",
+        "실내만_키워요",
+        "새벽_댕청",
+        "캣타워_중독",
+    ],
 }
 
 # English angles for prompts / EN fallbacks (Gemini translates for other output langs)
@@ -222,8 +277,8 @@ def content_generation_doc_defaults(raw: dict | None) -> dict:
     min_len = int(r.get("minContentLength", 400))
     min_len = min(max(min_len, 100), 8000)
     pub_merged = {
-        "authorId": "meowcare_editorial",
-        "displayNames": dict(DEFAULT_PUBLISHER_NAMES),
+        "authorId": "meowcare_auto_feed",
+        "displayNames": {},
         "authorAvatarUrl": "",
     }
     pub_raw = r.get("publisher")
@@ -275,8 +330,9 @@ def get_content_generation_settings() -> dict:
 def resolve_publisher_for_language(cfg: dict, lang: str) -> tuple[str, str, str]:
     lang = normalize_language(lang)
     pub = cfg.get("publisher")
-    author_id = "meowcare_editorial"
-    display_name = DEFAULT_PUBLISHER_NAMES.get(lang, DEFAULT_PUBLISHER_NAMES["en"])
+    author_id = "meowcare_auto_feed"
+    pool = UGC_STYLE_NICKNAMES.get(lang) or UGC_STYLE_NICKNAMES["en"]
+    display_name = random.choice(pool)
     avatar = ""
     if isinstance(pub, dict):
         author_id = str(pub.get("authorId") or author_id).strip() or author_id

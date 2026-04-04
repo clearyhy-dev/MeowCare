@@ -13,6 +13,7 @@ import '../../core/utils/topic_l10n.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/app/app_button.dart';
 import '../../widgets/app/app_section_header.dart';
 import '../../widgets/app/minimal_multiline_field.dart';
 import '../../widgets/app/minimal_text_field.dart';
@@ -156,17 +157,15 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
       appBar: AppBar(
         title: Text(context.l10n.createPost),
         actions: [
-          TextButton(
-            onPressed: _loading ? null : _submit,
-            child: _loading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(context.l10n.postButton),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: AppButton(
+              label: context.l10n.postButton,
+              variant: AppButtonVariant.ghost,
+              loading: _loading,
+              onPressed: _submit,
+            ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(
@@ -196,11 +195,14 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
               showBottomDivider: true,
             ),
             const SizedBox(height: AppSpacing.md),
-            TextButton.icon(
-              onPressed: _loading ? null : _pickCoverImage,
-              icon: const Icon(Icons.image_outlined, size: 20),
-              label: Text(context.l10n.postAddImage),
-              style: TextButton.styleFrom(alignment: Alignment.centerLeft),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: AppButton(
+                label: context.l10n.postAddImage,
+                variant: AppButtonVariant.ghost,
+                icon: const Icon(Icons.image_outlined, size: 20),
+                onPressed: _loading ? null : _pickCoverImage,
+              ),
             ),
             if (_coverFile != null) ...[
               const SizedBox(height: 10),

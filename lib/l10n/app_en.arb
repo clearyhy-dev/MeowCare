@@ -20,7 +20,9 @@
   "aiTitleWithName": "Is {catName} feeling okay?",
   "@aiTitleWithName": {
     "placeholders": {
-      "catName": {"type": "String"}
+      "catName": {
+        "type": "String"
+      }
     }
   },
   "aiTitleGeneric": "How can we help?",
@@ -66,7 +68,9 @@
   "noHealthLogs": "No health logs for {catName} yet",
   "@noHealthLogs": {
     "placeholders": {
-      "catName": {"type": "String"}
+      "catName": {
+        "type": "String"
+      }
     }
   },
   "type": "Type",
@@ -76,11 +80,29 @@
   "pro": "Pro",
   "currentPlan": "Current plan",
   "freeCats": "{count} cat",
-  "@freeCats": {"placeholders": {"count": {"type": "int"}}},
+  "@freeCats": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "freeMembers": "{count} member (just you)",
-  "@freeMembers": {"placeholders": {"count": {"type": "int"}}},
+  "@freeMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "freeAiPerDay": "{count} AI requests per day",
-  "@freeAiPerDay": {"placeholders": {"count": {"type": "int"}}},
+  "@freeAiPerDay": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "multipleCats": "Multiple cats",
   "multipleMembers": "Multiple family members",
   "unlimitedAi": "Unlimited AI requests",
@@ -131,7 +153,13 @@
   "region": "Region",
   "goToSettingsToSignIn": "Please go to Settings to sign in for full access.",
   "errorWithMessage": "Error: {message}",
-  "@errorWithMessage": {"placeholders": {"message": {"type": "String"}}},
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "myCats": "My cats",
   "signInToManageCats": "Sign in to manage your cats",
   "noCatsYetAddOne": "No cats yet. Add one!",
@@ -151,7 +179,13 @@
   "contentUpdated": "Content updated.",
   "aiUnavailable": "AI unavailable. Check backend GEMINI_API_KEY.",
   "aiUnavailableReason": "AI unavailable: {reason}",
-  "@aiUnavailableReason": {"placeholders": {"reason": {"type": "String"}}},
+  "@aiUnavailableReason": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "failedToPost": "Failed to post",
   "aiRewriteLabel": "AI Rewrite",
   "breeds": "Breeds",
@@ -227,7 +261,13 @@
   "aiNavLabel": "AI",
   "aiErrorDescribeSymptom": "Please describe the symptom",
   "aiErrorFreeLimit": "Free limit: {count} AI requests per day. Upgrade to Pro for unlimited.",
-  "@aiErrorFreeLimit": {"placeholders": {"count": {"type": "int"}}},
+  "@aiErrorFreeLimit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "aiModelLabel": "Current model",
   "aiAdviceSectionSummary": "Summary",
   "aiAdviceSectionHomeCare": "Home care",
@@ -304,6 +344,27 @@
   "postStatusRejected": "Rejected",
   "postTitleUnknown": "Post",
   "notificationMarkReadFailed": "Could not update notification. Try again later.",
-  "notificationsAllMarkedRead": "All notifications marked as read."
+  "notificationsAllMarkedRead": "All notifications marked as read.",
+  "communityHubTitle": "Community hub",
+  "communityHubSubtitle": "Manage your posts, notifications, and social preferences",
+  "communityHubPostsSubtitle": "Drafts, pending, and published",
+  "communityHubCommentsSubtitle": "Threads and replies you joined",
+  "communityHubSavedSubtitle": "Posts you saved for later",
+  "communityHubNotificationsSubtitle": "Likes, comments, and mentions",
+  "communityHubPreferencesSubtitle": "Defaults for your community experience",
+  "communityHubLanguageSubtitle": "App language and formats",
+  "communityHubBlockedSubtitle": "Muted people and hidden content",
+  "communityHubGuidelinesSubtitle": "Safety, respect, and help",
+  "communityPreferencesTitle": "Community preferences",
+  "communityPreferencesSubtitle": "Tune how MeowCare feels in the feed. More options will roll out here.",
+  "communityComingSoon": "Coming soon",
+  "communityBlockedTitle": "Blocked & hidden",
+  "communityBlockedBody": "You'll be able to manage blocked users and hidden posts here in a future update.",
+  "communityGuidelinesTitle": "Community guidelines",
+  "communityGuidelinesLead": "MeowCare is a kind space for cat parents. Help us keep it welcoming for everyone.",
+  "communityGuidelinesP1": "Be respectful. Debate ideas, not people. No harassment, hate, or targeted attacks.",
+  "communityGuidelinesP2": "Share accurate, safe pet care info. This app does not replace a veterinarian for medical decisions.",
+  "communityGuidelinesP3": "No spam, scams, or misleading links. Report content that breaks these rules.",
+  "settingsSectionShare": "Share & support",
+  "settingsSectionAccount": "Account & billing"
 }
-

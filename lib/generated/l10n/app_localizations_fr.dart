@@ -828,4 +828,79 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get notificationsAllMarkedRead =>
       'Toutes les notifications sont marquées comme lues.';
+
+  @override
+  String get communityHubTitle => 'Community hub';
+
+  @override
+  String get communityHubSubtitle =>
+      'Manage your posts, notifications, and social preferences';
+
+  @override
+  String get communityHubPostsSubtitle => 'Drafts, pending, and published';
+
+  @override
+  String get communityHubCommentsSubtitle => 'Threads and replies you joined';
+
+  @override
+  String get communityHubSavedSubtitle => 'Posts you saved for later';
+
+  @override
+  String get communityHubNotificationsSubtitle =>
+      'Likes, comments, and mentions';
+
+  @override
+  String get communityHubPreferencesSubtitle =>
+      'Defaults for your community experience';
+
+  @override
+  String get communityHubLanguageSubtitle => 'App language and formats';
+
+  @override
+  String get communityHubBlockedSubtitle => 'Muted people and hidden content';
+
+  @override
+  String get communityHubGuidelinesSubtitle => 'Safety, respect, and help';
+
+  @override
+  String get communityPreferencesTitle => 'Community preferences';
+
+  @override
+  String get communityPreferencesSubtitle =>
+      'Tune how MeowCare feels in the feed. More options will roll out here.';
+
+  @override
+  String get communityComingSoon => 'Coming soon';
+
+  @override
+  String get communityBlockedTitle => 'Blocked & hidden';
+
+  @override
+  String get communityBlockedBody =>
+      'You\'ll be able to manage blocked users and hidden posts here in a future update.';
+
+  @override
+  String get communityGuidelinesTitle => 'Community guidelines';
+
+  @override
+  String get communityGuidelinesLead =>
+      'MeowCare is a kind space for cat parents. Help us keep it welcoming for everyone.';
+
+  @override
+  String get communityGuidelinesP1 =>
+      'Be respectful. Debate ideas, not people. No harassment, hate, or targeted attacks.';
+
+  @override
+  String get communityGuidelinesP2 =>
+      'Share accurate, safe pet care info. This app does not replace a veterinarian for medical decisions.';
+
+  @override
+  String get communityGuidelinesP3 =>
+      'No spam, scams, or misleading links. Report content that breaks these rules.';
+
+  @override
+  String get settingsSectionShare => 'Share & support';
+
+  @override
+  String get settingsSectionAccount => 'Account & billing';
 }

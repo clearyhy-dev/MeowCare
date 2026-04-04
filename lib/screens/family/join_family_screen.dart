@@ -7,6 +7,7 @@ import '../../core/router/app_router.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../providers/family_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/app/app_button.dart';
 import '../../widgets/upgrade_dialog.dart';
 
 class JoinFamilyScreen extends ConsumerStatefulWidget {
@@ -82,15 +83,17 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
                 Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
               ],
               const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _loading ? null : _join,
-
-                child: _loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(context.l10n.join),
+              AppButton(
+                label: context.l10n.join,
+                variant: AppButtonVariant.primary,
+                loading: _loading,
+                onPressed: _join,
               ),
               const SizedBox(height: 16),
-              TextButton(
+              AppButton(
+                label: context.l10n.createFamilyInstead,
+                variant: AppButtonVariant.ghost,
                 onPressed: () => context.go(AppRouter.createFamily),
-                child: Text(context.l10n.createFamilyInstead),
               ),
             ],
           ),

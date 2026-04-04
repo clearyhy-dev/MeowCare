@@ -9,6 +9,7 @@ import '../../models/task_model.dart';
 import '../../providers/cat_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/app/app_button.dart';
 import '../../widgets/app/app_empty_state.dart';
 import '../../widgets/cat_selector.dart';
 import '../../widgets/reminder_dialog.dart';
@@ -218,10 +219,11 @@ class _TaskFormScreenState extends ConsumerState<_TaskFormScreen> {
               },
             ),
             const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _loading ? null : _save,
-              child: _loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(context.l10n.save),
-
+            AppButton(
+              label: context.l10n.save,
+              variant: AppButtonVariant.primary,
+              loading: _loading,
+              onPressed: _save,
             ),
           ],
         ),

@@ -10,7 +10,9 @@ import '../../core/utils/l10n_ext.dart';
 import '../../models/notification_model.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/app/app_button.dart';
 import '../../widgets/app/app_empty_state.dart';
+import '../../widgets/app/skeleton_shimmer.dart';
 
 class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
@@ -70,19 +72,30 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(context.l10n.notificationsTitle),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
+        leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => context.pop()),
         actions: [
           if (user != null)
-            TextButton(
-              onPressed: _markAll,
-              child: Text(context.l10n.markAllNotificationsRead),
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: AppButton(
+                label: context.l10n.markAllNotificationsRead,
+                variant: AppButtonVariant.ghost,
+                onPressed: _markAll,
+              ),
             ),
         ],
       ),
       body: user == null
           ? AppEmptyState(message: context.l10n.signInForFullFeatures, icon: Icons.lock_outline_rounded)
           : asyncList.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => ShimmerScope(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      itemCount: 7,
+                      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+                      itemBuilder: (_, __) => const SkeletonNotificationTile(),
+                    ),
+                  ),
               error: (_, __) => Center(child: Text(context.l10n.feedLoadFailed)),
               data: (items) {
                 if (items.isEmpty) {

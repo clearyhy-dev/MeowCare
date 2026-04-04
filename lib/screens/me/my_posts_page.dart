@@ -10,6 +10,7 @@ import '../../models/post_model.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../widgets/app/app_empty_state.dart';
+import '../../widgets/app/skeleton_shimmer.dart';
 import '../../widgets/post/post_card.dart';
 
 class MyPostsPage extends ConsumerStatefulWidget {
@@ -104,7 +105,7 @@ class _MyPostsPageState extends ConsumerState<MyPostsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(context.l10n.myPostsTitle),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
+        leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => context.pop()),
       ),
       body: user == null
           ? AppEmptyState(message: context.l10n.signInForFullFeatures, icon: Icons.lock_outline_rounded)
@@ -128,9 +129,22 @@ class _MyPostsPageState extends ConsumerState<MyPostsPage> {
                   ),
                 ),
                 Expanded(
-                  child: _posts.isEmpty && !_loading
-                      ? AppEmptyState(message: context.l10n.myPostsEmpty, icon: Icons.article_outlined)
-                      : ListView.builder(
+                  child: _loading && _posts.isEmpty
+                      ? ShimmerScope(
+                          child: ListView(
+                            children: const [
+                              SkeletonPostCardBlock(),
+                              SkeletonPostCardBlock(),
+                              SkeletonPostCardBlock(),
+                            ],
+                          ),
+                        )
+                      : _posts.isEmpty && !_loading
+                          ? AppEmptyState(
+                              message: context.l10n.myPostsEmpty,
+                              icon: Icons.article_outlined,
+                            )
+                          : ListView.builder(
                           padding: const EdgeInsets.only(bottom: 24),
                           itemCount: _posts.length + (_hasMore ? 1 : 0),
                           itemBuilder: (context, index) {

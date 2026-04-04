@@ -9,6 +9,7 @@ import '../../models/task_model.dart';
 import '../../providers/cat_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/app/app_button.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/task_card.dart';
 
@@ -50,9 +51,10 @@ class HomeScreen extends ConsumerWidget {
                     ? EmptyState(
                         message: context.l10n.goToSettingsToSignIn,
                         icon: Icons.person_outline,
-                        action: FilledButton.icon(
-                          icon: const Icon(Icons.settings),
-                          label: Text(context.l10n.settings),
+                        action: AppButton(
+                          label: context.l10n.settings,
+                          variant: AppButtonVariant.primary,
+                          icon: const Icon(Icons.settings_outlined, size: 20),
                           onPressed: () => context.go('${AppRouter.home}settings'),
                         ),
                       )
@@ -62,15 +64,17 @@ class HomeScreen extends ConsumerWidget {
                         action: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            FilledButton.icon(
-                              icon: const Icon(Icons.pets),
-                              label: Text(context.l10n.addCat),
+                            AppButton(
+                              label: context.l10n.addCat,
+                              variant: AppButtonVariant.primary,
+                              icon: const Icon(Icons.pets, size: 20),
                               onPressed: () => context.go('${AppRouter.home}cats'),
                             ),
-                            const SizedBox(height: 8),
-                            TextButton.icon(
-                              icon: const Icon(Icons.smart_toy_outlined),
-                              label: Text(context.l10n.aiSymptomSupport),
+                            const SizedBox(height: 10),
+                            AppButton(
+                              label: context.l10n.aiSymptomSupport,
+                              variant: AppButtonVariant.secondary,
+                              icon: const Icon(Icons.smart_toy_outlined, size: 20),
                               onPressed: () => context.go('${AppRouter.home}ai'),
                             ),
                           ],
@@ -90,9 +94,10 @@ class HomeScreen extends ConsumerWidget {
 
                       children: [
                         Expanded(child: Text(context.l10n.today, style: Theme.of(context).textTheme.titleLarge)),
-                        TextButton(
+                        AppButton(
+                          label: context.l10n.allTasks,
+                          variant: AppButtonVariant.small,
                           onPressed: () => context.go('${AppRouter.home}tasks'),
-                          child: Text(context.l10n.allTasks),
                         ),
 
                       ],

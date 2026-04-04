@@ -68,19 +68,9 @@ DEFAULT_CONTENT_GENERATION = {
     "imageRequired": False,
     "seasonHemisphere": "north",
     "publisher": {
-        "authorId": "meowcare_editorial",
+        "authorId": "meowcare_auto_feed",
         "authorAvatarUrl": "",
-        "displayNames": {
-            "en": "MeowCare Editorial",
-            "zh": "MeowCare 编辑部",
-            "ja": "MeowCare 編集部",
-            "es": "Redacción MeowCare",
-            "fr": "Rédaction MeowCare",
-            "de": "MeowCare Redaktion",
-            "pt": "Redação MeowCare",
-            "ru": "Редакция MeowCare",
-            "ko": "MeowCare 편집부",
-        },
+        "displayNames": {},
     },
 }
 

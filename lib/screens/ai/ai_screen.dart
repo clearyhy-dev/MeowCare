@@ -14,6 +14,7 @@ import '../../providers/subscription_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../services/ai_service.dart';
+import '../../widgets/app/app_button.dart';
 
 class AIScreen extends ConsumerStatefulWidget {
   const AIScreen({super.key});
@@ -93,9 +94,13 @@ class _AIScreenState extends ConsumerState<AIScreen> {
         title: Text(context.l10n.aiSymptomSupport),
         actions: [
           if (!isPro)
-            TextButton(
-              onPressed: () => context.push('${AppRouter.home}subscription'),
-              child: Text(context.l10n.pro),
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: AppButton(
+                label: context.l10n.pro,
+                variant: AppButtonVariant.small,
+                onPressed: () => context.push('${AppRouter.home}subscription'),
+              ),
             ),
         ],
       ),
@@ -143,9 +148,11 @@ class _AIScreenState extends ConsumerState<AIScreen> {
               Text(_error!, style: TextStyle(color: scheme.error)),
             ],
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _loading ? null : _submit,
-              child: _loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(context.l10n.getGuidance),
+            AppButton(
+              label: context.l10n.getGuidance,
+              variant: AppButtonVariant.primary,
+              loading: _loading,
+              onPressed: _submit,
             ),
             if (_result != null) ...[
               const SizedBox(height: 24),

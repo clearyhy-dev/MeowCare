@@ -7,6 +7,7 @@ import 'package:meowcare/models/cat_model.dart';
 import '../../models/reminder_model.dart';
 import '../../providers/user_provider.dart';
 import '../../screens/cats/my_cats_page.dart';
+import '../../widgets/app/app_button.dart';
 
 final reminderRepositoryProvider = Provider<ReminderRepository>((ref) => ReminderRepository());
 
@@ -107,7 +108,11 @@ class _ReminderPageState extends ConsumerState<ReminderPage> {
               },
             ),
             const SizedBox(height: 24),
-            FilledButton(onPressed: _save, child: Text(context.l10n.saveReminder)),
+            AppButton(
+              label: context.l10n.saveReminder,
+              variant: AppButtonVariant.primary,
+              onPressed: _save,
+            ),
 
           ],
         ),

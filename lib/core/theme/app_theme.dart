@@ -132,6 +132,22 @@ class AppTheme {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
         ),
       ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.textSecondary,
+          minimumSize: const Size(44, 44),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          foregroundColor: AppColors.textPrimary,
+          minimumSize: const Size(44, 44),
+          padding: const EdgeInsets.all(10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
+        ),
+      ),
       chipTheme: ChipThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.lg)),
         side: BorderSide(color: AppColors.stroke.withValues(alpha: 0.7)),
@@ -252,6 +268,22 @@ class AppTheme {
           minimumSize: const Size.fromHeight(46),
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.darkTextSecondary,
+          minimumSize: const Size(44, 44),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          foregroundColor: AppColors.darkTextPrimary,
+          minimumSize: const Size(44, 44),
+          padding: const EdgeInsets.all(10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
         ),
       ),
       dialogTheme: DialogThemeData(

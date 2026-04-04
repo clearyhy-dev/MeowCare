@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'feed_mode_switcher.dart';
 import 'feed_search_field.dart';
-import 'topic_chips_row.dart';
 
 class FeedControlBar extends StatelessWidget {
   const FeedControlBar({
@@ -15,11 +14,6 @@ class FeedControlBar extends StatelessWidget {
     required this.hotLabel,
     required this.onSelectLatest,
     required this.onSelectHot,
-    required this.selectedTopic,
-    required this.topicIds,
-    required this.allTopicsLabel,
-    required this.topicLabelBuilder,
-    required this.onTopicSelect,
   });
 
   final TextEditingController searchController;
@@ -30,11 +24,6 @@ class FeedControlBar extends StatelessWidget {
   final String hotLabel;
   final VoidCallback onSelectLatest;
   final VoidCallback onSelectHot;
-  final String? selectedTopic;
-  final List<String> topicIds;
-  final String allTopicsLabel;
-  final String Function(String id) topicLabelBuilder;
-  final ValueChanged<String?> onTopicSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -55,26 +44,15 @@ class FeedControlBar extends StatelessWidget {
             onChanged: onSearchChanged,
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              FeedModeSwitcher(
-                latestSelected: latestSelected,
-                latestLabel: latestLabel,
-                hotLabel: hotLabel,
-                onSelectLatest: onSelectLatest,
-                onSelectHot: onSelectHot,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TopicChipsRow(
-                  selectedTopic: selectedTopic,
-                  topicIds: topicIds,
-                  allLabel: allTopicsLabel,
-                  labelBuilder: topicLabelBuilder,
-                  onSelect: onTopicSelect,
-                ),
-              ),
-            ],
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FeedModeSwitcher(
+              latestSelected: latestSelected,
+              latestLabel: latestLabel,
+              hotLabel: hotLabel,
+              onSelectLatest: onSelectLatest,
+              onSelectHot: onSelectHot,
+            ),
           ),
         ],
       ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/constants/app_constants.dart';
 import '../data/repositories/post_repository.dart';
+import 'locale_provider.dart';
 import '../data/upload/storage_repository.dart';
 import '../models/post_model.dart';
 
@@ -35,12 +36,14 @@ class FeedNotifier extends StateNotifier<FeedState> {
   String? _topic;
   String? _countryCode;
   String? _breedId;
+  String? _languageCode;
 
   Future<void> loadFirst({
     bool orderByCreated = true,
     String? topic,
     String? countryCode,
     String? breedId,
+    String? languageCode,
   }) async {
     if (state.loading) return;
     state = const FeedState(loading: true, error: null);
@@ -48,6 +51,7 @@ class FeedNotifier extends StateNotifier<FeedState> {
     _topic = topic;
     _countryCode = countryCode;
     _breedId = breedId;
+    _languageCode = languageCode;
     final topics = topic != null ? [topic] : null;
     final breedIds = _breedId != null && _breedId!.isNotEmpty ? [_breedId!] : null;
     try {
@@ -57,6 +61,7 @@ class FeedNotifier extends StateNotifier<FeedState> {
         breedIds: breedIds,
         topics: topics,
         countryCode: _countryCode,
+        languageCode: _languageCode,
       );
       state = FeedState(
         posts: result.list,
@@ -85,6 +90,7 @@ class FeedNotifier extends StateNotifier<FeedState> {
       breedIds: breedIds,
       topics: topics,
       countryCode: _countryCode,
+      languageCode: _languageCode,
     );
 
     state = FeedState(
@@ -102,6 +108,7 @@ final feedProvider = StateNotifierProvider<FeedNotifier, FeedState>((ref) {
 /// Reddit trending posts for the home feed "Trending from Reddit" block.
 final redditTrendingProvider = FutureProvider<List<PostModel>>((ref) async {
   final repo = ref.read(postRepositoryProvider);
-  return repo.getRedditTrendingPosts(limit: 10);
+  final lang = ref.watch(effectiveUILanguageCodeProvider);
+  return repo.getRedditTrendingPosts(limit: 10, languageCode: lang);
 });
 

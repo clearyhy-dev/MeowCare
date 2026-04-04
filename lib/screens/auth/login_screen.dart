@@ -9,6 +9,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../generated/l10n/app_localizations.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/app/app_button.dart';
 
 /// 用户端仅 Google 登录；视觉与 Feed 一致的社区风（紧凑、轻阴影、信息优先）。
 class LoginScreen extends ConsumerStatefulWidget {
@@ -125,34 +126,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         const SizedBox(height: 16),
                       ],
-                      OutlinedButton(
+                      AppButton(
+                        label: context.l10n.signInWithGoogle,
+                        variant: AppButtonVariant.primary,
+                        loading: _loading,
+                        icon: const Icon(Icons.account_circle_outlined, size: 22),
                         onPressed: _loading ? null : _signInWithGoogle,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: scheme.onSurface,
-                          side: BorderSide(color: borderColor),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
-                        ),
-                        child: _loading
-                            ? SizedBox(
-                                height: 22,
-                                width: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: scheme.primary,
-                                ),
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.account_circle_outlined, size: 22, color: scheme.primary),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    context.l10n.signInWithGoogle,
-                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                                  ),
-                                ],
-                              ),
                       ),
                     ],
                   ),

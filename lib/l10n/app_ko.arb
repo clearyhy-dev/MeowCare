@@ -118,7 +118,13 @@
   "region": "국가/지역",
   "goToSettingsToSignIn": "설정에서 로그인하면 모든 기능을 사용할 수 있습니다.",
   "errorWithMessage": "오류: {message}",
-  "@errorWithMessage": {"placeholders": {"message": {"type": "String"}}},
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "myCats": "내 고양이",
   "signInToManageCats": "로그인하여 고양이를 관리하세요",
   "noCatsYetAddOne": "아직 고양이가 없습니다. 추가해 보세요!",
@@ -130,7 +136,6 @@
   "content": "내용",
   "contentTooLong": "내용이 너무 깁니다. 짧게 줄인 후 게시해 주세요.",
   "breeds": "품종",
-
   "topics": "주제",
   "selectBreed": "품종 선택",
   "publicProfile": "공개 프로필",
@@ -176,10 +181,15 @@
   "loadingRegionContent": "해당 지역 콘텐츠를 불러오는 중…",
   "feedLoadFailed": "피드를 불러오지 못했습니다. 다시 시도해 주세요.",
   "aiNavLabel": "AI",
-
   "aiErrorDescribeSymptom": "증상을 입력해 주세요",
   "aiErrorFreeLimit": "무료는 하루 {count}회까지. Pro로 무제한.",
-  "@aiErrorFreeLimit": {"placeholders": {"count": {"type": "int"}}},
+  "@aiErrorFreeLimit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "aiModelLabel": "현재 모델",
   "aiAdviceSectionSummary": "Summary",
   "aiAdviceSectionHomeCare": "Home care",
@@ -193,7 +203,13 @@
   "contentUpdated": "내용이 업데이트되었습니다.",
   "aiUnavailable": "AI를 사용할 수 없습니다.",
   "aiUnavailableReason": "AI 사용 불가: {reason}",
-  "@aiUnavailableReason": {"placeholders": {"reason": {"type": "String"}}},
+  "@aiUnavailableReason": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "failedToPost": "게시 실패",
   "aiRewriteLabel": "AI 다시 쓰기",
   "me": "나",
@@ -220,5 +236,27 @@
   "postStatusRejected": "거부됨",
   "postTitleUnknown": "게시물",
   "notificationMarkReadFailed": "알림을 업데이트할 수 없습니다.",
-  "notificationsAllMarkedRead": "모든 알림을 읽음으로 표시했습니다."
+  "notificationsAllMarkedRead": "모든 알림을 읽음으로 표시했습니다.",
+  "communityHubTitle": "Community hub",
+  "communityHubSubtitle": "Manage your posts, notifications, and social preferences",
+  "communityHubPostsSubtitle": "Drafts, pending, and published",
+  "communityHubCommentsSubtitle": "Threads and replies you joined",
+  "communityHubSavedSubtitle": "Posts you saved for later",
+  "communityHubNotificationsSubtitle": "Likes, comments, and mentions",
+  "communityHubPreferencesSubtitle": "Defaults for your community experience",
+  "communityHubLanguageSubtitle": "App language and formats",
+  "communityHubBlockedSubtitle": "Muted people and hidden content",
+  "communityHubGuidelinesSubtitle": "Safety, respect, and help",
+  "communityPreferencesTitle": "Community preferences",
+  "communityPreferencesSubtitle": "Tune how MeowCare feels in the feed. More options will roll out here.",
+  "communityComingSoon": "Coming soon",
+  "communityBlockedTitle": "Blocked & hidden",
+  "communityBlockedBody": "You'll be able to manage blocked users and hidden posts here in a future update.",
+  "communityGuidelinesTitle": "Community guidelines",
+  "communityGuidelinesLead": "MeowCare is a kind space for cat parents. Help us keep it welcoming for everyone.",
+  "communityGuidelinesP1": "Be respectful. Debate ideas, not people. No harassment, hate, or targeted attacks.",
+  "communityGuidelinesP2": "Share accurate, safe pet care info. This app does not replace a veterinarian for medical decisions.",
+  "communityGuidelinesP3": "No spam, scams, or misleading links. Report content that breaks these rules.",
+  "settingsSectionShare": "Share & support",
+  "settingsSectionAccount": "Account & billing"
 }

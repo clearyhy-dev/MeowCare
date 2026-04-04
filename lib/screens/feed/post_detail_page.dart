@@ -12,6 +12,7 @@ import '../../providers/feed_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../widgets/comment_list.dart';
 import '../../widgets/post/post_action_bar.dart';
+import '../../widgets/app/app_button.dart';
 import '../../widgets/app/app_section_header.dart';
 
 class PostDetailPage extends ConsumerStatefulWidget {
@@ -309,8 +310,14 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
           maxLines: 2,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(context.l10n.cancel)),
-          FilledButton(
+          AppButton(
+            label: context.l10n.cancel,
+            variant: AppButtonVariant.ghost,
+            onPressed: () => Navigator.pop(ctx),
+          ),
+          AppButton(
+            label: context.l10n.submit,
+            variant: AppButtonVariant.primary,
             onPressed: () async {
               final uid = ref.read(currentUserAsyncProvider).valueOrNull?.uid;
               if (uid == null) return;
@@ -321,7 +328,6 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                   );
               if (ctx.mounted) Navigator.pop(ctx);
             },
-            child: Text(context.l10n.submit),
           ),
         ],
       ),

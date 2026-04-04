@@ -4,15 +4,35 @@ import 'package:go_router/go_router.dart';
 import '../../core/router/app_router.dart';
 import '../../core/utils/app_feedback.dart';
 import '../../core/utils/l10n_ext.dart';
-import '../../core/utils/topic_l10n.dart';
+import '../../models/post_model.dart';
+import '../../providers/ads_visibility_provider.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/ads/meow_adaptive_banner.dart';
 import '../../widgets/app/app_empty_state.dart';
 import '../../widgets/feed/feed_control_bar.dart';
 import '../../widgets/post/post_card.dart';
 import '../../widgets/post/post_card_skeleton.dart';
+
+/// Feed 列表中的横幅占位（与 [PostModel] 区分）。
+class _FeedAdSlot {
+  const _FeedAdSlot();
+}
+
+List<Object> _feedRowsWithAds(List<PostModel> posts, bool showAds) {
+  if (!showAds || posts.isEmpty) return List<Object>.from(posts);
+  const interval = 4;
+  final out = <Object>[];
+  for (var i = 0; i < posts.length; i++) {
+    out.add(posts[i]);
+    if ((i + 1) % interval == 0) {
+      out.add(const _FeedAdSlot());
+    }
+  }
+  return out;
+}
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -25,15 +45,18 @@ class _HomePageState extends ConsumerState<HomePage> {
   final _searchController = TextEditingController();
   String _searchText = '';
   bool _latestSelected = true;
-  String? _selectedTopic;
-  static const _topics = ['care', 'health', 'feeding', 'behavior'];
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final country = ref.read(appCountryProvider).valueOrNull;
-      ref.read(feedProvider.notifier).loadFirst(orderByCreated: true, countryCode: country);
+      final lang = ref.read(effectiveUILanguageCodeProvider);
+      ref.read(feedProvider.notifier).loadFirst(
+            orderByCreated: true,
+            countryCode: country,
+            languageCode: lang,
+          );
     });
   }
 
@@ -48,10 +71,11 @@ class _HomePageState extends ConsumerState<HomePage> {
       _latestSelected = latestSelected;
     }
     final country = ref.read(appCountryProvider).valueOrNull;
+    final lang = ref.read(effectiveUILanguageCodeProvider);
     ref.read(feedProvider.notifier).loadFirst(
       orderByCreated: _latestSelected,
-      topic: _selectedTopic,
       countryCode: country,
+      languageCode: lang,
     );
   }
 
@@ -65,10 +89,20 @@ class _HomePageState extends ConsumerState<HomePage> {
       if (!next.hasValue) return;
       final nextCountry = next.valueOrNull;
       if (prev?.valueOrNull == nextCountry) return;
+      final lang = ref.read(effectiveUILanguageCodeProvider);
       ref.read(feedProvider.notifier).loadFirst(
         orderByCreated: _latestSelected,
-        topic: _selectedTopic,
         countryCode: nextCountry,
+        languageCode: lang,
+      );
+    });
+    ref.listen<String>(effectiveUILanguageCodeProvider, (prev, next) {
+      if (prev == next) return;
+      final country = ref.read(appCountryProvider).valueOrNull;
+      ref.read(feedProvider.notifier).loadFirst(
+        orderByCreated: _latestSelected,
+        countryCode: country,
+        languageCode: next,
       );
     });
     final posts = feedState.posts;
@@ -84,25 +118,30 @@ class _HomePageState extends ConsumerState<HomePage> {
                 topics.contains(normalizedSearch);
           }).toList();
 
+    final showAds = ref.watch(shouldShowAdsProvider);
+    final feedRows = _feedRowsWithAds(visiblePosts, showAds);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(context.l10n.feed),
         actions: [
-          if (user != null) IconButton(icon: const Icon(Icons.pets), onPressed: () => context.push('${AppRouter.home}my-cats')),
+          if (user != null)
+            IconButton(
+              icon: const Icon(Icons.pets_rounded),
+              onPressed: () => context.push('${AppRouter.home}my-cats'),
+            ),
           IconButton(
             onPressed: () => context.push('${AppRouter.home}settings'),
             icon: unread > 0
                 ? Badge(
                     label: Text(unread > 99 ? '99+' : '$unread'),
-                    child: const Icon(Icons.person),
+                    child: const Icon(Icons.person_rounded),
                   )
-                : const Icon(Icons.person),
+                : const Icon(Icons.person_rounded),
           ),
-          if (user != null)
-            IconButton(icon: const Icon(Icons.add), onPressed: () => context.push('${AppRouter.home}post/create')),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(94),
+          preferredSize: const Size.fromHeight(118),
           child: FeedControlBar(
             searchController: _searchController,
             searchHintText: context.l10n.searchPostsHint,
@@ -122,15 +161,6 @@ class _HomePageState extends ConsumerState<HomePage> {
               setState(() => _latestSelected = false);
               _onFilterChanged(latestSelected: false);
             },
-            selectedTopic: _selectedTopic,
-            topicIds: _topics,
-            allTopicsLabel: context.l10n.allTopics,
-            topicLabelBuilder: (topicId) => topicLabel(context, topicId),
-            onTopicSelect: (id) {
-              AppFeedback.selection();
-              setState(() => _selectedTopic = id);
-              _onFilterChanged();
-            },
           ),
         ),
       ),
@@ -148,10 +178,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                   TextButton.icon(
                     onPressed: () {
                       final country = ref.read(appCountryProvider).valueOrNull;
+                      final lang = ref.read(effectiveUILanguageCodeProvider);
                       ref.read(feedProvider.notifier).loadFirst(
                         orderByCreated: _latestSelected,
-                        topic: _selectedTopic,
                         countryCode: country,
+                        languageCode: lang,
                       );
                     },
                     icon: const Icon(Icons.refresh, size: 18),
@@ -170,15 +201,16 @@ class _HomePageState extends ConsumerState<HomePage> {
                   onRefresh: () async {
                     ref.invalidate(redditTrendingProvider);
                     final country = ref.read(appCountryProvider).valueOrNull;
+                    final lang = ref.read(effectiveUILanguageCodeProvider);
                     await ref.read(feedProvider.notifier).loadFirst(
                       orderByCreated: _latestSelected,
-                      topic: _selectedTopic,
                       countryCode: country,
+                      languageCode: lang,
                     );
                   },
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
-                    itemCount: 1 + visiblePosts.length + (feedState.hasMore ? 1 : 0),
+                    itemCount: 1 + feedRows.length + (feedState.hasMore ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == 0) {
                         return Padding(
@@ -188,10 +220,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ),
                         );
                       }
-                      final postIndex = index - 1;
-                      final postCount = visiblePosts.length;
-                      if (postIndex >= postCount) {
-                        if (postIndex == postCount) {
+                      final rowIndex = index - 1;
+                      final rowCount = feedRows.length;
+                      if (rowIndex >= rowCount) {
+                        if (rowIndex == rowCount) {
                           ref.read(feedProvider.notifier).loadMore();
                         }
                         return const Padding(
@@ -199,10 +231,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                           child: Center(child: CircularProgressIndicator()),
                         );
                       }
-                      if (postIndex < 0 || postIndex >= postCount) {
+                      if (rowIndex < 0 || rowIndex >= rowCount) {
                         return const SizedBox.shrink();
                       }
-                      final post = visiblePosts[postIndex];
+                      final item = feedRows[rowIndex];
+                      if (item is _FeedAdSlot) {
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                          child: MeowAdaptiveBanner(show: showAds),
+                        );
+                      }
+                      final post = item as PostModel;
                       return PostCard(
                         post: post,
                         onOpenPost: () => context.push('${AppRouter.postDetail}/${post.postId}'),

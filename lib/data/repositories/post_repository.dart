@@ -8,6 +8,17 @@ class PostRepository {
 
   final FirebaseFirestore _firestore;
 
+  static String _normalizeLang(String? code) {
+    if (code == null || code.isEmpty) return 'en';
+    final t = code.trim().toLowerCase();
+    if (t.startsWith('zh')) return 'zh';
+    return t.length >= 2 ? t.substring(0, 2) : t;
+  }
+
+  static bool _postMatchesLanguage(String postLang, String wantLang) {
+    return _normalizeLang(postLang) == _normalizeLang(wantLang);
+  }
+
   /// Fetch published posts with limit and startAfter for pagination.
   /// orderByCreated: true = 按 createdAt 最新，客户端再滤 [isPubliclyVisibleInFeed]；false = score DESC（热榜，客户端再滤）。
   /// Returns list and the last document snapshot for next page (null if fewer than limit).
@@ -18,6 +29,7 @@ class PostRepository {
     List<String>? breedIds,
     List<String>? topics,
     String? countryCode,
+    String? languageCode,
   }) async {
     Query<Map<String, dynamic>> q = _firestore
         .collection(AppConstants.postsCollection)
@@ -44,16 +56,32 @@ class PostRepository {
       q = q.startAfterDocument(startAfter);
     }
 
-    // topic 筛选使用客户端兜底，避免依赖线上尚未创建完成的复合索引导致切换失败。
+    // topic / language 筛选使用客户端兜底，避免复合索引与分页不一致。
     final hasTopicFilter = topics != null && topics.isNotEmpty;
+    final wantLang = languageCode != null && languageCode.isNotEmpty
+        ? _normalizeLang(languageCode)
+        : null;
+    final hasLangFilter = wantLang != null;
     final fetchLimit = orderByCreated
-        ? (hasTopicFilter ? limit * 4 : limit * 3)
-        : (hasTopicFilter ? limit * 5 : limit * 8);
+        ? (hasTopicFilter
+            ? limit * 4
+            : hasLangFilter
+                ? limit * 5
+                : limit * 3)
+        : (hasTopicFilter
+            ? limit * 5
+            : hasLangFilter
+                ? limit * 10
+                : limit * 8);
     q = q.limit(fetchLimit);
 
     final snap = await q.get();
     var list = snap.docs.map((d) => PostModel.fromMap(d.data(), d.id)).toList();
     list = list.where((p) => p.isPubliclyVisibleInFeed).toList();
+    final langFilter = wantLang;
+    if (langFilter != null) {
+      list = list.where((p) => _postMatchesLanguage(p.language, langFilter)).toList();
+    }
     if (hasTopicFilter) {
       final wanted = topics.first;
       list = list.where((p) => p.topics.contains(wanted)).take(limit).toList();
@@ -72,19 +100,31 @@ class PostRepository {
   }
 
   /// Reddit-sourced posts for the "Trending from Reddit" block (authorId == 'reddit', by score).
-  Future<List<PostModel>> getRedditTrendingPosts({int limit = 10}) async {
+  Future<List<PostModel>> getRedditTrendingPosts({
+    int limit = 10,
+    String? languageCode,
+  }) async {
+    final wantLang = languageCode != null && languageCode.isNotEmpty
+        ? _normalizeLang(languageCode)
+        : null;
+    final fetch = wantLang != null ? limit * 8 : limit * 5;
     final snap = await _firestore
         .collection(AppConstants.postsCollection)
         .where('status', isEqualTo: 'published')
         .where('authorId', isEqualTo: 'reddit')
         .orderBy('score', descending: true)
-        .limit(limit * 5)
+        .limit(fetch)
         .get();
-    return snap.docs
+    var rows = snap.docs
         .map((d) => PostModel.fromMap(d.data(), d.id))
         .where((p) => p.isPubliclyVisibleInFeed)
-        .take(limit)
         .toList();
+    if (wantLang != null) {
+      rows = rows.where((p) => _postMatchesLanguage(p.language, wantLang)).take(limit).toList();
+    } else {
+      rows = rows.take(limit).toList();
+    }
+    return rows;
   }
 
 
