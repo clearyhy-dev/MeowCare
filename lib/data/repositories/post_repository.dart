@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../models/post_media_item.dart';
 import '../../models/post_model.dart';
 
 class PostRepository {
@@ -139,6 +140,7 @@ class PostRepository {
     String countryCode = '',
     String language = 'en',
     bool? hasImage,
+    String linkUrl = '',
   }) async {
     final ref = _firestore.collection(AppConstants.postsCollection).doc();
     final inferredHasImage = hasImage ?? coverUrl.trim().isNotEmpty;
@@ -157,6 +159,7 @@ class PostRepository {
       commentCount: 0,
       score: 0,
       countryCode: countryCode,
+      linkUrl: linkUrl.trim(),
       language: language.isNotEmpty ? language.toLowerCase() : 'en',
       hasImage: inferredHasImage ? true : null,
       createdAt: DateTime.now(),
@@ -175,6 +178,32 @@ class PostRepository {
     await _firestore.collection(AppConstants.postsCollection).doc(postId).update({
       'coverUrl': coverUrl,
       'hasImage': true,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// 多图 / 视频上传完成后写入 `media` 并同步 `coverUrl`/`thumbnailUrl`（列表首帧预览）。
+  Future<void> updatePostMedia({
+    required String postId,
+    required List<PostMediaItem> mediaItems,
+  }) async {
+    var cover = '';
+    var thumb = '';
+    if (mediaItems.isNotEmpty) {
+      final f = mediaItems.first;
+      if (f.isVideo) {
+        cover = (f.thumbnailUrl ?? '').trim().isNotEmpty ? f.thumbnailUrl!.trim() : f.url;
+        thumb = (f.thumbnailUrl ?? '').trim().isNotEmpty ? f.thumbnailUrl!.trim() : f.url;
+      } else {
+        cover = f.url;
+        thumb = (f.thumbnailUrl ?? '').trim().isNotEmpty ? f.thumbnailUrl!.trim() : f.url;
+      }
+    }
+    await _firestore.collection(AppConstants.postsCollection).doc(postId).update({
+      'media': mediaItems.map((e) => e.toMap()).toList(),
+      'coverUrl': cover,
+      'thumbnailUrl': thumb,
+      'hasImage': mediaItems.isNotEmpty,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

@@ -3,17 +3,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'core/app_launch.dart';
 import 'core/router/app_router.dart' show AppRouter, GoRouterRefreshNotifier;
 import 'core/theme/app_theme.dart';
 import 'generated/l10n/app_localizations.dart';
 import 'providers/locale_provider.dart';
 import 'providers/user_provider.dart';
+import 'widgets/ads/ad_navigation_observer.dart';
+import 'widgets/ads/app_open_ad_gate.dart';
+
+const _kAppLaunchCountKey = 'app_launch_count';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await MobileAds.instance.initialize();
+  final prefs = await SharedPreferences.getInstance();
+  appLaunchCount = (prefs.getInt(_kAppLaunchCountKey) ?? 0) + 1;
+  await prefs.setInt(_kAppLaunchCountKey, appLaunchCount);
   runApp(const ProviderScope(child: MeowCareApp()));
 }
 
@@ -32,17 +41,19 @@ class MeowCareApp extends ConsumerWidget {
     final manualLocale = localeAsync.valueOrNull;
 
     final supported = AppLocalizations.supportedLocales;
-    return MaterialApp.router(
-      onGenerateTitle: (ctx) => AppLocalizations.of(ctx)!.appTitle,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: supported,
-      locale: manualLocale,
-      localeResolutionCallback: (Locale? deviceLocale, Iterable<Locale> supportedLocales) {
-        return resolveDeviceLocale(deviceLocale, supportedLocales.toList());
-      },
-      routerConfig: router,
+    return AppOpenAdGate(
+      child: MaterialApp.router(
+        onGenerateTitle: (ctx) => AppLocalizations.of(ctx)!.appTitle,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: supported,
+        locale: manualLocale,
+        localeResolutionCallback: (Locale? deviceLocale, Iterable<Locale> supportedLocales) {
+          return resolveDeviceLocale(deviceLocale, supportedLocales.toList());
+        },
+        routerConfig: router,
+      ),
     );
   }
 }
@@ -53,5 +64,6 @@ final routerRefreshNotifierProvider = Provider<GoRouterRefreshNotifier>((ref) {
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final notifier = ref.watch(routerRefreshNotifierProvider);
-  return AppRouter.createRouter(notifier);
+  final observers = ref.watch(adNavigationObserversProvider);
+  return AppRouter.createRouter(notifier, observers: observers);
 });

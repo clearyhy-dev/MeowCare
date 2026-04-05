@@ -550,11 +550,29 @@ abstract class AppLocalizations {
   /// **'Upgrade to Pro (demo)'**
   String get upgradeToPro;
 
+  /// No description provided for @proPriceMonthlyUsd.
+  ///
+  /// In en, this message translates to:
+  /// **'\$5.99/mo'**
+  String get proPriceMonthlyUsd;
+
+  /// No description provided for @proRemovesAds.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes all ads'**
+  String get proRemovesAds;
+
   /// No description provided for @proActivated.
   ///
   /// In en, this message translates to:
   /// **'Pro activated (demo)'**
   String get proActivated;
+
+  /// No description provided for @aiRewardedRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch the video to continue, or upgrade to Pro.'**
+  String get aiRewardedRequired;
 
   /// No description provided for @settings.
   ///
@@ -609,6 +627,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Invite code copied'**
   String get inviteCodeCopied;
+
+  /// No description provided for @inviteCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Share this code. After someone signs in, they can choose \"I have an invite code\" on the family setup screen and enter it to join your family.'**
+  String get inviteCodeHint;
+
+  /// No description provided for @familyRoleOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner'**
+  String get familyRoleOwner;
+
+  /// No description provided for @familyRoleMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Member'**
+  String get familyRoleMember;
 
   /// No description provided for @familyMembers.
   ///
@@ -855,6 +891,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add image'**
   String get postAddImage;
+
+  /// No description provided for @postAddImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Add photos'**
+  String get postAddImages;
+
+  /// No description provided for @postAddVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Add video'**
+  String get postAddVideo;
+
+  /// No description provided for @postMediaSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos & video'**
+  String get postMediaSection;
+
+  /// No description provided for @postMediaHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to 6 photos and 1 video (max 40s). Swipe order is the same as below.'**
+  String get postMediaHint;
+
+  /// No description provided for @postMaxSixImages.
+  ///
+  /// In en, this message translates to:
+  /// **'You can add up to 6 photos.'**
+  String get postMaxSixImages;
+
+  /// No description provided for @postOneVideoOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only one video per post.'**
+  String get postOneVideoOnly;
+
+  /// No description provided for @postVideoTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Video must be 40 seconds or less.'**
+  String get postVideoTooLong;
+
+  /// No description provided for @postVideoPickFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not use this video.'**
+  String get postVideoPickFailed;
+
+  /// No description provided for @postSelectCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a community'**
+  String get postSelectCommunity;
+
+  /// No description provided for @postBodyOptionalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'body text (optional)'**
+  String get postBodyOptionalHint;
+
+  /// No description provided for @postAddTagsFlairOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Add tags & flair (optional)'**
+  String get postAddTagsFlairOptional;
+
+  /// No description provided for @postFeatureComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon.'**
+  String get postFeatureComingSoon;
+
+  /// No description provided for @postLinkAttachment.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get postLinkAttachment;
+
+  /// No description provided for @postInvalidUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid http(s) URL.'**
+  String get postInvalidUrl;
+
+  /// No description provided for @postNeedCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a community to post.'**
+  String get postNeedCommunity;
 
   /// No description provided for @postRemoveImage.
   ///

@@ -68,12 +68,30 @@ Cloud Functions **第 2 代** 每个导出函数在 Cloud Run 中会显示为**�
 
 ## 2. FastAPI 后台
 
+### 本地运行
+
 ```bash
 cd backend
 pip install -r requirements.txt
 cp .env.example .env   # 按说明填写
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+### 发布到 Cloud Run（后续均按此方式）
+
+后端必须部署在 **与 Firebase 同一 GCP 项目**（`meowcare-d8391`）。若省略 `--project`，`gcloud` 可能把服务发到错误账号下的项目。
+
+在仓库根目录执行：
+
+```bash
+cd backend
+gcloud run deploy meowcare-api --source . --region asia-east1 --allow-unauthenticated --quiet --project meowcare-d8391
+```
+
+- 发布前需已安装 [Google Cloud SDK](https://cloud.google.com/sdk) 并 `gcloud auth login`，且账号对 `meowcare-d8391` 有部署权限。
+- 更多场景（只改环境变量、Secret、强制重启等）见 [docs/cloud_run_deploy.md](docs/cloud_run_deploy.md)。
+
+管理页：`https://meowcare-api-394032854754.asia-east1.run.app/admin`（与下方默认 API 同源）。
 
 常见环境变量：
 
@@ -87,13 +105,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 | `ENV=production` | 生产校验上述必填项 |
 | `CONTENT_JOB_SECRET` | `POST /content-jobs/daily-run` 等 Cron 鉴权（可选） |
 
-管理页：`https://<你的CloudRun地址>/admin`  
-Cloud Run 部署与管理员密码注意项：[docs/cloud_run_deploy.md](docs/cloud_run_deploy.md)。
-
-```bash
-cd backend
-gcloud run deploy meowcare-api --source . --region asia-east1 --allow-unauthenticated
-```
+客户端默认 API 基址：`lib/core/constants/app_constants.dart` 中 `MEOWCARE_BACKEND_URL` 默认值（`https://meowcare-api-394032854754.asia-east1.run.app`）。本地或换地址时用 `--dart-define=MEOWCARE_BACKEND_URL=...` 覆盖。
 
 ---
 

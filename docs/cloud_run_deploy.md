@@ -4,6 +4,23 @@ Cloud Run 没有“重启”概念，只有：重新部署代码、更新环境�
 
 ---
 
+## GCP 项目（必读）
+
+MeowCare 后端必须部署在 **与 Firebase 同一 GCP 项目** 上，Admin SDK 才能访问同一套 Firestore / Storage。
+
+| 项 | 值 |
+|----|-----|
+| **项目 ID** | `meowcare-d8391`（与 `android/app/google-services.json` 里 `project_id` 一致） |
+| **常见错误** | 本机 `gcloud` 默认项目若是其他（例如 `steamdeal`），**不带 `--project` 会把 `meowcare-api` 部署到错误项目**。 |
+
+下文命令均带 `--project meowcare-d8391`。也可先执行一次全局默认：
+
+```bash
+gcloud config set project meowcare-d8391
+```
+
+---
+
 ## 一句话总结
 
 | 需求         | 做法                         |
@@ -21,7 +38,7 @@ Cloud Run 没有“重启”概念，只有：重新部署代码、更新环境�
 
 ```bash
 cd D:\googleplay\MeowCare\backend
-gcloud run deploy meowcare-api --source . --region asia-east1 --allow-unauthenticated --quiet
+gcloud run deploy meowcare-api --source . --region asia-east1 --allow-unauthenticated --quiet --project meowcare-d8391
 ```
 
 会重新构建、创建新 revision、自动把流量切到新版本。旧 revision 保留，可回滚。
@@ -33,7 +50,7 @@ gcloud run deploy meowcare-api --source . --region asia-east1 --allow-unauthenti
 例如更新 GEMINI_API_KEY：
 
 ```bash
-gcloud run services update meowcare-api --region asia-east1 --set-secrets="GEMINI_API_KEY=gemini-api-key:latest"
+gcloud run services update meowcare-api --region asia-east1 --set-secrets="GEMINI_API_KEY=gemini-api-key:latest" --project meowcare-d8391
 ```
 
 不会重新 build，只创建新 revision。
@@ -47,7 +64,7 @@ gcloud run services update meowcare-api --region asia-east1 --set-secrets="GEMIN
 ### 方式 A：直接设环境变量（适合无特殊字符的密码）
 
 ```bash
-gcloud run services update meowcare-api --region asia-east1 --update-env-vars="ADMIN_USERNAME=admin,ADMIN_PASSWORD=wu2612103"
+gcloud run services update meowcare-api --region asia-east1 --update-env-vars="ADMIN_USERNAME=admin,ADMIN_PASSWORD=wu2612103" --project meowcare-d8391
 ```
 
 ### 方式 B：用 Secret Manager（推荐生产环境或含特殊字符时）
@@ -57,20 +74,20 @@ gcloud run services update meowcare-api --region asia-east1 --update-env-vars="A
 - 在 [Secret Manager](https://console.cloud.google.com/security/secret-manager) 创建密钥 `admin-password`，密钥值填 `wu2612103`；或 PowerShell：
   ```powershell
   [System.IO.File]::WriteAllText("pass.txt", "wu2612103")
-  gcloud secrets create admin-password --data-file=pass.txt
+  gcloud secrets create admin-password --data-file=pass.txt --project meowcare-d8391
   Remove-Item pass.txt
   ```
 
 **步骤 2 — 授权**（将 `PROJECT_NUMBER` 换成项目编号）
 
 ```bash
-gcloud secrets add-iam-policy-binding admin-password --member="serviceAccount:PROJECT_NUMBER-compute@developer.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
+gcloud secrets add-iam-policy-binding admin-password --member="serviceAccount:PROJECT_NUMBER-compute@developer.gserviceaccount.com" --role="roles/secretmanager.secretAccessor" --project meowcare-d8391
 ```
 
 **步骤 3 — 使用该 Secret**
 
 ```bash
-gcloud run services update meowcare-api --region asia-east1 --set-secrets="ADMIN_PASSWORD=admin-password:latest"
+gcloud run services update meowcare-api --region asia-east1 --set-secrets="ADMIN_PASSWORD=admin-password:latest" --project meowcare-d8391
 ```
 
 
@@ -84,13 +101,13 @@ Cloud Run 没有 `restart` 命令，可通过加一个无用环境变量强制�
 **Linux / macOS：**
 
 ```bash
-gcloud run services update meowcare-api --region asia-east1 --update-env-vars=RESTART=$(date +%s)
+gcloud run services update meowcare-api --region asia-east1 --update-env-vars=RESTART=$(date +%s) --project meowcare-d8391
 ```
 
 **Windows CMD：**
 
 ```bash
-gcloud run services update meowcare-api --region asia-east1 --update-env-vars=RESTART=%RANDOM%
+gcloud run services update meowcare-api --region asia-east1 --update-env-vars=RESTART=%RANDOM% --project meowcare-d8391
 ```
 
 会创建新 revision，容器会重新启动。
@@ -102,14 +119,14 @@ gcloud run services update meowcare-api --region asia-east1 --update-env-vars=RE
 完全重新来一遍：
 
 ```bash
-gcloud run services delete meowcare-api --region asia-east1
+gcloud run services delete meowcare-api --region asia-east1 --project meowcare-d8391
 ```
 
 然后重新部署：
 
 ```bash
 cd D:\googleplay\MeowCare\backend
-gcloud run deploy meowcare-api --source . --region asia-east1 --allow-unauthenticated --quiet
+gcloud run deploy meowcare-api --source . --region asia-east1 --allow-unauthenticated --quiet --project meowcare-d8391
 ```
 
 注意：会删除历史 revision。
@@ -120,13 +137,13 @@ gcloud run deploy meowcare-api --source . --region asia-east1 --allow-unauthenti
 
 ```bash
 # 服务列表
-gcloud run services list --region asia-east1
+gcloud run services list --region asia-east1 --project meowcare-d8391
 
 # revision 列表
-gcloud run revisions list --region asia-east1
+gcloud run revisions list --region asia-east1 --project meowcare-d8391
 
-# 最近日志
-gcloud logs read --limit=50
+# 最近日志（可按需加 --project）
+gcloud logs read --limit=50 --project meowcare-d8391
 ```
 
 ---

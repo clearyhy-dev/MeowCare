@@ -69,3 +69,15 @@ class FamilyMemberModel {
 
   bool get isOwner => role == FamilyRole.owner;
 }
+
+/// [FamilyMemberModel] plus display name from `users/{uid}` for UI lists.
+class FamilyMemberDisplay {
+  final FamilyMemberModel member;
+  /// From Firestore `users.displayName`; falls back to [FamilyMemberModel.uid] if empty.
+  final String displayName;
+
+  const FamilyMemberDisplay({
+    required this.member,
+    required this.displayName,
+  });
+}

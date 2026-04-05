@@ -16,7 +16,7 @@ import '../../providers/family_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../providers/user_provider.dart';
-import '../../widgets/ads/meow_adaptive_banner.dart';
+import '../../widgets/ads/meow_native_ad.dart';
 import '../../widgets/app/app_button.dart';
 import '../../widgets/app/app_empty_state.dart';
 import '../../widgets/settings/app_language_sheet.dart';
@@ -146,7 +146,20 @@ class SettingsScreen extends ConsumerWidget {
                 if (family != null) ...[
                   SettingsTile(
                     title: context.l10n.inviteCode,
-                    subtitleWidget: SelectableText(family.inviteCode),
+                    subtitleWidget: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(context.l10n.inviteCodeHint),
+                        const SizedBox(height: 6),
+                        SelectableText(
+                          family.inviteCode,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 1.2,
+                              ),
+                        ),
+                      ],
+                    ),
                     trailing: IconButton(
                       icon: const Icon(Icons.copy_rounded),
                       onPressed: () => _copyInviteCode(context, family.inviteCode),
@@ -205,10 +218,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 if (showAds) ...[
                   SizedBox(height: AppSpacing.xl),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppInsets.screenPadding),
-                    child: MeowAdaptiveBanner(show: showAds),
-                  ),
+                  MeowNativeAdTile(show: showAds),
                 ],
               ],
             ),
@@ -273,7 +283,7 @@ class SettingsScreen extends ConsumerWidget {
         ),
         if (showAds) ...[
           SizedBox(height: AppSpacing.xl),
-          MeowAdaptiveBanner(show: showAds),
+          MeowNativeAdTile(show: showAds),
         ],
       ],
     );
@@ -294,7 +304,16 @@ class SettingsScreen extends ConsumerWidget {
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: members.map((m) => ListTile(title: Text(m.uid), subtitle: Text(m.role.value))).toList(),
+              children: members
+                  .map(
+                    (row) => ListTile(
+                      title: Text(row.displayName),
+                      subtitle: Text(
+                        row.member.isOwner ? context.l10n.familyRoleOwner : context.l10n.familyRoleMember,
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
           ),
           actions: [

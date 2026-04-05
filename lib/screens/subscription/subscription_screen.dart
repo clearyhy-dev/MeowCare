@@ -62,7 +62,16 @@ class SubscriptionScreen extends ConsumerWidget {
                       ),
                   ],
                 ),
+                const SizedBox(height: 6),
+                Text(
+                  context.l10n.proPriceMonthlyUsd,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
                 const SizedBox(height: 12),
+                Text('• ${context.l10n.proRemovesAds}', style: Theme.of(context).textTheme.bodyLarge),
                 Text('• ${context.l10n.multipleCats}', style: Theme.of(context).textTheme.bodyLarge),
                 Text('• ${context.l10n.multipleMembers}', style: Theme.of(context).textTheme.bodyLarge),
                 Text('• ${context.l10n.unlimitedAi}', style: Theme.of(context).textTheme.bodyLarge),

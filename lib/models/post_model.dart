@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'post_media_item.dart';
+
 class PostModel {
   final String postId;
   final String type; // 'official' | 'ugc'
@@ -22,10 +24,14 @@ class PostModel {
   final String countryCode;
   /// Reddit 原帖链接，用于「View discussion on Reddit」
   final String redditPermalink;
+  /// 发帖时附加的链接（与正文独立，可选）
+  final String linkUrl;
   /// 内容语言（如 en、zh）；缺失时 UI 默认 EN。
   final String language;
   /// 显式是否有图；为 null 时由 [displayImageUrl] 是否非空推断。
   final bool? hasImage;
+  /// 有序多图 / 视频；为空时回退 [coverUrl]/[thumbnailUrl] 单图逻辑。
+  final List<PostMediaItem> mediaItems;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   /// 实际上线时间；已发布且晚于当前时间则不应在 Feed 展示（新数据由后端写入）。
@@ -49,8 +55,10 @@ class PostModel {
     this.score = 0,
     this.countryCode = '',
     this.redditPermalink = '',
+    this.linkUrl = '',
     this.language = 'en',
     this.hasImage,
+    this.mediaItems = const [],
     this.createdAt,
     this.updatedAt,
     this.publishedAt,
@@ -58,6 +66,17 @@ class PostModel {
 
   /// 列表展示用图片 URL：优先缩略图，否则封面。
   String get displayImageUrl {
+    if (mediaItems.isNotEmpty) {
+      final first = mediaItems.first;
+      if (first.isVideo) {
+        final t = first.thumbnailUrl?.trim() ?? '';
+        if (t.isNotEmpty) return t;
+        return first.url;
+      }
+      final t = first.thumbnailUrl?.trim() ?? '';
+      if (t.isNotEmpty) return t;
+      return first.url;
+    }
     if (thumbnailUrl.isNotEmpty) return thumbnailUrl;
     return coverUrl;
   }
@@ -73,9 +92,10 @@ class PostModel {
 
   /// 是否渲染图片区域（无 URL 或显式 false 则不占位）。
   bool get shouldShowImage {
+    if (hasImage == false) return false;
+    if (mediaItems.isNotEmpty) return true;
     final url = displayImageUrl.trim();
     if (url.isEmpty) return false;
-    if (hasImage == false) return false;
     return true;
   }
 
@@ -99,6 +119,7 @@ class PostModel {
       'redditPermalink': redditPermalink,
       'language': language,
       if (hasImage != null) 'hasImage': hasImage,
+      if (mediaItems.isNotEmpty) 'media': mediaItems.map((e) => e.toMap()).toList(),
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : FieldValue.serverTimestamp(),
       if (publishedAt != null) 'publishedAt': Timestamp.fromDate(publishedAt!),
@@ -113,6 +134,22 @@ class PostModel {
     bool? hasImage;
     if (hasImageRaw is bool) {
       hasImage = hasImageRaw;
+    }
+    var mediaItems = <PostMediaItem>[];
+    final mediaRaw = map['media'];
+    if (mediaRaw is List) {
+      for (final e in mediaRaw) {
+        if (e is Map<String, dynamic>) {
+          mediaItems.add(PostMediaItem.fromMap(e));
+        } else if (e is Map) {
+          mediaItems.add(PostMediaItem.fromMap(Map<String, dynamic>.from(e)));
+        }
+      }
+    }
+    final coverFallback = map['coverUrl'] as String? ?? '';
+    if (mediaItems.isEmpty && coverFallback.trim().isNotEmpty) {
+      final th = map['thumbnailUrl'] as String?;
+      mediaItems = [PostMediaItem.image(coverFallback, thumbnailUrl: (th != null && th.isNotEmpty) ? th : null)];
     }
     return PostModel(
       postId: postId,
@@ -132,8 +169,10 @@ class PostModel {
       score: (map['score'] as num?)?.toDouble() ?? 0,
       countryCode: map['countryCode'] as String? ?? '',
       redditPermalink: map['redditPermalink'] as String? ?? '',
+      linkUrl: map['linkUrl'] as String? ?? '',
       language: (map['language'] as String? ?? 'en').toLowerCase(),
       hasImage: hasImage,
+      mediaItems: mediaItems,
       createdAt: createdAt is Timestamp ? createdAt.toDate() : null,
       updatedAt: updatedAt is Timestamp ? updatedAt.toDate() : null,
       publishedAt: publishedAtRaw is Timestamp ? publishedAtRaw.toDate() : null,

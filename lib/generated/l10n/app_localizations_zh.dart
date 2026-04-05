@@ -238,7 +238,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get upgradeToPro => '升级到 Pro（演示）';
 
   @override
+  String get proPriceMonthlyUsd => 'US\$5.99/月';
+
+  @override
+  String get proRemovesAds => '去除全部广告';
+
+  @override
   String get proActivated => '已开通 Pro（演示）';
+
+  @override
+  String get aiRewardedRequired => '请观看视频以继续，或升级到 Pro。';
 
   @override
   String get settings => '设置';
@@ -266,6 +275,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get inviteCodeCopied => '邀请码已复制';
+
+  @override
+  String get inviteCodeHint => '将码发给家人。对方登录后，在创建/加入家庭页面选择「我有邀请码」并输入此码即可加入你的家庭。';
+
+  @override
+  String get familyRoleOwner => '家长';
+
+  @override
+  String get familyRoleMember => '成员';
 
   @override
   String get familyMembers => '家庭成员';
@@ -390,17 +408,61 @@ class AppLocalizationsZh extends AppLocalizations {
   String get postButton => '发帖';
 
   @override
-  String get postAddImage => 'Add image';
+  String get postAddImage => '添加图片';
 
   @override
-  String get postRemoveImage => 'Remove image';
+  String get postAddImages => '添加图片';
 
   @override
-  String get postImagePickFailed => 'Could not pick image.';
+  String get postAddVideo => '添加视频';
 
   @override
-  String get postImageUploadFailed =>
-      'Image upload failed. The post may be published without a cover.';
+  String get postMediaSection => '图片与视频';
+
+  @override
+  String get postMediaHint => '最多 6 张图片 + 1 段视频（不超过 40 秒）；下方顺序即为滑动浏览顺序。';
+
+  @override
+  String get postMaxSixImages => '最多添加 6 张图片。';
+
+  @override
+  String get postOneVideoOnly => '每条帖子只能添加 1 段视频。';
+
+  @override
+  String get postVideoTooLong => '视频时长不能超过 40 秒。';
+
+  @override
+  String get postVideoPickFailed => '无法使用该视频。';
+
+  @override
+  String get postSelectCommunity => '选择社区 / 分类';
+
+  @override
+  String get postBodyOptionalHint => '正文（可选）';
+
+  @override
+  String get postAddTagsFlairOptional => '添加标签与 flair（可选）';
+
+  @override
+  String get postFeatureComingSoon => '即将推出。';
+
+  @override
+  String get postLinkAttachment => '链接';
+
+  @override
+  String get postInvalidUrl => '请输入有效的 http(s) 链接。';
+
+  @override
+  String get postNeedCommunity => '请先选择要发帖的社区。';
+
+  @override
+  String get postRemoveImage => '移除';
+
+  @override
+  String get postImagePickFailed => '无法选择图片。';
+
+  @override
+  String get postImageUploadFailed => '图片上传失败，帖子可能已不带配图发布。';
 
   @override
   String get submit => '提交';

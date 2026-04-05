@@ -15,6 +15,14 @@ from firebase_admin import auth as firebase_auth, firestore
 
 from app.config import ADMIN_PASSWORD, ADMIN_USERNAME, SECRET_KEY
 from app.dependencies import get_identity, require_admin
+from app.services.synthetic_users import (
+    SETTINGS_COLLECTION,
+    SETTINGS_POOL_DOC,
+    batch_comments_on_published_posts,
+    create_synthetic_users_batch,
+    randomize_synthetic_display_names,
+    rebuild_pool_from_firestore,
+)
 
 
 def _get_admin_creds():
@@ -143,6 +151,7 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
           <a href="#" data-page="reports">举报</a>
           <a href="#" data-page="cats">宠物管理</a>
           <a href="#" data-page="users">用户管理</a>
+          <a href="#" data-page="synthetic">合成用户</a>
           <a href="#" id="navDailyContent" onclick="event.preventDefault(); showTab('daily-content');">每日内容</a>
           <a href="#" data-page="reddit" class="reddit-nav">Reddit 导入</a>
         </div>
@@ -277,7 +286,35 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
           data = await r.json().catch(function() { return {}; });
           items = data.items;
           if (!Array.isArray(items)) items = [];
-          content.innerHTML = '<div class="card"><h2>用户列表</h2><table><thead><tr><th>uid</th><th>邮箱</th><th>显示名</th><th>家庭</th><th>操作</th></tr></thead><tbody>' + (items.length === 0 ? '<tr><td colspan="5" class="empty">暂无数据。</td></tr>' : items.map(function(u) { var uid = u.uid || ''; return '<tr><td>' + escHtml(uid) + '</td><td>' + escHtml(u.email) + '</td><td>' + escHtml(u.displayName) + '</td><td>' + escHtml(u.familyId) + '</td><td><button class="danger" onclick="deleteUserAdmin(\\\'' + uid + '\\\')">删除</button></td></tr>'; }).join('')) + '</tbody></table></div>';
+          content.innerHTML = '<div class="card"><h2>用户列表</h2><table><thead><tr><th>uid</th><th>邮箱</th><th>显示名</th><th>家庭</th><th>账号类型</th><th>操作</th></tr></thead><tbody>' + (items.length === 0 ? '<tr><td colspan="6" class="empty">暂无数据。</td></tr>' : items.map(function(u) { var uid = u.uid || ''; return '<tr><td>' + escHtml(uid) + '</td><td>' + escHtml(u.email) + '</td><td>' + escHtml(u.displayName) + '</td><td>' + escHtml(u.familyId) + '</td><td>' + escHtml(u.accountKind || '') + '</td><td><button class="danger" onclick="deleteUserAdmin(\\\'' + uid + '\\\')">删除</button></td></tr>'; }).join('')) + '</tbody></table></div>';
+        } else if (page === 'synthetic') {
+          url = API + '/admin/synthetic-users';
+          r = await fetch(url, { headers: headers() });
+          if (authFail(r)) return;
+          if (!r.ok) { content.innerHTML = '<p class="err">请求失败 ' + r.status + '</p>'; return; }
+          data = await r.json().catch(function() { return {}; });
+          items = data.items;
+          if (!Array.isArray(items)) items = [];
+          content.innerHTML = '<div class="card"><h2>合成用户（电脑生成）</h2>' +
+            '<p style="color:#666;font-size:14px;margin:0 0 12px;">用于自动发文、批量评论；无 Firebase Auth，UID 以 syn_ 开头。真人注册用户在「用户管理」中显示为 registered。</p>' +
+            '<div class="toolbar" style="flex-wrap:wrap;gap:8px;margin-bottom:16px;">' +
+            '<label>批量创建数量 <input type="number" id="synCount" min="1" max="200" value="10" style="width:72px;" /></label>' +
+            '<button type="button" class="primary" onclick="generateSyntheticUsers()">创建合成用户</button>' +
+            '<button type="button" onclick="randomizeSyntheticNames()">随机换昵称</button>' +
+            '<button type="button" onclick="rebuildSyntheticPool()">从 Firestore 重建用户池</button>' +
+            '</div>' +
+            '<div class="card" style="margin-bottom:16px;"><h3 style="margin-top:0;">批量评论已发布帖子</h3>' +
+            '<div class="toolbar" style="flex-wrap:wrap;gap:8px;">' +
+            '<label>最多帖子数 <input type="number" id="synMaxPosts" min="1" max="200" value="20" style="width:64px;" /></label>' +
+            '<label>每帖评论数 <input type="number" id="synPerPost" min="1" max="20" value="2" style="width:64px;" /></label>' +
+            '<label>语言 <select id="synLang"><option value="zh">zh</option><option value="en">en</option></select></label>' +
+            '<button type="button" class="primary" onclick="batchCommentSynthetic()">执行批量评论</button>' +
+            '</div></div>' +
+            '<p id="synMsg" class="hint" style="min-height:1.2em;"></p>' +
+            '<table><thead><tr><th>uid</th><th>显示名</th><th>类型</th></tr></thead><tbody>' +
+            (items.length === 0 ? '<tr><td colspan="3" class="empty">池中暂无合成用户，请先创建。</td></tr>' : items.map(function(u) {
+              return '<tr><td>' + escHtml(u.uid) + '</td><td>' + escHtml(u.displayName) + '</td><td>' + escHtml(u.accountKind || '') + '</td></tr>';
+            }).join('')) + '</tbody></table></div>';
         } else if (page === 'daily-content') {
           content.innerHTML = '<section id="tab-daily-content"><h2 style="margin-top:0;color:#333;">每日内容生成</h2>' +
             '<div class="card daily-form">' +
@@ -531,10 +568,56 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
       } catch (e) { alert(e.message); }
     }
     async function deleteUserAdmin(uid) {
-      if (!confirm('确定删除该用户？将同时删除 Firebase Auth 账号。')) return;
+      var syn = (uid || '').indexOf('syn_') === 0;
+      var msg = syn ? '确定删除该电脑生成用户？仅删除 Firestore 数据，不会调用 Firebase Auth。' : '确定删除该用户？将同时删除 Firebase Auth 账号。';
+      if (!confirm(msg)) return;
       try {
         const r = await fetch(API + '/admin/users/' + encodeURIComponent(uid), { method: 'DELETE', headers: headers() });
         if (r.ok) loadPage('users'); else alert((await r.json()).detail || '操作失败');
+      } catch (e) { alert(e.message); }
+    }
+    async function generateSyntheticUsers() {
+      var n = parseInt(document.getElementById('synCount').value, 10) || 10;
+      var msg = document.getElementById('synMsg');
+      try {
+        var r = await fetch(API + '/admin/synthetic-users/generate', { method: 'POST', headers: headers(), body: JSON.stringify({ count: n }) });
+        var d = await r.json().catch(function() { return {}; });
+        if (!r.ok) { alert(d.detail || '失败'); return; }
+        if (msg) msg.textContent = '已创建 ' + (d.created || 0) + ' 个用户。';
+        loadPage('synthetic');
+      } catch (e) { alert(e.message); }
+    }
+    async function batchCommentSynthetic() {
+      var maxPosts = parseInt(document.getElementById('synMaxPosts').value, 10) || 20;
+      var cpp = parseInt(document.getElementById('synPerPost').value, 10) || 2;
+      var lang = document.getElementById('synLang').value || 'zh';
+      try {
+        var r = await fetch(API + '/admin/synthetic-users/batch-comment', { method: 'POST', headers: headers(), body: JSON.stringify({ max_posts: maxPosts, comments_per_post: cpp, lang: lang }) });
+        var d = await r.json().catch(function() { return {}; });
+        if (!r.ok) { alert(d.detail || '失败'); return; }
+        alert('评论完成：帖子 ' + (d.posts || 0) + ' 条，评论 ' + (d.comments || 0) + ' 条。');
+        if (d.errors && d.errors.length) alert('部分错误：' + d.errors.slice(0, 5).join('\\n'));
+        loadPage('synthetic');
+      } catch (e) { alert(e.message); }
+    }
+    async function randomizeSyntheticNames() {
+      if (!confirm('确定将所有合成用户随机换昵称？')) return;
+      try {
+        var r = await fetch(API + '/admin/synthetic-users/randomize-names', { method: 'POST', headers: headers() });
+        var d = await r.json().catch(function() { return {}; });
+        if (!r.ok) { alert(d.detail || '失败'); return; }
+        alert('已更新 ' + (d.updated || 0) + ' 个昵称');
+        loadPage('synthetic');
+      } catch (e) { alert(e.message); }
+    }
+    async function rebuildSyntheticPool() {
+      if (!confirm('从 users 集合扫描 syn_ 前缀并重建 settings/synthetic_user_pool？')) return;
+      try {
+        var r = await fetch(API + '/admin/synthetic-users/rebuild-pool', { method: 'POST', headers: headers() });
+        var d = await r.json().catch(function() { return {}; });
+        if (!r.ok) { alert(d.detail || '失败'); return; }
+        alert('池中共 ' + (d.uids_in_pool || 0) + ' 个 UID');
+        loadPage('synthetic');
       } catch (e) { alert(e.message); }
     }
     (function bootstrapAdminPage() {
@@ -615,6 +698,63 @@ async def admin_list_users(uid: str = Depends(require_admin)):
             "email": data.get("email", ""),
             "displayName": data.get("displayName", ""),
             "familyId": data.get("familyId", ""),
+            "accountKind": data.get("accountKind", "registered"),
+        })
+    return {"items": items}
+
+
+class SyntheticBatchBody(BaseModel):
+    count: int = 10
+
+
+class BatchCommentBody(BaseModel):
+    max_posts: int = 20
+    comments_per_post: int = 2
+    lang: str = "zh"
+
+
+@router.post("/synthetic-users/generate")
+async def admin_synthetic_generate(body: SyntheticBatchBody, _uid: str = Depends(require_admin)):
+    uids = create_synthetic_users_batch(_db, count=body.count)
+    return {"created": len(uids), "uids": uids}
+
+
+@router.post("/synthetic-users/batch-comment")
+async def admin_synthetic_batch_comment(body: BatchCommentBody, _uid: str = Depends(require_admin)):
+    return batch_comments_on_published_posts(
+        _db,
+        max_posts=body.max_posts,
+        comments_per_post=body.comments_per_post,
+        lang=body.lang,
+    )
+
+
+@router.post("/synthetic-users/randomize-names")
+async def admin_synthetic_randomize_names(_uid: str = Depends(require_admin)):
+    n = randomize_synthetic_display_names(_db)
+    return {"updated": n}
+
+
+@router.post("/synthetic-users/rebuild-pool")
+async def admin_synthetic_rebuild_pool(_uid: str = Depends(require_admin)):
+    n = rebuild_pool_from_firestore(_db)
+    return {"uids_in_pool": n}
+
+
+@router.get("/synthetic-users")
+async def admin_list_synthetic(_uid: str = Depends(require_admin)):
+    snap = _db.collection(SETTINGS_COLLECTION).document(SETTINGS_POOL_DOC).get()
+    uids = list((snap.to_dict() or {}).get("uids") or [])
+    items = []
+    for uid in uids[:200]:
+        d = _db.collection("users").document(uid).get()
+        if not d.exists:
+            continue
+        data = d.to_dict() or {}
+        items.append({
+            "uid": uid,
+            "displayName": data.get("displayName", ""),
+            "accountKind": data.get("accountKind", ""),
         })
     return {"items": items}
 
@@ -626,6 +766,13 @@ async def admin_delete_user(user_uid: str, uid: str = Depends(require_admin)):
     ref = _db.collection("users").document(user_uid)
     if ref.get().exists:
         ref.delete()
+    if user_uid.startswith("syn_"):
+        pool_ref = _db.collection(SETTINGS_COLLECTION).document(SETTINGS_POOL_DOC)
+        ps = pool_ref.get()
+        pu = (ps.to_dict() or {}).get("uids") if ps.exists else None
+        if isinstance(pu, list) and user_uid in pu:
+            pool_ref.update({"uids": firestore.ArrayRemove([user_uid])})
+        return {"ok": True}
     try:
         firebase_auth.delete_user(user_uid)
     except firebase_auth.UserNotFoundError:
@@ -861,6 +1008,7 @@ async def admin_reddit_import(body: RedditImportBody, uid: str = Depends(require
             "countryCode": "US",
             "redditId": reddit_id,
             "redditPermalink": permalink[:2000],
+            "linkUrl": "",
             "createdAt": created_dt,
             "updatedAt": now_utc,
             "publishedAt": now_utc,

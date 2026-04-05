@@ -10,7 +10,7 @@ import '../../providers/feed_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/user_provider.dart';
-import '../../widgets/ads/meow_adaptive_banner.dart';
+import '../../widgets/ads/meow_native_ad.dart';
 import '../../widgets/app/app_empty_state.dart';
 import '../../widgets/feed/feed_control_bar.dart';
 import '../../widgets/post/post_card.dart';
@@ -23,7 +23,7 @@ class _FeedAdSlot {
 
 List<Object> _feedRowsWithAds(List<PostModel> posts, bool showAds) {
   if (!showAds || posts.isEmpty) return List<Object>.from(posts);
-  const interval = 4;
+  const interval = 5;
   final out = <Object>[];
   for (var i = 0; i < posts.length; i++) {
     out.add(posts[i]);
@@ -236,10 +236,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       }
                       final item = feedRows[rowIndex];
                       if (item is _FeedAdSlot) {
-                        return Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-                          child: MeowAdaptiveBanner(show: showAds),
-                        );
+                        return MeowNativeAdTile(show: showAds);
                       }
                       final post = item as PostModel;
                       return PostCard(

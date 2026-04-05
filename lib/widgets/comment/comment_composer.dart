@@ -21,48 +21,42 @@ class CommentComposer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerLow.withValues(alpha: 0.9),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  enabled: enabled,
-                  minLines: 1,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    hintText: enabled ? context.l10n.comments : context.l10n.signInForFullFeatures,
-                    border: InputBorder.none,
-                    filled: false,
-                    isDense: true,
-                  ),
-                ),
+    final borderColor = scheme.outline.withValues(alpha: 0.35);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            enabled: enabled,
+            onTap: onTap,
+            minLines: 1,
+            maxLines: 4,
+            decoration: InputDecoration(
+              hintText: enabled ? context.l10n.comments : context.l10n.signInForFullFeatures,
+              isDense: true,
+              contentPadding: const EdgeInsets.only(bottom: 8, top: 4),
+              border: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
+              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: scheme.primary, width: 1.5),
               ),
-              const SizedBox(width: 6),
-              FilledButton.tonal(
-                onPressed: enabled ? onSubmit : null,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(42, 42),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: EdgeInsets.zero,
-                ),
-                child: const Icon(Icons.send_rounded, size: 18),
-              ),
-            ],
+              disabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
+            ),
           ),
         ),
-      ),
+        const SizedBox(width: 8),
+        FilledButton.tonal(
+          onPressed: enabled ? onSubmit : null,
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(44, 44),
+            shape: const CircleBorder(),
+            padding: EdgeInsets.zero,
+          ),
+          child: const Icon(Icons.send_rounded, size: 20),
+        ),
+      ],
     );
   }
 }

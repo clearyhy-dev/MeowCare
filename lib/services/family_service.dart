@@ -94,6 +94,22 @@ class FamilyService {
     return snap.docs.map((d) => FamilyMemberModel.fromMap(d.data(), d.id)).toList();
   }
 
+  /// Members with display names from [AppConstants.usersCollection] for settings / dialogs.
+  Future<List<FamilyMemberDisplay>> getMembersWithDisplayNames(String familyId) async {
+    final members = await getMembers(familyId);
+    if (members.isEmpty) return [];
+    final rows = await Future.wait(members.map((m) async {
+      final snap = await _firestore.collection(AppConstants.usersCollection).doc(m.uid).get();
+      var name = m.uid;
+      if (snap.exists && snap.data() != null) {
+        final dn = snap.data()!['displayName'];
+        if (dn is String && dn.trim().isNotEmpty) name = dn.trim();
+      }
+      return FamilyMemberDisplay(member: m, displayName: name);
+    }));
+    return rows;
+  }
+
   Future<void> removeMember(String familyId, String memberUid, String requesterUid) async {
     final familyDoc = _firestore.collection(AppConstants.familiesCollection).doc(familyId);
     final family = await getFamily(familyId);

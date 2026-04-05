@@ -239,7 +239,17 @@ class AppLocalizationsRu extends AppLocalizations {
   String get upgradeToPro => 'Перейти на Pro (демо)';
 
   @override
+  String get proPriceMonthlyUsd => '\$5.99/mo';
+
+  @override
+  String get proRemovesAds => 'Removes all ads';
+
+  @override
   String get proActivated => 'Pro активирован (демо)';
+
+  @override
+  String get aiRewardedRequired =>
+      'Watch the video to continue, or upgrade to Pro.';
 
   @override
   String get settings => 'Настройки';
@@ -267,6 +277,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get inviteCodeCopied => 'Код скопирован';
+
+  @override
+  String get inviteCodeHint =>
+      'Поделитесь кодом. После входа выберите «У меня есть код приглашения» на экране семьи и введите его.';
+
+  @override
+  String get familyRoleOwner => 'Владелец';
+
+  @override
+  String get familyRoleMember => 'Участник';
 
   @override
   String get familyMembers => 'Члены семьи';
@@ -394,6 +414,52 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get postAddImage => 'Add image';
+
+  @override
+  String get postAddImages => 'Add photos';
+
+  @override
+  String get postAddVideo => 'Add video';
+
+  @override
+  String get postMediaSection => 'Photos & video';
+
+  @override
+  String get postMediaHint =>
+      'Up to 6 photos and 1 video (max 40s). Swipe order is the same as below.';
+
+  @override
+  String get postMaxSixImages => 'You can add up to 6 photos.';
+
+  @override
+  String get postOneVideoOnly => 'Only one video per post.';
+
+  @override
+  String get postVideoTooLong => 'Video must be 40 seconds or less.';
+
+  @override
+  String get postVideoPickFailed => 'Could not use this video.';
+
+  @override
+  String get postSelectCommunity => 'Select a community';
+
+  @override
+  String get postBodyOptionalHint => 'body text (optional)';
+
+  @override
+  String get postAddTagsFlairOptional => 'Add tags & flair (optional)';
+
+  @override
+  String get postFeatureComingSoon => 'Coming soon.';
+
+  @override
+  String get postLinkAttachment => 'Link';
+
+  @override
+  String get postInvalidUrl => 'Enter a valid http(s) URL.';
+
+  @override
+  String get postNeedCommunity => 'Choose a community to post.';
 
   @override
   String get postRemoveImage => 'Remove image';

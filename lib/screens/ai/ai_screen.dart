@@ -14,6 +14,7 @@ import '../../providers/subscription_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../services/ai_service.dart';
+import '../../widgets/ads/rewarded_ad_helper.dart';
 import '../../widgets/app/app_button.dart';
 
 class AIScreen extends ConsumerStatefulWidget {
@@ -54,6 +55,12 @@ class _AIScreenState extends ConsumerState<AIScreen> {
     final result = await ref.read(aiServiceProvider).checkCanRequestAI(uid, isPro);
     if (!result.canRequest) {
       setState(() => _error = context.l10n.aiErrorFreeLimit(AppConstants.freeAiRequestsPerDay));
+      return;
+    }
+    final rewarded = await showRewardedForAiUse(ref);
+    if (!mounted) return;
+    if (!rewarded) {
+      setState(() => _error = context.l10n.aiRewardedRequired);
       return;
     }
     setState(() {

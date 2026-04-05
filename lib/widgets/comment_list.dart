@@ -120,19 +120,16 @@ class _CommentListState extends ConsumerState<CommentList> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (_replyTarget != null)
-          Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              color: Theme.of(context).colorScheme.surfaceContainerLow,
-            ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
                     context.l10n.replyToUser(_replyTarget!.displayAuthorLabel),
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                   ),
                 ),
                 IconButton(
@@ -190,10 +187,10 @@ class _CommentListState extends ConsumerState<CommentList> {
     final replies = childrenMap[comment.commentId] ?? const <CommentModel>[];
     final isExpanded = _expandedReplyParents.contains(comment.commentId);
     final visibleReplies = (isExpanded || replies.length <= 3) ? replies : replies.take(3).toList();
-    final left = depth == 0 ? 0.0 : (12.0 * depth);
+    final leftPad = depth == 0 ? 0.0 : (16.0 * depth);
 
     return Padding(
-      padding: EdgeInsets.only(left: left),
+      padding: EdgeInsets.only(left: leftPad),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -233,18 +230,12 @@ class _CommentListState extends ConsumerState<CommentList> {
                       ),
                       if (!isExpanded) ...[
                         const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '+${replies.length - 3}',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                          ),
+                        Text(
+                          '+${replies.length - 3}',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                         ),
                       ],
                     ],

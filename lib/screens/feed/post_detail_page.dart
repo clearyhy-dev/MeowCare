@@ -12,6 +12,7 @@ import '../../providers/feed_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../widgets/comment_list.dart';
 import '../../widgets/post/post_action_bar.dart';
+import '../../widgets/post/post_media_carousel.dart';
 import '../../widgets/app/app_button.dart';
 import '../../widgets/app/app_section_header.dart';
 
@@ -185,37 +186,71 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                           height: 1.25,
                         ),
                   ),
-                  if (post.shouldShowImage) ...[
-                    const SizedBox(height: 12),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(_imageRadius),
-                      child: SizedBox(
-                        height: _heroImageHeight,
-                        width: double.infinity,
-                        child: Image.network(
-                          post.displayImageUrl,
-                          fit: BoxFit.cover,
-                          alignment: Alignment.center,
-                          loadingBuilder: (context, child, progress) {
-                            if (progress == null) return child;
-                            final total = progress.expectedTotalBytes;
-                            return ColoredBox(
-                              color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  value: total != null && total > 0 ? progress.cumulativeBytesLoaded / total : null,
-                                ),
+                  if (post.linkUrl.trim().isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    InkWell(
+                      onTap: () => _openUrl(post.linkUrl.trim()),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Icon(Icons.link_rounded, size: 20, color: scheme.primary),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                post.linkUrl.trim(),
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: scheme.primary,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            );
-                          },
-                          errorBuilder: (_, __, ___) => ColoredBox(
-                            color: scheme.surfaceContainerHighest,
-                            child: Center(child: Icon(Icons.broken_image_outlined, size: 32, color: onVar)),
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
+                  ],
+                  if (post.shouldShowImage) ...[
+                    const SizedBox(height: 12),
+                    if (post.mediaItems.isNotEmpty)
+                      PostMediaCarousel(
+                        items: post.mediaItems,
+                        borderRadius: BorderRadius.circular(_imageRadius),
+                        videoMuted: false,
+                      )
+                    else
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(_imageRadius),
+                        child: SizedBox(
+                          height: _heroImageHeight,
+                          width: double.infinity,
+                          child: Image.network(
+                            post.displayImageUrl,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                            loadingBuilder: (context, child, progress) {
+                              if (progress == null) return child;
+                              final total = progress.expectedTotalBytes;
+                              return ColoredBox(
+                                color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    value: total != null && total > 0 ? progress.cumulativeBytesLoaded / total : null,
+                                  ),
+                                ),
+                              );
+                            },
+                            errorBuilder: (_, __, ___) => ColoredBox(
+                              color: scheme.surfaceContainerHighest,
+                              child: Center(child: Icon(Icons.broken_image_outlined, size: 32, color: onVar)),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                   const SizedBox(height: 12),
                   Divider(height: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),

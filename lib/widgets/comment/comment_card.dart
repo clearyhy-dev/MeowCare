@@ -19,19 +19,11 @@ class CommentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final showIndentLine = depth > 0;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (showIndentLine)
-            Container(
-              width: 1,
-              height: 42,
-              margin: const EdgeInsets.only(right: 10, top: 2),
-              color: scheme.outline.withValues(alpha: 0.22),
-            ),
           if (depth == 0)
             CircleAvatar(
               radius: 12,
@@ -78,7 +70,6 @@ class CommentCard extends StatelessWidget {
               ],
             ),
           ),
-          if (depth > 0) const SizedBox(width: 2),
         ],
       ),
     );

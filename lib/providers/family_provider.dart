@@ -16,6 +16,6 @@ final currentFamilyProvider = FutureProvider<FamilyModel?>((ref) async {
   return ref.read(familyServiceProvider).getFamily(familyId);
 });
 
-final familyMembersProvider = FutureProvider.family<List<FamilyMemberModel>, String>((ref, familyId) async {
-  return ref.read(familyServiceProvider).getMembers(familyId);
+final familyMembersProvider = FutureProvider.family<List<FamilyMemberDisplay>, String>((ref, familyId) async {
+  return ref.read(familyServiceProvider).getMembersWithDisplayNames(familyId);
 });

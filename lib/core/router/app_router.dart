@@ -53,10 +53,14 @@ class AppRouter {
   static const String plan = '/plan';
   static const String reminder = '/reminder';
 
-  static GoRouter createRouter(GoRouterRefreshNotifier refreshNotifier) {
+  static GoRouter createRouter(
+    GoRouterRefreshNotifier refreshNotifier, {
+    List<NavigatorObserver> observers = const [],
+  }) {
     return GoRouter(
       refreshListenable: refreshNotifier,
       initialLocation: splash,
+      observers: observers,
       redirect: (context, state) {
         final location = state.uri.path;
         if (location == registerLegacy) return auth;

@@ -8,6 +8,7 @@ import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/topic_l10n.dart';
 import '../../models/post_model.dart';
 import 'post_action_bar.dart';
+import 'post_media_carousel.dart';
 
 class PostCard extends StatelessWidget {
   const PostCard({
@@ -85,9 +86,21 @@ class PostCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            Text(
-              post.title,
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, height: 1.25),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    post.title,
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, height: 1.25),
+                  ),
+                ),
+                if (post.linkUrl.trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 6, top: 2),
+                    child: Icon(Icons.link_rounded, size: 18, color: scheme.primary.withValues(alpha: 0.85)),
+                  ),
+              ],
             ),
             if (post.content.trim().isNotEmpty) ...[
               const SizedBox(height: AppSpacing.sm),
@@ -100,20 +113,27 @@ class PostCard extends StatelessWidget {
             ],
             if (post.shouldShowImage) ...[
               const SizedBox(height: AppSpacing.md),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadii.sm),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: Image.network(
-                    post.displayImageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => ColoredBox(
-                      color: scheme.surfaceContainerHighest,
-                      child: Icon(Icons.broken_image_outlined, color: scheme.onSurfaceVariant),
+              if (post.mediaItems.isNotEmpty)
+                PostMediaCarousel(
+                  items: post.mediaItems,
+                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                  videoMuted: true,
+                )
+              else
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: Image.network(
+                      post.displayImageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => ColoredBox(
+                        color: scheme.surfaceContainerHighest,
+                        child: Icon(Icons.broken_image_outlined, color: scheme.onSurfaceVariant),
+                      ),
                     ),
                   ),
                 ),
-              ),
             ],
             const SizedBox(height: AppSpacing.sm),
             PostActionBar(
