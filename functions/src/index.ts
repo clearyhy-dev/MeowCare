@@ -171,19 +171,20 @@ export const markNotificationRead = onCall(async (request) => {
 
   if (data.isRead === true) return { ok: true };
 
+  const userRef = db.collection("users").doc(uid);
+  // Firestore 要求：事务内所有 read 必须在任何 write 之前，否则事务失败。
   await db.runTransaction(async (tx) => {
     const fresh = await tx.get(ref);
     if (!fresh.exists) return;
     const fd = fresh.data()!;
     if (fd.isRead === true) return;
+    const us = await tx.get(userRef);
+    const cur = (us.data()?.notificationUnreadCount as number) ?? 0;
     tx.update(ref, {
       isRead: true,
       readAt: admin.firestore.FieldValue.serverTimestamp(),
     });
-    const ur = db.collection("users").doc(uid);
-    const us = await tx.get(ur);
-    const cur = (us.data()?.notificationUnreadCount as number) ?? 0;
-    tx.set(ur, { notificationUnreadCount: Math.max(0, cur - 1) }, { merge: true });
+    tx.set(userRef, { notificationUnreadCount: Math.max(0, cur - 1) }, { merge: true });
   });
   return { ok: true };
 });
