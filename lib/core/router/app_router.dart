@@ -118,6 +118,7 @@ class AppRouter {
               builder: (context, state) => PostDetailPage(
                 postId: state.pathParameters['id']!,
                 focusCommentOnOpen: state.uri.queryParameters['focusComment'] == '1',
+                highlightCommentId: state.uri.queryParameters['commentId'],
               ),
             ),
             GoRoute(path: 'my-cats', builder: (context, state) => const MyCatsPage()),

@@ -127,7 +127,7 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: secondary,
           side: BorderSide(color: secondary.withValues(alpha: 0.5)),
-          minimumSize: const Size.fromHeight(46),
+          minimumSize: const Size.fromHeight(48),
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
         ),
@@ -149,8 +149,18 @@ class AppTheme {
         ),
       ),
       chipTheme: ChipThemeData(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.lg)),
-        side: BorderSide(color: AppColors.stroke.withValues(alpha: 0.7)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
+        side: BorderSide(color: AppColors.stroke.withValues(alpha: 0.55)),
+        backgroundColor: AppColors.surfaceAlt,
+        disabledColor: AppColors.surfaceAlt.withValues(alpha: 0.6),
+        selectedColor: colorScheme.primaryContainer,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+        labelStyle: textTheme.labelMedium?.copyWith(
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+        secondaryLabelStyle: textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),
+        brightness: Brightness.light,
       ),
       dialogTheme: DialogThemeData(
         shape: RoundedRectangleBorder(
@@ -159,8 +169,10 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
+        backgroundColor: colorScheme.inverseSurface,
+        elevation: 2,
         insetPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
         contentTextStyle: textTheme.bodyMedium?.copyWith(
           color: colorScheme.onInverseSurface,
           fontWeight: FontWeight.w500,
@@ -261,11 +273,23 @@ class AppTheme {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
         ),
       ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
+        side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.45)),
+        backgroundColor: colorScheme.surfaceContainerHighest,
+        selectedColor: colorScheme.primaryContainer,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+        labelStyle: textTheme.labelMedium?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w500,
+        ),
+        brightness: Brightness.dark,
+      ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: secondary,
           side: const BorderSide(color: secondary),
-          minimumSize: const Size.fromHeight(46),
+          minimumSize: const Size.fromHeight(48),
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
         ),
@@ -293,8 +317,14 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
+        backgroundColor: colorScheme.inverseSurface,
+        elevation: 2,
         insetPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
+        contentTextStyle: textTheme.bodyMedium?.copyWith(
+          color: colorScheme.onInverseSurface,
+          fontWeight: FontWeight.w500,
+        ),
       ),
       scaffoldBackgroundColor: surface,
     );

@@ -13,6 +13,10 @@ from app.routers import admin, ai, breeds, content_jobs, posts, reports, ugc
 
 logger = logging.getLogger(__name__)
 
+# Cloud Run 上容器可能不常驻，APScheduler 不一定准时；在 API 有流量时顺带推进定时帖（节流）。
+_last_scheduled_publish_mono = 0.0
+_SCHEDULED_PUBLISH_INTERVAL_SEC = 90.0
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -71,6 +75,25 @@ async def log_requests(request: Request, call_next):
         logger.warning("%s %s -> %s", request.method, request.url.path, response.status_code)
     return response
 
+
+@app.middleware("http")
+async def promote_scheduled_posts_on_traffic(request: Request, call_next):
+    """当 Admin/AI 等请求命中 API 时，顺带将到期的 scheduled 帖改为 published（不替代 Cloud Scheduler）。"""
+    import asyncio
+
+    global _last_scheduled_publish_mono
+    response = await call_next(request)
+    now = time.monotonic()
+    if now - _last_scheduled_publish_mono < _SCHEDULED_PUBLISH_INTERVAL_SEC:
+        return response
+    _last_scheduled_publish_mono = now
+    try:
+        from app.services.scheduled_post_publisher import publish_due_scheduled_posts_async
+
+        asyncio.create_task(publish_due_scheduled_posts_async(limit=80))
+    except Exception:
+        logger.debug("promote_scheduled_posts_on_traffic skipped", exc_info=True)
+    return response
 
 
 _origins = CORS_ORIGINS if (IS_PRODUCTION and CORS_ORIGINS) else ["*"]

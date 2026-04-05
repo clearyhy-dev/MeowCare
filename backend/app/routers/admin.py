@@ -307,7 +307,9 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
             '<div class="toolbar" style="flex-wrap:wrap;gap:8px;">' +
             '<label>最多帖子数 <input type="number" id="synMaxPosts" min="1" max="200" value="20" style="width:64px;" /></label>' +
             '<label>每帖评论数 <input type="number" id="synPerPost" min="1" max="20" value="2" style="width:64px;" /></label>' +
-            '<label>语言 <select id="synLang"><option value="zh">zh</option><option value="en">en</option></select></label>' +
+            '<label>语言 <select id="synLang"><option value="zh">zh</option><option value="en">en</option><option value="ja">ja</option><option value="ko">ko</option><option value="es">es</option><option value="fr">fr</option><option value="de">de</option><option value="pt">pt</option><option value="ru">ru</option></select></label>' +
+            '<label>调性 <select id="synVoice"><option value="casual">日常</option><option value="professional">专业</option></select></label>' +
+            '<label class="daily-check">AI 生成短评（需 GEMINI_API_KEY；日常≤10 字 / 专业≤30 字） <input type="checkbox" id="synUseAi" checked /></label>' +
             '<button type="button" class="primary" onclick="batchCommentSynthetic()">执行批量评论</button>' +
             '</div></div>' +
             '<p id="synMsg" class="hint" style="min-height:1.2em;"></p>' +
@@ -331,6 +333,11 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
             '<option value="pt">pt — Português</option>' +
             '<option value="ru">ru — Русский</option>' +
             '<option value="ko">ko — 한국어</option>' +
+            '</select>' +
+            '<label>内容调性</label>' +
+            '<select id="dailyVoiceMode">' +
+            '<option value="casual">日常 · 像用户随手发</option>' +
+            '<option value="professional">专业 · 结构化科普向</option>' +
             '</select>' +
             '<div class="daily-section-title">分类（多选）</div>' +
             '<div class="daily-topic-grid">' +
@@ -437,6 +444,11 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
           var lv = (data.language || 'en').toLowerCase();
           langSel.value = (DAILY_LANGS.indexOf(lv) >= 0) ? lv : 'en';
         }
+        var vm = document.getElementById('dailyVoiceMode');
+        if (vm) {
+          var vv = (data.voiceMode || 'casual').toLowerCase();
+          vm.value = (vv === 'professional') ? 'professional' : 'casual';
+        }
         var savedTopics = data.topics || [];
         DAILY_TOPIC_IDS.forEach(function(id) {
           var el = document.getElementById('topic_' + id);
@@ -463,6 +475,7 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
         dailyCount: parseInt(document.getElementById('dailyCount').value || '5', 10),
         publishHourUtc: parseInt(document.getElementById('publishHourUtc').value || '1', 10),
         language: (document.getElementById('dailyLanguage') && document.getElementById('dailyLanguage').value) || 'en',
+        voiceMode: (document.getElementById('dailyVoiceMode') && document.getElementById('dailyVoiceMode').value) || 'casual',
         topics: topics,
         useGemini: document.getElementById('dailyUseGemini').checked,
         imageRequired: document.getElementById('dailyImageRequired').checked,
@@ -486,6 +499,7 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
           count: count,
           topics: topics,
           language: (document.getElementById('dailyLanguage') && document.getElementById('dailyLanguage').value) || 'en',
+          voiceMode: (document.getElementById('dailyVoiceMode') && document.getElementById('dailyVoiceMode').value) || 'casual',
           useGemini: document.getElementById('dailyUseGemini').checked,
           imageRequired: document.getElementById('dailyImageRequired').checked,
         }),
@@ -591,8 +605,10 @@ def _admin_html(init_token: str | None = None, login_error: str | None = None) -
       var maxPosts = parseInt(document.getElementById('synMaxPosts').value, 10) || 20;
       var cpp = parseInt(document.getElementById('synPerPost').value, 10) || 2;
       var lang = document.getElementById('synLang').value || 'zh';
+      var voice = document.getElementById('synVoice') ? document.getElementById('synVoice').value : 'casual';
       try {
-        var r = await fetch(API + '/admin/synthetic-users/batch-comment', { method: 'POST', headers: headers(), body: JSON.stringify({ max_posts: maxPosts, comments_per_post: cpp, lang: lang }) });
+        var useAi = document.getElementById('synUseAi') ? document.getElementById('synUseAi').checked : true;
+        var r = await fetch(API + '/admin/synthetic-users/batch-comment', { method: 'POST', headers: headers(), body: JSON.stringify({ max_posts: maxPosts, comments_per_post: cpp, lang: lang, voice: voice, use_ai: useAi }) });
         var d = await r.json().catch(function() { return {}; });
         if (!r.ok) { alert(d.detail || '失败'); return; }
         alert('评论完成：帖子 ' + (d.posts || 0) + ' 条，评论 ' + (d.comments || 0) + ' 条。');
@@ -711,6 +727,8 @@ class BatchCommentBody(BaseModel):
     max_posts: int = 20
     comments_per_post: int = 2
     lang: str = "zh"
+    voice: str = "casual"
+    use_ai: bool = True
 
 
 @router.post("/synthetic-users/generate")
@@ -726,6 +744,8 @@ async def admin_synthetic_batch_comment(body: BatchCommentBody, _uid: str = Depe
         max_posts=body.max_posts,
         comments_per_post=body.comments_per_post,
         lang=body.lang,
+        voice=body.voice,
+        use_ai=body.use_ai,
     )
 
 

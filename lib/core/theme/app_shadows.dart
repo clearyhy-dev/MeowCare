@@ -18,4 +18,7 @@ class AppShadows {
           offset: Offset(0, 3),
         ),
       ];
+
+  /// Feed / settings grouped surfaces — prefer over [soft] for less float.
+  static List<BoxShadow> get card => subtle;
 }

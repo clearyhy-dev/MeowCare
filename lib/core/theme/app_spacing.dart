@@ -12,5 +12,9 @@ class AppSpacing {
   static const double xxxl = 32;
 
   static const EdgeInsets page = EdgeInsets.symmetric(horizontal: xl, vertical: lg);
+
+  /// Horizontal inset for feed lists and modules.
+  static const double feedGutter = lg;
+
   static const EdgeInsets card = EdgeInsets.all(lg);
 }

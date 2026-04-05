@@ -718,6 +718,50 @@ class AppLocalizationsPt extends AppLocalizations {
   String get aiAdviceSectionDisclaimer => 'Disclaimer';
 
   @override
+  String get aiResultRiskNotice => 'Before you read';
+
+  @override
+  String get aiUserSeverity => 'Your selection';
+
+  @override
+  String get aiAssessedSeverity => 'Assessment';
+
+  @override
+  String get aiPossibleCauses => 'Possible causes (non-diagnostic)';
+
+  @override
+  String get aiWatchAtHome => 'Home observation';
+
+  @override
+  String get aiSeekVetUrgent => 'When to seek veterinary care urgently';
+
+  @override
+  String get aiNextQuestions => 'Questions to consider';
+
+  @override
+  String get aiCopyResult => 'Copy result';
+
+  @override
+  String get aiCopiedSuccess => 'Copied to clipboard';
+
+  @override
+  String get aiAskAgain => 'Ask again';
+
+  @override
+  String get aiFallbackBanner =>
+      'The AI returned a simplified response. If symptoms persist or worsen, contact a veterinarian.';
+
+  @override
+  String get aiTimeoutErrorShort => 'Request timed out. Please try again.';
+
+  @override
+  String get aiNetworkErrorShort =>
+      'Network error. Check your connection and try again.';
+
+  @override
+  String get aiAuthErrorShort => 'Please sign in again to use AI.';
+
+  @override
   String get retry => 'Retry';
 
   @override
@@ -967,4 +1011,48 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get settingsSectionAccount => 'Account & billing';
+
+  @override
+  String get settingsSectionMyContent => 'My content';
+
+  @override
+  String get settingsSectionNotifications => 'Notifications & language';
+
+  @override
+  String get settingsSectionPrivacy => 'Privacy & community';
+
+  @override
+  String get settingsSectionAbout => 'About';
+
+  @override
+  String get sending => 'Sending…';
+
+  @override
+  String get commentsEmptyTitle => 'No comments yet';
+
+  @override
+  String get commentsEmptyBody => 'Be the first to share your thoughts.';
+
+  @override
+  String get errorGenericRetry => 'Something went wrong. Please try again.';
+
+  @override
+  String get postDetailLoadingHint => 'Loading post…';
+
+  @override
+  String get feedLoadingMore => 'Loading more…';
+
+  @override
+  String get notificationsLoadFailed =>
+      'Não foi possível carregar as notificações. Puxe para atualizar.';
+
+  @override
+  String get postPublishedSuccess => 'Publicação enviada.';
+
+  @override
+  String get postStatusScheduled => 'Agendada';
+
+  @override
+  String get myPostsLoadFailed =>
+      'Não foi possível carregar suas publicações. Tente novamente.';
 }

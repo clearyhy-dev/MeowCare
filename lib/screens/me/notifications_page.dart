@@ -12,6 +12,7 @@ import '../../providers/notification_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../widgets/app/app_button.dart';
 import '../../widgets/app/app_empty_state.dart';
+import '../../widgets/app/error_state_view.dart';
 import '../../widgets/app/skeleton_shimmer.dart';
 
 class NotificationsPage extends ConsumerStatefulWidget {
@@ -28,6 +29,16 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   }
 
   Future<void> _openNotification(NotificationModel n) async {
+    final postId = n.targetPostId.trim();
+    if (postId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.postNotFound)),
+        );
+      }
+      return;
+    }
+
     final repo = ref.read(notificationRepositoryProvider);
     if (!n.isRead) {
       try {
@@ -38,13 +49,20 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
             SnackBar(content: Text(context.l10n.notificationMarkReadFailed)),
           );
         }
-        return;
+        // 仍跳转帖子，避免用户无法查看内容
       }
     }
     if (!mounted) return;
-    final focus = n.type == 'reply_to_comment' || n.type == 'comment_on_post';
-    final q = focus ? '?focusComment=1' : '';
-    context.push('${AppRouter.home}post/${n.targetPostId}$q');
+
+    final isComment = n.type == 'reply_to_comment' || n.type == 'comment_on_post';
+    final cid = (n.targetCommentId ?? '').trim();
+    final qp = <String, String>{};
+    if (isComment) {
+      qp['focusComment'] = '1';
+      if (cid.isNotEmpty) qp['commentId'] = cid;
+    }
+    final q = qp.isEmpty ? '' : '?${Uri(queryParameters: qp).query}';
+    context.push('${AppRouter.home}post/$postId$q');
   }
 
   Future<void> _markAll() async {
@@ -67,7 +85,8 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserAsyncProvider).valueOrNull;
-    final asyncList = ref.watch(notificationsListStreamProvider(user?.uid ?? ''));
+    final uid = user?.uid ?? '';
+    final asyncList = ref.watch(notificationsListStreamProvider(uid));
 
     return Scaffold(
       appBar: AppBar(
@@ -96,13 +115,40 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                       itemBuilder: (_, __) => const SkeletonNotificationTile(),
                     ),
                   ),
-              error: (_, __) => Center(child: Text(context.l10n.feedLoadFailed)),
+              error: (_, __) => ErrorStateView(
+                    title: context.l10n.notificationsLoadFailed,
+                    onRetry: () => ref.invalidate(notificationsListStreamProvider(uid)),
+                    retryLabel: context.l10n.retry,
+                  ),
               data: (items) {
                 if (items.isEmpty) {
-                  return AppEmptyState(message: context.l10n.notificationsEmpty, icon: Icons.notifications_none);
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      ref.invalidate(notificationsListStreamProvider(uid));
+                      await ref.read(notificationsListStreamProvider(uid).future);
+                    },
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        SizedBox(
+                          height: MediaQuery.sizeOf(context).height * 0.35,
+                          child: AppEmptyState(
+                            message: context.l10n.notificationsEmpty,
+                            icon: Icons.notifications_none,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
                 }
                 final scheme = Theme.of(context).colorScheme;
-                return ListView.separated(
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(notificationsListStreamProvider(uid));
+                    await ref.read(notificationsListStreamProvider(uid).future);
+                  },
+                  child: ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   itemCount: items.length,
                   separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
@@ -168,6 +214,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                       ),
                     );
                   },
+                ),
                 );
               },
             ),

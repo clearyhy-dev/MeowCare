@@ -712,6 +712,50 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiAdviceSectionDisclaimer => 'Disclaimer';
 
   @override
+  String get aiResultRiskNotice => 'Before you read';
+
+  @override
+  String get aiUserSeverity => 'Your selection';
+
+  @override
+  String get aiAssessedSeverity => 'Assessment';
+
+  @override
+  String get aiPossibleCauses => 'Possible causes (non-diagnostic)';
+
+  @override
+  String get aiWatchAtHome => 'Home observation';
+
+  @override
+  String get aiSeekVetUrgent => 'When to seek veterinary care urgently';
+
+  @override
+  String get aiNextQuestions => 'Questions to consider';
+
+  @override
+  String get aiCopyResult => 'Copy result';
+
+  @override
+  String get aiCopiedSuccess => 'Copied to clipboard';
+
+  @override
+  String get aiAskAgain => 'Ask again';
+
+  @override
+  String get aiFallbackBanner =>
+      'The AI returned a simplified response. If symptoms persist or worsen, contact a veterinarian.';
+
+  @override
+  String get aiTimeoutErrorShort => 'Request timed out. Please try again.';
+
+  @override
+  String get aiNetworkErrorShort =>
+      'Network error. Check your connection and try again.';
+
+  @override
+  String get aiAuthErrorShort => 'Please sign in again to use AI.';
+
+  @override
   String get retry => '다시 시도';
 
   @override
@@ -960,4 +1004,46 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsSectionAccount => 'Account & billing';
+
+  @override
+  String get settingsSectionMyContent => 'My content';
+
+  @override
+  String get settingsSectionNotifications => 'Notifications & language';
+
+  @override
+  String get settingsSectionPrivacy => 'Privacy & community';
+
+  @override
+  String get settingsSectionAbout => 'About';
+
+  @override
+  String get sending => 'Sending…';
+
+  @override
+  String get commentsEmptyTitle => 'No comments yet';
+
+  @override
+  String get commentsEmptyBody => 'Be the first to share your thoughts.';
+
+  @override
+  String get errorGenericRetry => 'Something went wrong. Please try again.';
+
+  @override
+  String get postDetailLoadingHint => 'Loading post…';
+
+  @override
+  String get feedLoadingMore => 'Loading more…';
+
+  @override
+  String get notificationsLoadFailed => '알림을 불러오지 못했습니다. 아래로 당겨 다시 시도하세요.';
+
+  @override
+  String get postPublishedSuccess => '게시물이 공개되었습니다.';
+
+  @override
+  String get postStatusScheduled => '예약 게시';
+
+  @override
+  String get myPostsLoadFailed => '게시물을 불러오지 못했습니다. 다시 시도하세요.';
 }

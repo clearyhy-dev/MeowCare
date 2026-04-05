@@ -42,8 +42,13 @@ def publish_due_scheduled_posts(*, limit: int = 50, now: datetime | None = None)
                 }
             )
             updated += 1
+            logger.debug(
+                "scheduled→published post_id=%s scheduled_at=%s",
+                ref.id,
+                (doc.to_dict() or {}).get("scheduledPublishAt"),
+            )
         except Exception as e:
-            logger.warning("publish scheduled post %s failed: %s", ref.id, e)
+            logger.warning("publish scheduled post %s failed: %s", ref.id, e, exc_info=True)
     if updated:
         logger.info("Published %s scheduled post(s)", updated)
     return updated

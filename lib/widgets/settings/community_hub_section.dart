@@ -14,7 +14,21 @@ import 'settings_grid_card.dart';
 import 'settings_section_header.dart';
 
 class CommunityHubSection extends ConsumerWidget {
-  const CommunityHubSection({super.key});
+  const CommunityHubSection({
+    super.key,
+    this.showSectionHeader = true,
+    this.wrapWithScreenPadding = true,
+    this.showLanguageTile = true,
+  });
+
+  /// When placed inside a [SettingsGroupCard], set to false to avoid duplicate titles.
+  final bool showSectionHeader;
+
+  /// Outer horizontal padding; set false when parent already applies screen inset.
+  final bool wrapWithScreenPadding;
+
+  /// Set false when language is shown in a separate settings group.
+  final bool showLanguageTile;
 
   static void showBlockedSheet(BuildContext context) {
     final l = context.l10n;
@@ -67,16 +81,7 @@ class CommunityHubSection extends ConsumerWidget {
       error: (_, __) => null,
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SettingsSectionHeader(
-          title: l.communityHubTitle,
-          subtitle: l.communityHubSubtitle,
-        ),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppInsets.screenPadding),
-          child: GridView.count(
+    final grid = GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -115,12 +120,13 @@ class CommunityHubSection extends ConsumerWidget {
                 subtitle: l.communityHubPreferencesSubtitle,
                 onTap: () => context.push('${h}me/community-preferences'),
               ),
-              SettingsGridCard(
-                icon: Icons.language_rounded,
-                title: l.appLanguage,
-                subtitle: l.communityHubLanguageSubtitle,
-                onTap: () => showAppLanguageSheet(context, ref),
-              ),
+              if (showLanguageTile)
+                SettingsGridCard(
+                  icon: Icons.language_rounded,
+                  title: l.appLanguage,
+                  subtitle: l.communityHubLanguageSubtitle,
+                  onTap: () => showAppLanguageSheet(context, ref),
+                ),
               SettingsGridCard(
                 icon: Icons.visibility_off_outlined,
                 title: l.communityBlockedTitle,
@@ -134,7 +140,21 @@ class CommunityHubSection extends ConsumerWidget {
                 onTap: () => context.push('${h}me/community-guidelines'),
               ),
             ],
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (showSectionHeader)
+          SettingsSectionHeader(
+            title: l.communityHubTitle,
+            subtitle: l.communityHubSubtitle,
           ),
+        Padding(
+          padding: wrapWithScreenPadding
+              ? EdgeInsets.symmetric(horizontal: AppInsets.screenPadding)
+              : EdgeInsets.zero,
+          child: grid,
         ),
       ],
     );

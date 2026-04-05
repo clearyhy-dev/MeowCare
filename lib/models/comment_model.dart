@@ -47,7 +47,7 @@ class CommentModel {
       commentId: commentId,
       postId: map['postId'] as String? ?? '',
       authorId: map['authorId'] as String? ?? '',
-      content: map['content'] as String? ?? '',
+      content: (map['content'] ?? '').toString(),
       createdAt: createdAt is Timestamp ? createdAt.toDate() : null,
       authorDisplayName: map['authorDisplayName'] as String?,
       authorPhotoUrl: map['authorPhotoUrl'] as String?,

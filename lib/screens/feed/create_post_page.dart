@@ -347,9 +347,25 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
         await repo.updatePostMedia(postId: post.postId, mediaItems: uploaded);
       }
 
+      // invalidate 会重置 Feed；Home 已在栈内时 initState 不会再次执行，必须主动拉取列表，否则返回「最新」为空。
       ref.invalidate(feedProvider);
+      try {
+        final country = ref.read(appCountryProvider).valueOrNull;
+        final lang = ref.read(effectiveUILanguageCodeProvider);
+        await ref.read(feedProvider.notifier).loadFirst(
+              orderByCreated: true,
+              countryCode: country,
+              languageCode: lang,
+            );
+      } catch (_) {
+        ref.invalidate(feedProvider);
+      }
       if (mounted) {
         await AppFeedback.success();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.postPublishedSuccess)),
+        );
         if (!mounted) return;
         context.go(AppRouter.home);
       }

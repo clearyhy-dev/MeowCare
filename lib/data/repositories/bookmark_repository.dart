@@ -42,9 +42,11 @@ class BookmarkRepository {
       q = q.startAfterDocument(startAfter);
     }
     final snap = await q.get();
-    final postIds = snap.docs.map((d) => d.data()['postId'] as String).toList();
     final posts = <PostModel>[];
-    for (final id in postIds) {
+    for (final d in snap.docs) {
+      final raw = d.data()['postId'];
+      final id = raw is String ? raw : (raw != null ? raw.toString() : '');
+      if (id.isEmpty) continue;
       final postDoc = await _firestore.collection(AppConstants.postsCollection).doc(id).get();
       if (postDoc.exists && postDoc.data() != null) {
         final p = PostModel.fromMap(postDoc.data()!, postDoc.id);

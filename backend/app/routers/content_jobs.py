@@ -18,6 +18,7 @@ from app.services.daily_generator import (
     normalize_hemisphere,
     normalize_language,
     normalize_schedule_windows,
+    normalize_voice_mode,
 )
 from app.services.scheduled_post_publisher import publish_due_scheduled_posts_async
 
@@ -47,6 +48,8 @@ async def update_settings(body: dict[str, Any], _uid: str = Depends(require_admi
         current["topics"] = normalize_content_topics(body["topics"])
     if "language" in body:
         current["language"] = normalize_language(body["language"])
+    if "voiceMode" in body:
+        current["voiceMode"] = normalize_voice_mode(body["voiceMode"])
     if "useGemini" in body:
         current["useGemini"] = bool(body["useGemini"])
     if "minContentLength" in body:
@@ -102,6 +105,8 @@ async def generate_now(body: dict[str, Any], _uid: str = Depends(require_admin))
         cfg["minContentLength"] = max(100, min(int(body["minContentLength"]), 8000))
     if "imageRequired" in body:
         cfg["imageRequired"] = bool(body["imageRequired"])
+    if "voiceMode" in body:
+        cfg["voiceMode"] = normalize_voice_mode(body["voiceMode"])
     topics = normalize_content_topics(body["topics"]) if "topics" in body else cfg["topics"]
     created = await generate_daily_posts(count, topics, cfg_override=cfg)
     out: dict[str, Any] = {"ok": True, "created": created}

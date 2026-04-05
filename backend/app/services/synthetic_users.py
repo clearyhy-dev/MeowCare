@@ -9,7 +9,27 @@ from typing import Any
 
 from firebase_admin import firestore
 
+from app.config import GEMINI_API_KEY
+
 logger = logging.getLogger(__name__)
+
+# 与 daily_generator 一致；评论短生成够用
+GEMINI_COMMENT_MODEL = "gemini-2.5-flash"
+# 用户约定：日常约 10 字、专业约 30 字（Unicode 字符数）
+MAX_COMMENT_CHARS_CASUAL = 10
+MAX_COMMENT_CHARS_PROFESSIONAL = 30
+
+_COMMENT_LANG_NAMES: dict[str, str] = {
+    "en": "English",
+    "zh": "Simplified Chinese",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "pt": "Portuguese",
+    "ru": "Russian",
+}
 
 SYNTHETIC_PREFIX = "syn_"
 SETTINGS_POOL_DOC = "synthetic_user_pool"
@@ -59,6 +79,13 @@ COMMENT_LINES_ZH = [
     "有帮助！",
 ]
 
+COMMENT_LINES_ZH_PRO = [
+    "从日常护理角度，建议先连续记录一周饮食与排泄再判断趋势。",
+    "若症状反复，请带齐病历与视频咨询兽医，不要自行用药。",
+    "同意楼主，环境压力有时也会放大行为变化，可先减少刺激源。",
+    "补充：换粮/换砂建议单次只改一个变量，便于排查原因。",
+]
+
 COMMENT_LINES_EN = [
     "Same here, thanks for sharing.",
     "Saved this post.",
@@ -66,6 +93,90 @@ COMMENT_LINES_EN = [
     "My cat does this too lol",
     "Good reminder.",
     "Will try this at home.",
+]
+
+COMMENT_LINES_EN_PRO = [
+    "From a care perspective, I'd log food and litter for a week before changing anything.",
+    "If signs persist, bring videos and a timeline to your veterinarian.",
+    "Agree—reduce one variable at a time so you can tell what helped.",
+]
+
+COMMENT_LINES_JA = [
+    "参考になりました",
+    "うちも同じです",
+    "保存しました",
+    "助かります",
+]
+
+COMMENT_LINES_JA_PRO = [
+    "ケアの観点では、まず1〜2週間の観察記録があると獣医さんも判断しやすいです。",
+    "症状が続く場合は、自己判断で薬を使わず早めに受診を。",
+]
+
+COMMENT_LINES_KO = [
+    "도움 됐어요",
+    "저희 집도 그래요",
+    "저장했어요",
+]
+
+COMMENT_LINES_KO_PRO = [
+    "관점상 일주일 이상 식사·배변·활동을 기록해두면 진료 시 도움이 됩니다.",
+    "증상이 지속되면 자가 진단보다 수의사 상담을 권합니다.",
+]
+
+COMMENT_LINES_ES = [
+    "Gracias por compartir.",
+    "A nosotros nos pasa igual.",
+    "Muy útil.",
+]
+
+COMMENT_LINES_ES_PRO = [
+    "Desde cuidados básicos: anota comida y caja una semana antes de cambiar reglas.",
+    "Si persiste, mejor vídeo + historial para el veterinario.",
+]
+
+COMMENT_LINES_FR = [
+    "Merci pour le partage.",
+    "Pareil ici.",
+    "Très utile.",
+]
+
+COMMENT_LINES_FR_PRO = [
+    "Côté soins : notez eau/croquettes/litière sur 7–10 jours avant de conclure.",
+    "Si ça dure, évitez l’automédication et consultez un vétérinaire.",
+]
+
+COMMENT_LINES_DE = [
+    "Danke fürs Teilen.",
+    "Genau unser Problem auch.",
+    "Hilfreich.",
+]
+
+COMMENT_LINES_DE_PRO = [
+    "Pflege-Tipp: eine Woche lang protokollieren, dann erst Routine ändern.",
+    "Bei anhaltenden Symptomen bitte zum Tierarzt statt selbst medizinieren.",
+]
+
+COMMENT_LINES_PT = [
+    "Obrigado por compartilhar.",
+    "Aqui é igual.",
+    "Muito útil.",
+]
+
+COMMENT_LINES_PT_PRO = [
+    "Em cuidados: registre comida e caixa por uma semana antes de mudar tudo.",
+    "Se continuar, leve histórico ao veterinário em vez de medicar em casa.",
+]
+
+COMMENT_LINES_RU = [
+    "Спасибо за пост.",
+    "У нас то же самое.",
+    "Полезно.",
+]
+
+COMMENT_LINES_RU_PRO = [
+    "По уходу: неделю ведите дневник корма и туалета — так ветеринару проще.",
+    "При стойких симптомах лучше очередь к врачу, чем самолечение.",
 ]
 
 
@@ -145,11 +256,127 @@ def pick_random_author(db: firestore.Client | None = None) -> tuple[str, str, st
     return uid, name, photo
 
 
-def _comment_line(lang: str) -> str:
-    lang = (lang or "zh").lower()
-    if lang.startswith("zh"):
-        return random.choice(COMMENT_LINES_ZH)
-    return random.choice(COMMENT_LINES_EN)
+def _normalize_comment_voice(raw: str | None) -> str:
+    s = (raw or "casual").strip().lower()
+    return s if s in ("casual", "professional") else "casual"
+
+
+def _post_snippet_for_ai(post_data: dict[str, Any]) -> str:
+    s = str(post_data.get("summary") or "").strip()
+    if s:
+        return s[:500]
+    c = str(post_data.get("content") or "").strip()
+    return c[:500]
+
+
+def _clamp_comment_unicode(text: str, max_chars: int) -> str:
+    t = (text or "").strip().replace("\n", " ")
+    while "  " in t:
+        t = t.replace("  ", " ")
+    if len(t) <= max_chars:
+        return t
+    return t[: max_chars - 1] + "…"
+
+
+def _generate_comment_with_ai(
+    *,
+    lang: str,
+    voice: str,
+    post_title: str,
+    post_snippet: str,
+) -> str | None:
+    """调用 Gemini 生成极短评论；失败返回 None。"""
+    if not GEMINI_API_KEY:
+        return None
+    vm = _normalize_comment_voice(voice)
+    max_chars = MAX_COMMENT_CHARS_PROFESSIONAL if vm == "professional" else MAX_COMMENT_CHARS_CASUAL
+    raw = (lang or "en").strip().lower()
+    lang_key = raw[:2] if len(raw) >= 2 else "en"
+    if raw.startswith("zh"):
+        lang_key = "zh"
+    lang_name = _COMMENT_LANG_NAMES.get(lang_key, "English")
+    if vm == "professional":
+        mode = (
+            f"Write in {lang_name}. Tone: brief, professional, care-oriented "
+            f"(like a knowledgeable cat parent). Max {max_chars} Unicode characters. One line only."
+        )
+    else:
+        mode = (
+            f"Write in {lang_name}. Tone: very casual, like a quick forum reply or reaction. "
+            f"Emoji allowed. Max {max_chars} Unicode characters. One line only."
+        )
+    prompt = f"""{mode}
+
+Hard rule: output must be at most {max_chars} characters. No quotes around the text. No newlines.
+
+Post title: {(post_title or '')[:180]}
+Post excerpt: {(post_snippet or '')[:450]}
+
+Output ONLY the comment text, nothing else."""
+    try:
+        import google.generativeai as genai
+
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel(
+            GEMINI_COMMENT_MODEL,
+            generation_config={"temperature": 0.75, "max_output_tokens": 128},
+        )
+        r = model.generate_content(prompt)
+        text = (r.text or "").strip()
+        if text.startswith('"') and text.endswith('"'):
+            text = text[1:-1].strip()
+        if text.startswith("'") and text.endswith("'"):
+            text = text[1:-1].strip()
+        text = text.replace("\n", " ").strip()
+        if not text:
+            return None
+        return _clamp_comment_unicode(text, max_chars)
+    except Exception:
+        logger.exception("Gemini short comment generation failed")
+        return None
+
+
+def _resolve_comment_text(
+    lang: str,
+    voice: str,
+    use_ai: bool,
+    post_data: dict[str, Any],
+) -> tuple[str, str]:
+    """返回 (正文, 来源 template|ai)。"""
+    if use_ai:
+        ai = _generate_comment_with_ai(
+            lang=lang,
+            voice=voice,
+            post_title=str(post_data.get("title") or ""),
+            post_snippet=_post_snippet_for_ai(post_data),
+        )
+        if ai:
+            return ai, "ai"
+    return _comment_line(lang, voice), "template"
+
+
+def _comment_line(lang: str, voice: str = "casual") -> str:
+    """按语言 + 调性（日常/专业）选评论池。"""
+    vm = _normalize_comment_voice(voice)
+    pro = vm == "professional"
+    raw = (lang or "en").strip().lower()
+    if raw.startswith("zh"):
+        return random.choice(COMMENT_LINES_ZH_PRO if pro else COMMENT_LINES_ZH)
+    if raw.startswith("ja"):
+        return random.choice(COMMENT_LINES_JA_PRO if pro else COMMENT_LINES_JA)
+    if raw.startswith("ko"):
+        return random.choice(COMMENT_LINES_KO_PRO if pro else COMMENT_LINES_KO)
+    if raw.startswith("es"):
+        return random.choice(COMMENT_LINES_ES_PRO if pro else COMMENT_LINES_ES)
+    if raw.startswith("fr"):
+        return random.choice(COMMENT_LINES_FR_PRO if pro else COMMENT_LINES_FR)
+    if raw.startswith("de"):
+        return random.choice(COMMENT_LINES_DE_PRO if pro else COMMENT_LINES_DE)
+    if raw.startswith("pt"):
+        return random.choice(COMMENT_LINES_PT_PRO if pro else COMMENT_LINES_PT)
+    if raw.startswith("ru"):
+        return random.choice(COMMENT_LINES_RU_PRO if pro else COMMENT_LINES_RU)
+    return random.choice(COMMENT_LINES_EN_PRO if pro else COMMENT_LINES_EN)
 
 
 def add_synthetic_comment(
@@ -161,12 +388,18 @@ def add_synthetic_comment(
     content: str,
     parent_comment_id: str | None = None,
     reply_to_author: str | None = None,
+    comment_voice: str = "casual",
+    comment_source: str = "template",
 ) -> str:
     """写入评论（Admin SDK，绕过客户端规则）。"""
     posts_ref = db.collection("posts").document(post_id)
     comments_ref = db.collection("comments")
     cref = comments_ref.document()
     cid = cref.id
+    cv = _normalize_comment_voice(comment_voice)
+    src = (comment_source or "template").strip().lower()
+    if src not in ("ai", "template"):
+        src = "template"
     payload: dict[str, Any] = {
         "postId": post_id,
         "authorId": author_id,
@@ -174,6 +407,8 @@ def add_synthetic_comment(
         "createdAt": firestore.SERVER_TIMESTAMP,
         "authorDisplayName": author_display_name,
         "authorAccountKind": "synthetic",
+        "commentVoice": cv,
+        "commentSource": src,
     }
     if parent_comment_id:
         payload["parentCommentId"] = parent_comment_id
@@ -182,11 +417,17 @@ def add_synthetic_comment(
 
     @firestore.transactional
     def _txn(transaction, comment_ref, post_ref, pl):
-        transaction.set(comment_ref, pl)
+        # Firestore：同一事务内必须先读后写，否则会报 Attempted read after write in a transaction
         psnap = post_ref.get(transaction=transaction)
+        if not psnap.exists:
+            raise ValueError("post not found")
+        transaction.set(comment_ref, pl)
         cur = (psnap.to_dict() or {}).get("commentCount")
         n = int(cur) + 1 if isinstance(cur, (int, float)) else 1
-        transaction.update(post_ref, {"commentCount": n})
+        transaction.update(
+            post_ref,
+            {"commentCount": n, "updatedAt": firestore.SERVER_TIMESTAMP},
+        )
 
     transaction = db.transaction()
     _txn(transaction, cref, posts_ref, payload)
@@ -199,12 +440,17 @@ def batch_comments_on_published_posts(
     max_posts: int = 20,
     comments_per_post: int = 2,
     lang: str = "zh",
+    voice: str = "casual",
+    use_ai: bool = True,
     reply_probability: float = 0.25,
 ) -> dict[str, Any]:
     """
     对最近一批已发布帖子，用随机合成用户发表评论（可含少量回复）。
+    voice: casual=日常口语风，professional=偏护理/就医提醒的短评。
+    use_ai: 为 True 且配置了 GEMINI_API_KEY 时，优先生成 AI 短评（日常≤10 字、专业≤30 字），失败则回落话术池。
     """
     db = db or _db()
+    voice_n = _normalize_comment_voice(voice)
     ensure_min_synthetic_users(db, minimum=max(5, comments_per_post + 1))
     pool_uids = _pool_uids(db)
     if not pool_uids:
@@ -224,26 +470,32 @@ def batch_comments_on_published_posts(
             ud = udoc.to_dict() or {}
             dname = str(ud.get("displayName") or "").strip() or random_display_name()
             try:
+                text1, src1 = _resolve_comment_text(lang, voice_n, use_ai, data)
                 cid = add_synthetic_comment(
                     db,
                     post_id=pid,
                     author_id=uid,
                     author_display_name=dname,
-                    content=_comment_line(lang),
+                    content=text1,
+                    comment_voice=voice_n,
+                    comment_source=src1,
                 )
                 total_comments += 1
                 if random.random() < reply_probability:
                     uid2 = random.choice([u for u in pool_uids if u != uid] or pool_uids)
                     udoc2 = db.collection("users").document(uid2).get()
                     dname2 = str((udoc2.to_dict() or {}).get("displayName") or "").strip() or random_display_name()
+                    text2, src2 = _resolve_comment_text(lang, voice_n, use_ai, data)
                     add_synthetic_comment(
                         db,
                         post_id=pid,
                         author_id=uid2,
                         author_display_name=dname2,
-                        content=_comment_line(lang),
+                        content=text2,
                         parent_comment_id=cid,
                         reply_to_author=dname,
+                        comment_voice=voice_n,
+                        comment_source=src2,
                     )
                     total_comments += 1
             except Exception as e:

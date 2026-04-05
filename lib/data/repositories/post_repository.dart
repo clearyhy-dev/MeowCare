@@ -136,7 +136,7 @@ class PostRepository {
     String coverUrl = '',
     List<String> breedIds = const [],
     List<String> topics = const [],
-    String status = 'pending',
+    String status = 'published',
     String countryCode = '',
     String language = 'en',
     bool? hasImage,
@@ -144,6 +144,7 @@ class PostRepository {
   }) async {
     final ref = _firestore.collection(AppConstants.postsCollection).doc();
     final inferredHasImage = hasImage ?? coverUrl.trim().isNotEmpty;
+    final now = DateTime.now();
     final post = PostModel(
       postId: ref.id,
       type: 'ugc',
@@ -162,8 +163,9 @@ class PostRepository {
       linkUrl: linkUrl.trim(),
       language: language.isNotEmpty ? language.toLowerCase() : 'en',
       hasImage: inferredHasImage ? true : null,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+      createdAt: now,
+      updatedAt: now,
+      publishedAt: status == 'published' ? now : null,
     );
 
     await ref.set(post.toMap());

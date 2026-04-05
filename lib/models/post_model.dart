@@ -5,9 +5,12 @@ import 'post_media_item.dart';
 class PostModel {
   final String postId;
   final String type; // 'official' | 'ugc'
-  final String status; // 'published' | 'scheduled' | 'draft' | 'pending' | 'rejected'
+  /// 与 Firestore / 后台一致：`published` | `scheduled` | `draft` | `pending` | `rejected`
+  final String status;
   final String title;
   final String content;
+  /// 自动/编辑推荐摘要；列表可优先展示，与后端 `summary` 对齐。
+  final String summary;
   final String coverUrl;
   /// 可选缩略图；为空时 Feed 使用 [coverUrl]。
   final String thumbnailUrl;
@@ -36,6 +39,8 @@ class PostModel {
   final DateTime? updatedAt;
   /// 实际上线时间；已发布且晚于当前时间则不应在 Feed 展示（新数据由后端写入）。
   final DateTime? publishedAt;
+  /// 定时发布计划时间（`status == scheduled` 时由后端写入）。
+  final DateTime? scheduledPublishAt;
 
   const PostModel({
     required this.postId,
@@ -43,6 +48,7 @@ class PostModel {
     required this.status,
     required this.title,
     this.content = '',
+    this.summary = '',
     this.coverUrl = '',
     this.thumbnailUrl = '',
     this.breedIds = const [],
@@ -62,7 +68,22 @@ class PostModel {
     this.createdAt,
     this.updatedAt,
     this.publishedAt,
+    this.scheduledPublishAt,
   });
+
+  /// 详情页正文：优先用户正文，否则摘要（兼容自动帖）。
+  String get displayBody {
+    final c = content.trim();
+    if (c.isNotEmpty) return content;
+    return summary.trim();
+  }
+
+  /// Feed 卡片预览：与详情一致，避免仅有 summary 时空白。
+  String get listPreviewText {
+    final c = content.trim();
+    if (c.isNotEmpty) return c;
+    return summary.trim();
+  }
 
   /// 列表展示用图片 URL：优先缩略图，否则封面。
   String get displayImageUrl {
@@ -105,6 +126,7 @@ class PostModel {
       'status': status,
       'title': title,
       'content': content,
+      if (summary.isNotEmpty) 'summary': summary,
       'coverUrl': coverUrl,
       'thumbnailUrl': thumbnailUrl,
       'breedIds': breedIds,
@@ -123,13 +145,28 @@ class PostModel {
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : FieldValue.serverTimestamp(),
       if (publishedAt != null) 'publishedAt': Timestamp.fromDate(publishedAt!),
+      if (scheduledPublishAt != null) 'scheduledPublishAt': Timestamp.fromDate(scheduledPublishAt!),
     };
+  }
+
+  static List<String> _stringList(dynamic raw) {
+    if (raw is! List) return const [];
+    final out = <String>[];
+    for (final e in raw) {
+      if (e is String) {
+        out.add(e);
+      } else if (e != null) {
+        out.add(e.toString());
+      }
+    }
+    return out;
   }
 
   static PostModel fromMap(Map<String, dynamic> map, String postId) {
     final createdAt = map['createdAt'];
     final updatedAt = map['updatedAt'];
     final publishedAtRaw = map['publishedAt'];
+    final scheduledRaw = map['scheduledPublishAt'];
     final hasImageRaw = map['hasImage'];
     bool? hasImage;
     if (hasImageRaw is bool) {
@@ -151,16 +188,22 @@ class PostModel {
       final th = map['thumbnailUrl'] as String?;
       mediaItems = [PostMediaItem.image(coverFallback, thumbnailUrl: (th != null && th.isNotEmpty) ? th : null)];
     }
+    DateTime? scheduledPublishAt;
+    if (scheduledRaw is Timestamp) {
+      scheduledPublishAt = scheduledRaw.toDate();
+    }
+
     return PostModel(
       postId: postId,
       type: map['type'] as String? ?? 'ugc',
       status: map['status'] as String? ?? 'draft',
       title: map['title'] as String? ?? '',
       content: map['content'] as String? ?? '',
+      summary: map['summary'] as String? ?? '',
       coverUrl: map['coverUrl'] as String? ?? '',
       thumbnailUrl: map['thumbnailUrl'] as String? ?? '',
-      breedIds: List<String>.from(map['breedIds'] as List? ?? []),
-      topics: List<String>.from(map['topics'] as List? ?? []),
+      breedIds: _stringList(map['breedIds']),
+      topics: _stringList(map['topics']),
       authorId: map['authorId'] as String? ?? '',
       authorDisplayName: map['authorDisplayName'] as String? ?? '',
       likeCount: (map['likeCount'] as num?)?.toInt() ?? 0,
@@ -176,6 +219,7 @@ class PostModel {
       createdAt: createdAt is Timestamp ? createdAt.toDate() : null,
       updatedAt: updatedAt is Timestamp ? updatedAt.toDate() : null,
       publishedAt: publishedAtRaw is Timestamp ? publishedAtRaw.toDate() : null,
+      scheduledPublishAt: scheduledPublishAt,
     );
   }
 }

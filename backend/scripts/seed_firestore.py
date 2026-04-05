@@ -59,6 +59,7 @@ DEFAULT_CONTENT_GENERATION = {
     "dailyCount": 5,
     "publishHourUtc": 1,
     "language": "en",
+    "voiceMode": "casual",
     "topics": [
         "care", "behavior", "feeding", "health", "grooming",
         "kitten", "senior_cat", "indoor_cat", "hydration", "litter_box",

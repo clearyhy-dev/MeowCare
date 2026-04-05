@@ -1468,6 +1468,90 @@ abstract class AppLocalizations {
   /// **'Disclaimer'**
   String get aiAdviceSectionDisclaimer;
 
+  /// No description provided for @aiResultRiskNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Before you read'**
+  String get aiResultRiskNotice;
+
+  /// No description provided for @aiUserSeverity.
+  ///
+  /// In en, this message translates to:
+  /// **'Your selection'**
+  String get aiUserSeverity;
+
+  /// No description provided for @aiAssessedSeverity.
+  ///
+  /// In en, this message translates to:
+  /// **'Assessment'**
+  String get aiAssessedSeverity;
+
+  /// No description provided for @aiPossibleCauses.
+  ///
+  /// In en, this message translates to:
+  /// **'Possible causes (non-diagnostic)'**
+  String get aiPossibleCauses;
+
+  /// No description provided for @aiWatchAtHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home observation'**
+  String get aiWatchAtHome;
+
+  /// No description provided for @aiSeekVetUrgent.
+  ///
+  /// In en, this message translates to:
+  /// **'When to seek veterinary care urgently'**
+  String get aiSeekVetUrgent;
+
+  /// No description provided for @aiNextQuestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Questions to consider'**
+  String get aiNextQuestions;
+
+  /// No description provided for @aiCopyResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy result'**
+  String get aiCopyResult;
+
+  /// No description provided for @aiCopiedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to clipboard'**
+  String get aiCopiedSuccess;
+
+  /// No description provided for @aiAskAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask again'**
+  String get aiAskAgain;
+
+  /// No description provided for @aiFallbackBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI returned a simplified response. If symptoms persist or worsen, contact a veterinarian.'**
+  String get aiFallbackBanner;
+
+  /// No description provided for @aiTimeoutErrorShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Request timed out. Please try again.'**
+  String get aiTimeoutErrorShort;
+
+  /// No description provided for @aiNetworkErrorShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Network error. Check your connection and try again.'**
+  String get aiNetworkErrorShort;
+
+  /// No description provided for @aiAuthErrorShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Please sign in again to use AI.'**
+  String get aiAuthErrorShort;
+
   /// No description provided for @retry.
   ///
   /// In en, this message translates to:
@@ -1819,7 +1903,7 @@ abstract class AppLocalizations {
   /// No description provided for @communityHubPostsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Drafts, pending, and published'**
+  /// **'Drafts, scheduled, and published posts'**
   String get communityHubPostsSubtitle;
 
   /// No description provided for @communityHubCommentsSubtitle.
@@ -1935,6 +2019,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Account & billing'**
   String get settingsSectionAccount;
+
+  /// No description provided for @settingsSectionMyContent.
+  ///
+  /// In en, this message translates to:
+  /// **'My content'**
+  String get settingsSectionMyContent;
+
+  /// No description provided for @settingsSectionNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications & language'**
+  String get settingsSectionNotifications;
+
+  /// No description provided for @settingsSectionPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy & community'**
+  String get settingsSectionPrivacy;
+
+  /// No description provided for @settingsSectionAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get settingsSectionAbout;
+
+  /// No description provided for @sending.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending…'**
+  String get sending;
+
+  /// No description provided for @commentsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No comments yet'**
+  String get commentsEmptyTitle;
+
+  /// No description provided for @commentsEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Be the first to share your thoughts.'**
+  String get commentsEmptyBody;
+
+  /// No description provided for @errorGenericRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get errorGenericRetry;
+
+  /// No description provided for @postDetailLoadingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading post…'**
+  String get postDetailLoadingHint;
+
+  /// No description provided for @feedLoadingMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading more…'**
+  String get feedLoadingMore;
+
+  /// No description provided for @notificationsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load notifications. Pull to refresh or try again.'**
+  String get notificationsLoadFailed;
+
+  /// No description provided for @postPublishedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Your post is live.'**
+  String get postPublishedSuccess;
+
+  /// No description provided for @postStatusScheduled.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled'**
+  String get postStatusScheduled;
+
+  /// No description provided for @myPostsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your posts. Try again.'**
+  String get myPostsLoadFailed;
 }
 
 class _AppLocalizationsDelegate

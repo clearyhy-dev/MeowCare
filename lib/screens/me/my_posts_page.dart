@@ -10,6 +10,7 @@ import '../../models/post_model.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../widgets/app/app_empty_state.dart';
+import '../../widgets/app/error_state_view.dart';
 import '../../widgets/app/skeleton_shimmer.dart';
 import '../../widgets/post/post_card.dart';
 
@@ -21,12 +22,19 @@ class MyPostsPage extends ConsumerStatefulWidget {
 }
 
 class _MyPostsPageState extends ConsumerState<MyPostsPage> {
-  static const List<String> _statuses = ['draft', 'pending', 'published', 'rejected'];
+  static const List<String> _statuses = [
+    'draft',
+    'pending',
+    'scheduled',
+    'published',
+    'rejected',
+  ];
   String _status = 'published';
   final List<PostModel> _posts = [];
   DocumentSnapshot? _lastDoc;
   bool _loading = false;
   bool _hasMore = true;
+  String? _loadError;
 
   @override
   void initState() {
@@ -42,6 +50,7 @@ class _MyPostsPageState extends ConsumerState<MyPostsPage> {
       _lastDoc = null;
       _hasMore = true;
       _loading = true;
+      _loadError = null;
     });
     try {
       final repo = ref.read(postRepositoryProvider);
@@ -52,9 +61,15 @@ class _MyPostsPageState extends ConsumerState<MyPostsPage> {
         _lastDoc = page.lastDoc;
         _hasMore = page.lastDoc != null;
         _loading = false;
+        _loadError = null;
       });
     } catch (_) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadError = context.l10n.myPostsLoadFailed;
+        });
+      }
     }
   }
 
@@ -79,7 +94,12 @@ class _MyPostsPageState extends ConsumerState<MyPostsPage> {
         _loading = false;
       });
     } catch (_) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.myPostsLoadFailed)),
+        );
+      }
     }
   }
 
@@ -94,6 +114,8 @@ class _MyPostsPageState extends ConsumerState<MyPostsPage> {
         return l.postStatusPublished;
       case 'rejected':
         return l.postStatusRejected;
+      case 'scheduled':
+        return l.postStatusScheduled;
       default:
         return s;
     }
@@ -139,6 +161,12 @@ class _MyPostsPageState extends ConsumerState<MyPostsPage> {
                             ],
                           ),
                         )
+                      : _loadError != null && _posts.isEmpty && !_loading
+                          ? ErrorStateView(
+                              title: _loadError!,
+                              onRetry: _loadFirst,
+                              retryLabel: context.l10n.retry,
+                            )
                       : _posts.isEmpty && !_loading
                           ? AppEmptyState(
                               message: context.l10n.myPostsEmpty,

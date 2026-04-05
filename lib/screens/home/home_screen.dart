@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
+import '../../core/theme/app_radii.dart';
+import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../models/task_model.dart';
@@ -10,7 +12,9 @@ import '../../providers/cat_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../widgets/app/app_button.dart';
-import '../../widgets/empty_state.dart';
+import '../../widgets/app/empty_state_view.dart';
+import '../../widgets/app/error_state_view.dart';
+import '../../widgets/app/skeleton_shimmer.dart';
 import '../../widgets/task_card.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -24,10 +28,15 @@ class HomeScreen extends ConsumerWidget {
     final userAsync = ref.watch(currentUserAsyncProvider);
 
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: Text(context.l10n.appTitle),
         actions: [
-          IconButton(icon: const Icon(Icons.person), onPressed: () => context.push('${AppRouter.home}settings')),
+          IconButton(
+            tooltip: context.l10n.profile,
+            icon: const Icon(Icons.person),
+            onPressed: () => context.push('${AppRouter.home}settings'),
+          ),
         ],
       ),
       body: RefreshIndicator(
@@ -37,48 +46,51 @@ class HomeScreen extends ConsumerWidget {
           ref.invalidate(currentFamilyCatsFutureProvider);
         },
         child: tasksAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text(context.l10n.errorWithMessage(e.toString()))),
+          loading: () => const _TaskHomeLoadingBody(),
+          error: (e, _) => ErrorStateView(
+            title: context.l10n.errorGenericRetry,
+            message: context.l10n.errorWithMessage(e.toString()),
+            retryLabel: context.l10n.retry,
+            onRetry: () {
+              ref.invalidate(familyTasksProvider);
+              ref.invalidate(todayCompletionMapProvider);
+              ref.invalidate(currentFamilyCatsFutureProvider);
+            },
+          ),
           data: (tasks) {
             final user = userAsync.valueOrNull;
             final completion = completionAsync.valueOrNull ?? {};
             final cats = catsAsync.valueOrNull ?? [];
             final catMap = {for (var c in cats) c.catId: c.name};
             if (tasks.isEmpty) {
-              return SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: user == null
-                    ? EmptyState(
-                        message: context.l10n.goToSettingsToSignIn,
-                        icon: Icons.person_outline,
-                        action: AppButton(
-                          label: context.l10n.settings,
-                          variant: AppButtonVariant.primary,
-                          icon: const Icon(Icons.settings_outlined, size: 20),
-                          onPressed: () => context.go('${AppRouter.home}settings'),
-                        ),
+              return EmptyStateView(
+                useScrollView: true,
+                message: user == null ? context.l10n.goToSettingsToSignIn : context.l10n.noTasksYet,
+                icon: user == null ? Icons.person_outline : Icons.check_circle_outline,
+                action: user == null
+                    ? AppButton(
+                        label: context.l10n.settings,
+                        variant: AppButtonVariant.primary,
+                        icon: const Icon(Icons.settings_outlined, size: 20),
+                        onPressed: () => context.go('${AppRouter.home}settings'),
                       )
-                    : EmptyState(
-                        message: context.l10n.noTasksYet,
-                        icon: Icons.check_circle_outline,
-                        action: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            AppButton(
-                              label: context.l10n.addCat,
-                              variant: AppButtonVariant.primary,
-                              icon: const Icon(Icons.pets, size: 20),
-                              onPressed: () => context.go('${AppRouter.home}cats'),
-                            ),
-                            const SizedBox(height: 10),
-                            AppButton(
-                              label: context.l10n.aiSymptomSupport,
-                              variant: AppButtonVariant.secondary,
-                              icon: const Icon(Icons.smart_toy_outlined, size: 20),
-                              onPressed: () => context.go('${AppRouter.home}ai'),
-                            ),
-                          ],
-                        ),
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AppButton(
+                            label: context.l10n.addCat,
+                            variant: AppButtonVariant.primary,
+                            icon: const Icon(Icons.pets, size: 20),
+                            onPressed: () => context.go('${AppRouter.home}cats'),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          AppButton(
+                            label: context.l10n.aiSymptomSupport,
+                            variant: AppButtonVariant.secondary,
+                            icon: const Icon(Icons.smart_toy_outlined, size: 20),
+                            onPressed: () => context.go('${AppRouter.home}ai'),
+                          ),
+                        ],
                       ),
               );
             }
@@ -143,6 +155,28 @@ class HomeScreen extends ConsumerWidget {
     if (uid == null) return;
     await ref.read(taskServiceProvider).completeTask(task.taskId, task.catId, uid);
     ref.invalidate(todayCompletionMapProvider);
+  }
+}
+
+class _TaskHomeLoadingBody extends StatelessWidget {
+  const _TaskHomeLoadingBody();
+
+  @override
+  Widget build(BuildContext context) {
+    return ShimmerScope(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xl),
+        children: [
+          SkeletonLine(width: 120, height: 22, radius: AppRadii.xs),
+          const SizedBox(height: AppSpacing.lg),
+          const SkeletonNotificationTile(),
+          const SizedBox(height: AppSpacing.md),
+          const SkeletonNotificationTile(),
+          const SizedBox(height: AppSpacing.md),
+          const SkeletonNotificationTile(),
+        ],
+      ),
+    );
   }
 }
 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_spacing.dart';
+import '../app/app_surface_card.dart';
 import 'feed_mode_switcher.dart';
 import 'feed_search_field.dart';
 
@@ -27,34 +29,32 @@ class FeedControlBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        border: Border(
-          bottom: BorderSide(color: scheme.outline.withValues(alpha: 0.15)),
-        ),
-      ),
-      child: Column(
-        children: [
-          FeedSearchField(
-            controller: searchController,
-            hintText: searchHintText,
-            onChanged: onSearchChanged,
-          ),
-          const SizedBox(height: 10),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FeedModeSwitcher(
-              latestSelected: latestSelected,
-              latestLabel: latestLabel,
-              hotLabel: hotLabel,
-              onSelectLatest: onSelectLatest,
-              onSelectHot: onSelectHot,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.feedGutter, AppSpacing.sm, AppSpacing.feedGutter, AppSpacing.md),
+      child: AppSurfaceCard(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
+        showShadow: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FeedSearchField(
+              controller: searchController,
+              hintText: searchHintText,
+              onChanged: onSearchChanged,
             ),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.sm),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FeedModeSwitcher(
+                latestSelected: latestSelected,
+                latestLabel: latestLabel,
+                hotLabel: hotLabel,
+                onSelectLatest: onSelectLatest,
+                onSelectHot: onSelectHot,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

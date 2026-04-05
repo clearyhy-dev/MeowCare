@@ -707,6 +707,48 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiAdviceSectionDisclaimer => '免责说明';
 
   @override
+  String get aiResultRiskNotice => '阅读前提示';
+
+  @override
+  String get aiUserSeverity => '您的选择';
+
+  @override
+  String get aiAssessedSeverity => '参考评估';
+
+  @override
+  String get aiPossibleCauses => '可能原因（非诊断）';
+
+  @override
+  String get aiWatchAtHome => '居家观察';
+
+  @override
+  String get aiSeekVetUrgent => '需要尽快就医的情况';
+
+  @override
+  String get aiNextQuestions => '建议补充的问题';
+
+  @override
+  String get aiCopyResult => '复制结果';
+
+  @override
+  String get aiCopiedSuccess => '已复制到剪贴板';
+
+  @override
+  String get aiAskAgain => '再次提问';
+
+  @override
+  String get aiFallbackBanner => '本次为简化回复。若症状持续或加重，请联系兽医。';
+
+  @override
+  String get aiTimeoutErrorShort => '请求超时，请稍后重试。';
+
+  @override
+  String get aiNetworkErrorShort => '网络异常，请检查连接后重试。';
+
+  @override
+  String get aiAuthErrorShort => '请重新登录后再使用 AI。';
+
+  @override
   String get retry => '重试';
 
   @override
@@ -888,7 +930,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get communityHubSubtitle => '管理帖子、通知与社区偏好';
 
   @override
-  String get communityHubPostsSubtitle => '草稿、待审与已发布';
+  String get communityHubPostsSubtitle => '草稿、定时与已发布';
 
   @override
   String get communityHubCommentsSubtitle => '你参与的讨论与回复';
@@ -946,4 +988,46 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsSectionAccount => '账户与订阅';
+
+  @override
+  String get settingsSectionMyContent => '我的内容';
+
+  @override
+  String get settingsSectionNotifications => '通知与语言';
+
+  @override
+  String get settingsSectionPrivacy => '隐私与社区';
+
+  @override
+  String get settingsSectionAbout => '关于';
+
+  @override
+  String get sending => '发送中…';
+
+  @override
+  String get commentsEmptyTitle => '暂无评论';
+
+  @override
+  String get commentsEmptyBody => '来发表第一条评论吧。';
+
+  @override
+  String get errorGenericRetry => '出错了，请重试。';
+
+  @override
+  String get postDetailLoadingHint => '加载帖子中…';
+
+  @override
+  String get feedLoadingMore => '加载更多…';
+
+  @override
+  String get notificationsLoadFailed => '通知加载失败，请下拉重试。';
+
+  @override
+  String get postPublishedSuccess => '发布成功，已在动态中展示。';
+
+  @override
+  String get postStatusScheduled => '定时发布';
+
+  @override
+  String get myPostsLoadFailed => '帖子加载失败，请重试。';
 }

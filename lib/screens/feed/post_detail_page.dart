@@ -8,24 +8,32 @@ import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/topic_l10n.dart';
 import '../../data/repositories/report_repository.dart';
 import '../../models/post_model.dart';
+import '../../core/theme/app_radii.dart';
+import '../../core/theme/app_spacing.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/app/app_button.dart';
+import '../../widgets/app/app_section_header.dart';
+import '../../widgets/app/error_state_view.dart';
+import '../../widgets/app/tag_chip.dart';
+import '../../widgets/app/skeleton_shimmer.dart';
 import '../../widgets/comment_list.dart';
 import '../../widgets/post/post_action_bar.dart';
 import '../../widgets/post/post_media_carousel.dart';
-import '../../widgets/app/app_button.dart';
-import '../../widgets/app/app_section_header.dart';
 
 class PostDetailPage extends ConsumerStatefulWidget {
   const PostDetailPage({
     super.key,
     required this.postId,
     this.focusCommentOnOpen = false,
+    this.highlightCommentId,
   });
 
   final String postId;
   /// Opened from feed comment tap (`?focusComment=1`): scroll to composer and focus.
   final bool focusCommentOnOpen;
+  /// 通知等深链：`?commentId=` 滚动到对应评论（与 [focusCommentOnOpen] 同时存在时优先滚动到评论，不弹键盘）。
+  final String? highlightCommentId;
 
   @override
   ConsumerState<PostDetailPage> createState() => _PostDetailPageState();
@@ -34,7 +42,6 @@ class PostDetailPage extends ConsumerStatefulWidget {
 class _PostDetailPageState extends ConsumerState<PostDetailPage> {
   static const _kErrorPostNotFound = 'post_not_found';
   static const double _heroImageHeight = 160;
-  static const double _imageRadius = 11;
 
   final _scrollController = ScrollController();
   final _commentFocusNode = FocusNode();
@@ -45,19 +52,49 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
   bool _loading = true;
   String? _error;
 
-  Future<void> _load() async {
-    final repo = ref.read(postRepositoryProvider);
-    final post = await repo.getPost(widget.postId);
-    if (mounted) {
+  Future<void> _load({bool silent = false}) async {
+    if (!silent && mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+    try {
+      final repo = ref.read(postRepositoryProvider);
+      final post = await repo.getPost(widget.postId);
+      if (!mounted) return;
       setState(() {
         _post = post;
-        _loading = false;
-        if (post == null) _error = 'post_not_found';
+        if (!silent) _loading = false;
+        if (post == null) {
+          _error = _kErrorPostNotFound;
+        } else {
+          _error = null;
+        }
       });
-      if (post != null && widget.focusCommentOnOpen && !_didAutoFocusComment) {
+      final highlight = widget.highlightCommentId?.trim() ?? '';
+      if (post != null &&
+          widget.focusCommentOnOpen &&
+          highlight.isEmpty &&
+          !_didAutoFocusComment) {
         _didAutoFocusComment = true;
         final uid = ref.read(currentUserAsyncProvider).valueOrNull?.uid ?? '';
         _scrollCommentsIntoViewAndFocus(requestKeyboard: uid.isNotEmpty);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          if (!silent) {
+            _loading = false;
+            _post = null;
+          }
+          _error = silent ? _error : e.toString();
+        });
+        if (silent) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.l10n.errorGenericRetry)),
+          );
+        }
       }
     }
   }
@@ -113,27 +150,38 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final surface = Theme.of(context).colorScheme.surface;
     if (_loading) {
       return Scaffold(
-        appBar: AppBar(title: Text(context.l10n.post)),
-        body: const Center(child: CircularProgressIndicator()),
+        backgroundColor: surface,
+        appBar: AppBar(
+          title: Text(context.l10n.post),
+        ),
+        body: const _PostDetailLoadingBody(),
       );
     }
-    if (_error != null || _post == null) {
+    if (_post == null) {
+      final notFound = _error == _kErrorPostNotFound;
       return Scaffold(
+        backgroundColor: surface,
         appBar: AppBar(title: Text(context.l10n.post)),
-        body: Center(
-          child: Text(_error == _kErrorPostNotFound ? context.l10n.postNotFound : (_error ?? context.l10n.notFound)),
+        body: ErrorStateView(
+          title: notFound ? context.l10n.postNotFound : context.l10n.errorGenericRetry,
+          message: notFound ? null : (_error ?? context.l10n.notFound),
+          onRetry: notFound ? null : _load,
+          retryLabel: notFound ? null : context.l10n.retry,
         ),
       );
     }
     final post = _post!;
+    final commentHighlightId = widget.highlightCommentId?.trim();
     final user = ref.watch(currentUserAsyncProvider).valueOrNull;
     final scheme = Theme.of(context).colorScheme;
     final onVar = scheme.onSurfaceVariant;
     final hasCategory = post.topics.isNotEmpty;
 
     return Scaffold(
+      backgroundColor: surface,
       appBar: AppBar(
         title: Text(context.l10n.post),
         actions: [
@@ -159,18 +207,27 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
           Expanded(
             child: SingleChildScrollView(
               controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    crossAxisAlignment: WrapCrossAlignment.center,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _DetailChip(text: AppLanguageDisplay.chipLabel(post.language, context.l10n)),
-                      if (hasCategory)
-                        _DetailChip(text: feedTopicCategoryLabel(context, post.topics.first)),
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: scheme.primaryContainer,
+                        child: Icon(Icons.pets_rounded, size: 18, color: scheme.primary),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          post.authorDisplayName.trim().isNotEmpty
+                              ? post.authorDisplayName.trim()
+                              : context.l10n.appTitle,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ),
                       if (_formatTime(post.createdAt).isNotEmpty)
                         Text(
                           _formatTime(post.createdAt),
@@ -178,7 +235,16 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: AppSpacing.md),
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: [
+                      TagChip(text: AppLanguageDisplay.chipLabel(post.language, context.l10n)),
+                      if (hasCategory) TagChip(text: feedTopicCategoryLabel(context, post.topics.first)),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
                   Text(
                     post.title,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -187,16 +253,16 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                         ),
                   ),
                   if (post.linkUrl.trim().isNotEmpty) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: AppSpacing.md),
                     InkWell(
                       onTap: () => _openUrl(post.linkUrl.trim()),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppRadii.sm),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                         child: Row(
                           children: [
                             Icon(Icons.link_rounded, size: 20, color: scheme.primary),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: AppSpacing.sm),
                             Expanded(
                               child: Text(
                                 post.linkUrl.trim(),
@@ -214,48 +280,49 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                     ),
                   ],
                   if (post.shouldShowImage) ...[
-                    const SizedBox(height: 12),
-                    if (post.mediaItems.isNotEmpty)
-                      PostMediaCarousel(
-                        items: post.mediaItems,
-                        borderRadius: BorderRadius.circular(_imageRadius),
-                        videoMuted: false,
-                      )
-                    else
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(_imageRadius),
-                        child: SizedBox(
-                          height: _heroImageHeight,
-                          width: double.infinity,
-                          child: Image.network(
-                            post.displayImageUrl,
-                            fit: BoxFit.cover,
-                            alignment: Alignment.center,
-                            loadingBuilder: (context, child, progress) {
-                              if (progress == null) return child;
-                              final total = progress.expectedTotalBytes;
-                              return ColoredBox(
-                                color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    value: total != null && total > 0 ? progress.cumulativeBytesLoaded / total : null,
-                                  ),
+                    const SizedBox(height: AppSpacing.md),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadii.md),
+                      child: post.mediaItems.isNotEmpty
+                          ? PostMediaCarousel(
+                              items: post.mediaItems,
+                              borderRadius: BorderRadius.circular(AppRadii.md),
+                              videoMuted: false,
+                            )
+                          : SizedBox(
+                              height: _heroImageHeight,
+                              width: double.infinity,
+                              child: Image.network(
+                                post.displayImageUrl,
+                                fit: BoxFit.cover,
+                                alignment: Alignment.center,
+                                loadingBuilder: (context, child, progress) {
+                                  if (progress == null) return child;
+                                  final total = progress.expectedTotalBytes;
+                                  return ColoredBox(
+                                    color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        value: total != null && total > 0
+                                            ? progress.cumulativeBytesLoaded / total
+                                            : null,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (_, __, ___) => ColoredBox(
+                                  color: scheme.surfaceContainerHighest,
+                                  child: Center(child: Icon(Icons.broken_image_outlined, size: 32, color: onVar)),
                                 ),
-                              );
-                            },
-                            errorBuilder: (_, __, ___) => ColoredBox(
-                              color: scheme.surfaceContainerHighest,
-                              child: Center(child: Icon(Icons.broken_image_outlined, size: 32, color: onVar)),
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
+                    ),
                   ],
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Divider(height: 1, color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
-                  const SizedBox(height: 16),
-                  _linkedPostContent(context, post.content),
+                  const SizedBox(height: AppSpacing.lg),
+                  _linkedPostContent(context, post.displayBody),
                   const SizedBox(height: 12),
                   Material(
                     color: Colors.transparent,
@@ -275,10 +342,12 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                   CommentList(
                     postId: widget.postId,
                     currentUid: user?.uid,
-                    onCommentAdded: _load,
+                    onCommentAdded: () => _load(silent: true),
                     currentUserDisplayName: ((user?.displayName ?? '').isNotEmpty) ? user?.displayName : user?.email,
                     currentUserPhotoUrl: ((user?.photoUrl ?? '').isNotEmpty) ? user?.photoUrl : null,
                     commentFocusNode: _commentFocusNode,
+                    scrollToCommentId:
+                        (commentHighlightId != null && commentHighlightId.isNotEmpty) ? commentHighlightId : null,
                   ),
                   const SizedBox(height: 80),
                 ],
@@ -370,27 +439,47 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
   }
 }
 
-class _DetailChip extends StatelessWidget {
-  const _DetailChip({required this.text});
-
-  final String text;
+class _PostDetailLoadingBody extends StatelessWidget {
+  const _PostDetailLoadingBody();
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.65),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 11,
-              color: scheme.onSurfaceVariant,
+    return ShimmerScope(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const SkeletonCircle(size: 40),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SkeletonLine(width: 140, height: 14, radius: AppRadii.xs),
+                      const SizedBox(height: AppSpacing.sm),
+                      SkeletonLine(width: 88, height: 10, radius: AppRadii.xs),
+                    ],
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: AppSpacing.lg),
+            SkeletonLine(width: double.infinity, height: 22, radius: AppRadii.xs),
+            const SizedBox(height: AppSpacing.sm),
+            SkeletonLine(width: MediaQuery.sizeOf(context).width * 0.55, height: 22, radius: AppRadii.xs),
+            const SizedBox(height: AppSpacing.lg),
+            SkeletonLine(width: double.infinity, height: _PostDetailPageState._heroImageHeight, radius: AppRadii.md),
+            const SizedBox(height: AppSpacing.lg),
+            SkeletonLine(width: double.infinity, height: 12),
+            const SizedBox(height: AppSpacing.sm),
+            SkeletonLine(width: double.infinity, height: 12),
+            const SizedBox(height: AppSpacing.sm),
+            SkeletonLine(width: 200, height: 12),
+          ],
+        ),
       ),
     );
   }

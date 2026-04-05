@@ -18,7 +18,10 @@ final notificationUnreadCountProvider = StreamProvider<int>((ref) {
       .collection(AppConstants.usersCollection)
       .doc(user.uid)
       .snapshots()
-      .map((s) => (s.data()?['notificationUnreadCount'] as num?)?.toInt() ?? 0);
+      .map((s) {
+        final n = (s.data()?['notificationUnreadCount'] as num?)?.toInt() ?? 0;
+        return n < 0 ? 0 : n;
+      });
 });
 
 final notificationsListStreamProvider =

@@ -98,7 +98,7 @@ gcloud run deploy meowcare-api --source . --region asia-east1 --allow-unauthenti
 | 变量 | 说明 |
 |------|------|
 | `GOOGLE_APPLICATION_CREDENTIALS` | 服务账号 JSON 路径（本地） |
-| `GEMINI_API_KEY` | AI 润色、每日多语言生成（可选但推荐） |
+| `GEMINI_API_KEY` | AI 润色、每日多语言生成、后台「合成用户」批量评论短评（可选但推荐；日常≤10 字 / 专业≤30 字；无密钥则回退话术池） |
 | `THE_CAT_API_KEY` | The Cat API（每日配图，可选） |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | 管理页登录；生产须强密码 |
 | `SECRET_KEY` | JWT 签名；生产必填 |
@@ -111,12 +111,12 @@ gcloud run deploy meowcare-api --source . --region asia-east1 --allow-unauthenti
 
 ## 3. 每日官方内容
 
+- **内容调性**（`voiceMode`）：`casual` = 日常随手动态风；`professional` = 专业科普专栏风。后台「每日内容」可选；生成帖会写入 `posts.voiceMode`。
 - 配置写入 Firestore：`settings/content_generation`（后台「每日内容」页保存）。
 - **手动生成**：后台按钮调用 `POST /content-jobs/generate-now`。
 - **定时**：进程内 APScheduler（容器存活时）+ 可选 Cloud Scheduler 调 `POST /content-jobs/daily-run`（需 `CONTENT_JOB_SECRET`）。
-- 定时将 `scheduled` 帖发布为 `published`：后台任务 `publish_due_scheduled_posts`（约每 5 分钟）。
-
-写入 Firestore 的 `scheduledPublishAt` 使用 **Python `datetime`（UTC）**，勿使用 protobuf `Timestamp` 直接 `set`。
+- **生成结果**：默认写入 **`status: published`** 并带 **`publishedAt`**，生成后即可在 App **最新**（按 `createdAt`）中出现；若开启「必须配图」且无图，则写入 **`draft`**。客户端对 **`publishedAt` 晚于当前时间** 的帖会隐藏（见 `PostModel.isPubliclyVisibleInFeed`）。
+- 历史上或其它途径写入的 **`scheduled`** 帖，仍由 `publish_due_scheduled_posts`（约每 5 分钟）+ 可选 Cloud Scheduler `POST /content-jobs/publish-scheduled` + API 中间件（节流）推进为 `published`。
 
 ---
 

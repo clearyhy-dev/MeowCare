@@ -10,6 +10,7 @@ class CommentComposer extends StatelessWidget {
     required this.onSubmit,
     this.focusNode,
     this.onTap,
+    this.isSubmitting = false,
   });
 
   final TextEditingController controller;
@@ -17,11 +18,13 @@ class CommentComposer extends StatelessWidget {
   final VoidCallback onSubmit;
   final FocusNode? focusNode;
   final VoidCallback? onTap;
+  final bool isSubmitting;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final borderColor = scheme.outline.withValues(alpha: 0.35);
+    final canType = enabled && !isSubmitting;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
@@ -29,12 +32,14 @@ class CommentComposer extends StatelessWidget {
           child: TextField(
             controller: controller,
             focusNode: focusNode,
-            enabled: enabled,
+            enabled: canType,
             onTap: onTap,
             minLines: 1,
             maxLines: 4,
             decoration: InputDecoration(
-              hintText: enabled ? context.l10n.comments : context.l10n.signInForFullFeatures,
+              hintText: !enabled
+                  ? context.l10n.signInForFullFeatures
+                  : (isSubmitting ? context.l10n.sending : context.l10n.comments),
               isDense: true,
               contentPadding: const EdgeInsets.only(bottom: 8, top: 4),
               border: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
@@ -48,13 +53,22 @@ class CommentComposer extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         FilledButton.tonal(
-          onPressed: enabled ? onSubmit : null,
+          onPressed: (enabled && !isSubmitting) ? onSubmit : null,
           style: FilledButton.styleFrom(
             minimumSize: const Size(44, 44),
             shape: const CircleBorder(),
             padding: EdgeInsets.zero,
           ),
-          child: const Icon(Icons.send_rounded, size: 20),
+          child: isSubmitting
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: scheme.primary,
+                  ),
+                )
+              : const Icon(Icons.send_rounded, size: 20),
         ),
       ],
     );

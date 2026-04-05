@@ -17,7 +17,8 @@ ADMIN_USERNAME = (_admin_user or "admin").strip() or "admin"
 _admin_pass = os.getenv("ADMIN_PASSWORD")
 if IS_PRODUCTION and (not _admin_pass or _admin_pass.strip() == ""):
     raise ValueError("ADMIN_PASSWORD must be set in production (set ENV=production)")
-ADMIN_PASSWORD = (_admin_pass if _admin_pass is not None and _admin_pass != "" else "wu2612103")
+# 非 production 默认仅用于本地开发；切勿在仓库中提交真实密码。
+ADMIN_PASSWORD = (_admin_pass if _admin_pass is not None and _admin_pass != "" else "dev-change-me-unsafe")
 
 _secret = os.getenv("SECRET_KEY")
 if IS_PRODUCTION and (not _secret or _secret.strip() == ""):

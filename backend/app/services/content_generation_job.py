@@ -46,14 +46,19 @@ async def execute_daily_batch(
     n = int(count if count is not None else cfg.get("dailyCount", 5))
     n = min(max(n, 0), 50)
     tlist = topics if topics is not None else cfg.get("topics")
-    created = await generate_daily_posts(n, tlist, cfg_override=cfg)
-    return {"created": created, "requested": n}
+    try:
+        created = await generate_daily_posts(n, tlist, cfg_override=cfg)
+    except Exception:
+        logger.exception("execute_daily_batch: generate_daily_posts failed")
+        return {"created": 0, "requested": n, "error": True}
+    return {"created": created, "requested": n, "error": False}
 
 
 async def run_daily_content_pipeline(*, check_publish_hour: bool = True) -> dict[str, Any] | None:
     """
     If check_publish_hour is True, only runs at settings.publishHourUtc (UTC), matching in-process scheduler.
     Returns None when skipped due to hour (scheduler should stay quiet).
+    On failure, returns a dict with error info without raising (scheduler-safe).
     """
     cfg = get_content_generation_settings()
     if not cfg.get("enabled", True):
@@ -72,12 +77,22 @@ async def run_daily_content_pipeline(*, check_publish_hour: bool = True) -> dict
     try:
         result = await execute_daily_batch()
         logger.info(
-            "Daily content generation finished: created=%s (requested=%s)",
-            result["created"],
-            result["requested"],
+            "Daily content generation finished: created=%s (requested=%s) error=%s",
+            result.get("created"),
+            result.get("requested"),
+            result.get("error"),
         )
+        if result.get("error"):
+            release_daily_lock(today)
+            return {**result, "skipped": False, "reason": "generation_failed"}
         return {**result, "skipped": False}
     except Exception:
         logger.exception("Daily content generation failed")
         release_daily_lock(today)
-        raise
+        return {
+            "skipped": False,
+            "error": True,
+            "reason": "exception",
+            "created": 0,
+            "requested": int(cfg.get("dailyCount", 5)),
+        }

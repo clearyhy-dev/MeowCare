@@ -6,6 +6,7 @@ import '../core/constants/app_constants.dart';
 import '../core/utils/l10n_ext.dart';
 import '../providers/comment_provider.dart';
 import '../models/comment_model.dart';
+import 'app/empty_state_view.dart';
 import 'comment/comment_card.dart';
 import 'comment/comment_composer.dart';
 
@@ -19,6 +20,7 @@ class CommentList extends ConsumerStatefulWidget {
     this.currentUserDisplayName,
     this.currentUserPhotoUrl,
     this.commentFocusNode,
+    this.scrollToCommentId,
   });
 
   final String postId;
@@ -29,6 +31,8 @@ class CommentList extends ConsumerStatefulWidget {
   /// 当前用户头像 URL
   final String? currentUserPhotoUrl;
   final FocusNode? commentFocusNode;
+  /// 首屏加载完成后滚动到该评论（通知深链）；不在首屏分页内则忽略。
+  final String? scrollToCommentId;
 
   @override
   ConsumerState<CommentList> createState() => _CommentListState();
@@ -42,6 +46,12 @@ class _CommentListState extends ConsumerState<CommentList> {
   bool _hasMore = true;
   CommentModel? _replyTarget;
   final Set<String> _expandedReplyParents = <String>{};
+  bool _submitting = false;
+  final Map<String, GlobalKey> _commentAnchorKeys = {};
+  bool _didScrollToHighlight = false;
+
+  GlobalKey _anchorKeyFor(String commentId) =>
+      _commentAnchorKeys.putIfAbsent(commentId, () => GlobalKey(debugLabel: 'comment_$commentId'));
 
   @override
   void dispose() {
@@ -62,7 +72,55 @@ class _CommentListState extends ConsumerState<CommentList> {
         _hasMore = result.list.length == AppConstants.feedPageSize;
         _loading = false;
       });
+      _scheduleScrollToHighlight();
     }
+  }
+
+  void _expandAncestorsOf(CommentModel target) {
+    var pid = target.parentCommentId;
+    while (pid != null && pid.isNotEmpty) {
+      _expandedReplyParents.add(pid);
+      CommentModel? parent;
+      for (final c in _comments) {
+        if (c.commentId == pid) {
+          parent = c;
+          break;
+        }
+      }
+      pid = parent?.parentCommentId;
+    }
+  }
+
+  void _scheduleScrollToHighlight() {
+    final id = widget.scrollToCommentId?.trim();
+    if (id == null || id.isEmpty || _didScrollToHighlight) return;
+
+    CommentModel? target;
+    for (final c in _comments) {
+      if (c.commentId == id) {
+        target = c;
+        break;
+      }
+    }
+    if (target == null) return;
+
+    setState(() => _expandAncestorsOf(target!));
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final ctx = _anchorKeyFor(id).currentContext;
+        if (ctx != null) {
+          Scrollable.ensureVisible(
+            ctx,
+            alignment: 0.15,
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeOutCubic,
+          );
+          _didScrollToHighlight = true;
+        }
+      });
+    });
   }
 
   @override
@@ -73,7 +131,7 @@ class _CommentListState extends ConsumerState<CommentList> {
 
   Future<void> _submit() async {
     final content = _contentController.text.trim();
-    if (content.isEmpty) return;
+    if (content.isEmpty || _submitting) return;
     final currentUid = widget.currentUid;
     if (currentUid == null || currentUid.isEmpty) {
       if (mounted) {
@@ -83,7 +141,7 @@ class _CommentListState extends ConsumerState<CommentList> {
       }
       return;
     }
-    _contentController.clear();
+    setState(() => _submitting = true);
     try {
       await ref.read(commentRepositoryProvider).addComment(
             postId: widget.postId,
@@ -94,15 +152,19 @@ class _CommentListState extends ConsumerState<CommentList> {
             parentCommentId: _replyTarget?.commentId,
             replyToAuthor: _replyTarget?.displayAuthorLabel,
           );
+      if (!mounted) return;
+      _contentController.clear();
       widget.onCommentAdded();
       setState(() => _replyTarget = null);
-      _loadFirst();
+      await _loadFirst();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.l10n.errorWithMessage(e.toString()))),
         );
       }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
   }
 
@@ -146,10 +208,17 @@ class _CommentListState extends ConsumerState<CommentList> {
           onSubmit: _submit,
           focusNode: widget.commentFocusNode,
           onTap: widget.commentFocusNode != null ? () => widget.commentFocusNode!.requestFocus() : null,
+          isSubmitting: _submitting,
         ),
         const SizedBox(height: 16),
         if (_loading && _comments.isEmpty)
           const Center(child: CircularProgressIndicator())
+        else if (!_loading && topLevel.isEmpty)
+          EmptyStateView(
+            title: context.l10n.commentsEmptyTitle,
+            message: context.l10n.commentsEmptyBody,
+            icon: Icons.chat_bubble_outline_rounded,
+          )
         else
           ...topLevel.map((c) => _buildCommentNode(context, c, 0, childrenMap)),
         if (_hasMore && _comments.isNotEmpty)
@@ -190,6 +259,7 @@ class _CommentListState extends ConsumerState<CommentList> {
     final leftPad = depth == 0 ? 0.0 : (16.0 * depth);
 
     return Padding(
+      key: _anchorKeyFor(comment.commentId),
       padding: EdgeInsets.only(left: leftPad),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

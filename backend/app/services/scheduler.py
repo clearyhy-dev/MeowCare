@@ -16,16 +16,25 @@ scheduler = AsyncIOScheduler()
 
 
 async def run_daily_generation() -> None:
-    result = await run_daily_content_pipeline(check_publish_hour=True)
-    if result is None:
-        # 仅在 settings.publishHourUtc（UTC）整点执行生成；其它小时属正常跳过。
-        logger.debug(
-            "content_daily_hourly: skipped until publishHourUtc (see settings/content_generation)"
-        )
+    try:
+        result = await run_daily_content_pipeline(check_publish_hour=True)
+        if result is None:
+            logger.debug(
+                "content_daily_hourly: skipped until publishHourUtc (see settings/content_generation)"
+            )
+        elif result.get("error") or result.get("reason") == "generation_failed":
+            logger.error("content_daily_hourly: pipeline reported failure: %s", result)
+    except Exception:
+        logger.exception("run_daily_generation: unexpected error (isolated from scheduler)")
 
 
 async def run_publish_scheduled_tick() -> None:
-    await publish_due_scheduled_posts_async(limit=80)
+    try:
+        n = await publish_due_scheduled_posts_async(limit=80)
+        if n:
+            logger.debug("publish_scheduled_tick: promoted %s post(s)", n)
+    except Exception:
+        logger.exception("run_publish_scheduled_tick: failed (isolated from scheduler)")
 
 
 def start_scheduler() -> None:

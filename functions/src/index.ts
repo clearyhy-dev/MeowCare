@@ -22,6 +22,27 @@ async function bumpUnread(recipientUserId: string): Promise<void> {
     .set({ notificationUnreadCount: admin.firestore.FieldValue.increment(1) }, { merge: true });
 }
 
+/** Unicode-safe truncation (counts code points, not UTF-16 units). */
+function truncateText(s: string, maxChars: number): string {
+  const t = (s ?? "").trim().replace(/\s+/g, " ");
+  if (!t) return "";
+  const chars = Array.from(t);
+  if (chars.length <= maxChars) return t;
+  return chars.slice(0, maxChars).join("") + "…";
+}
+
+async function getUserDisplayName(uid: string): Promise<string> {
+  try {
+    const snap = await db.collection("users").doc(uid).get();
+    if (!snap.exists) return "Member";
+    const d = snap.data()!;
+    const n = (d.displayName as string) || (d.name as string) || "";
+    return n.trim() || "Member";
+  } catch {
+    return "Member";
+  }
+}
+
 async function insertNotification(params: {
   recipientUserId: string;
   type: string;
@@ -67,6 +88,8 @@ export const onCommentCreated = onDocumentCreated("comments/{commentId}", async 
     const parentAuthor = (parentSnap.data()!.authorId as string) || "";
     if (parentAuthor && parentAuthor !== commentAuthor) {
       const name = (c.authorDisplayName as string) || "Someone";
+      const postTitle = truncateText((post.title as string) || "", 60);
+      const excerpt = truncateText((c.content as string) || "", 160);
       await insertNotification({
         recipientUserId: parentAuthor,
         type: "reply_to_comment",
@@ -74,8 +97,8 @@ export const onCommentCreated = onDocumentCreated("comments/{commentId}", async 
         actorDisplayName: name,
         targetPostId: postId,
         targetCommentId: snap.id,
-        title: "New reply to your comment",
-        body: `${name} replied to you on a post.`,
+        title: postTitle ? `Reply on 「${postTitle}」` : "New reply to your comment",
+        body: excerpt ? `${name}: ${excerpt}` : `${name} replied to your comment.`,
       });
     }
     return;
@@ -87,7 +110,8 @@ export const onCommentCreated = onDocumentCreated("comments/{commentId}", async 
     !SYSTEM_POST_AUTHORS.has(postAuthor)
   ) {
     const name = (c.authorDisplayName as string) || "Someone";
-    const postTitle = ((post.title as string) || "").slice(0, 80);
+    const postTitle = truncateText((post.title as string) || "", 60);
+    const excerpt = truncateText((c.content as string) || "", 160);
     await insertNotification({
       recipientUserId: postAuthor,
       type: "comment_on_post",
@@ -95,8 +119,8 @@ export const onCommentCreated = onDocumentCreated("comments/{commentId}", async 
       actorDisplayName: name,
       targetPostId: postId,
       targetCommentId: snap.id,
-      title: "New comment on your post",
-      body: postTitle ? `${name} commented on "${postTitle}".` : `${name} commented on your post.`,
+      title: postTitle ? `Comment on 「${postTitle}」` : "New comment on your post",
+      body: excerpt ? `${name}: ${excerpt}` : `${name} commented on your post.`,
     });
   }
 });
@@ -117,16 +141,19 @@ export const onLikeWritten = onDocumentWritten("likes/{likeId}", async (event) =
   const postAuthor = (post.authorId as string) || "";
   if (!postAuthor || postAuthor === actorUid || SYSTEM_POST_AUTHORS.has(postAuthor)) return;
 
-  const postTitle = ((post.title as string) || "").slice(0, 80);
+  const likerName = await getUserDisplayName(actorUid);
+  const postTitle = truncateText((post.title as string) || "", 80);
   await insertNotification({
     recipientUserId: postAuthor,
     type: "post_liked",
     actorUserId: actorUid,
-    actorDisplayName: "Member",
+    actorDisplayName: likerName,
     targetPostId: postId,
     targetCommentId: null,
-    title: "Someone liked your post",
-    body: postTitle ? `Your post "${postTitle}" received an upvote.` : "Your post received an upvote.",
+    title: postTitle ? `「${postTitle}」` : "Someone liked your post",
+    body: postTitle
+      ? `${likerName} liked your post.`
+      : `${likerName} liked your post.`,
   });
 });
 
