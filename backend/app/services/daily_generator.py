@@ -89,21 +89,27 @@ CONTENT_STYLES: tuple[str, ...] = (
     "warm_healing",
 )
 
-# 与后台「内容调性」对应：日常=随手动态风；专业=结构化科普向
+# 与后台「内容调性」对应：日常=随手动态风；专业=轻科普+真人感（避免专栏目录腔）
 VOICE_MODES: tuple[str, ...] = ("casual", "professional")
 STYLES_FOR_VOICE: dict[str, tuple[str, ...]] = {
     "casual": (
-        "cat_daily_story",
         "owner_journal",
+        "owner_journal",
+        "cat_daily_story",
+        "cat_daily_story",
+        "short_experience_share",
         "short_experience_share",
         "warm_healing",
         "seasonal_care",
+        "cat_daily_story",
     ),
     "professional": (
-        "professional_care",
+        "owner_journal",
+        "cat_daily_story",
+        "short_experience_share",
+        "warm_healing",
         "seasonal_care",
         "professional_care",
-        "seasonal_care",
     ),
 }
 
@@ -115,6 +121,9 @@ TONES: tuple[str, ...] = (
     "calm_supportive",
     "neighborly",
     "gentle_humor",
+    "sleepy_rant",
+    "coffee_break_chat",
+    "weekend_mood",
 )
 
 # 自动生成帖展示名：随机社区用户风格，避免「编辑部」观感（可被 Firestore publisher.displayNames 覆盖）。
@@ -226,6 +235,16 @@ _SCENARIO_SEEDS_EN = [
     "Introducing a second cat through a baby gate",
     "The cat suddenly ignoring the favorite window perch",
     "Meal prep chaos in a small kitchen",
+    "3am zoomies after I finally sat down",
+    "The vacuum cleaner standoff",
+    "Forgot to scoop and now I'm getting judged",
+    "Trying a new wet food — dramatic reactions only",
+    "Cat stole my seat again, I lost again",
+    "Laundry basket inspection duty",
+    "That one cardboard box nobody is allowed to throw away",
+    "Roommate asked why there's a paw print on the mirror",
+    "Bluetooth speaker became a cat bed",
+    "Small apartment, big personality crisis",
 ]
 
 
@@ -598,10 +617,39 @@ def _clamp_title_chars(
     return s
 
 
-def _clamp_summary_chars(s: str, lo: int = 120, hi: int = 220) -> str:
+def _clamp_summary_chars(
+    s: str,
+    lo: int = 120,
+    hi: int = 220,
+    *,
+    language: str | None = None,
+) -> str:
     s = re.sub(r"\s+", " ", (s or "").strip())
     if len(s) < lo:
-        s = (s + " Observe your cat daily and adjust routines gradually.").strip()[:hi]
+        lang = normalize_language(language) if language else "en"
+        fillers: dict[str, tuple[str, ...]] = {
+            "zh": (
+                " 随手记，想到哪写到哪，不一定对。",
+                " 就是我家的观察，别当教程看。",
+                " 碎碎念，路过看看就行。",
+            ),
+            "ja": (
+                " 気まぐれメモです。正解ではありません。",
+                " うちの観察ログ。参考まで。",
+            ),
+            "ko": (
+                " 그냥 집에서 적어본 메모예요.",
+                " 완벽한 팁은 아니에요, 참고만.",
+            ),
+            "en": (
+                " Just a messy living-room note, not a manual.",
+                " A casual thread from a real week with my cat.",
+                " Rambling, honest, not polished—like a group chat.",
+            ),
+        }
+        # es, fr, de, pt, ru: use EN fillers (model output is still target language)
+        pool = fillers.get(lang, fillers["en"])
+        s = (s + random.choice(pool)).strip()[:hi]
     if len(s) > hi:
         s = s[: hi - 1] + "…"
     return s
@@ -642,15 +690,16 @@ def _voice_mode_prompt_block(voice_mode: str) -> str:
     vm = normalize_voice_mode(voice_mode)
     if vm == "professional":
         return """
-VOICE MODE — professional (专业向，仍像社区专栏而非论文):
-- 结构清晰：生活场景切入 → 为何重要 → 可执行步骤 → 何时需就医（概括性提醒）。
-- 语气稳重、信息可靠，少用网络梗与过度口语；避免恐吓式标题。
-- 仍是单篇社区长文，不要用列表符号或章节标题；段落内自然过渡。
+VOICE MODE — professional (轻科普 + 真人感，刻意不要「专栏目录腔」):
+- 像资深猫友在小组里打字：先有一个具体生活场景/吐槽，知识点自然夹在叙事里，不要「首先/其次/最后」三连。
+- 允许口语、自嘲、不完整句；禁止写成教材章节、百科词条或 PPT 大纲感。
+- 仍要信息靠谱：温和提醒何时该问兽医，但不要恐吓式标题；不要用列表符号或 markdown 小标题。
 """
     return """
 VOICE MODE — casual (日常向，像真人随手发一条):
-- 像论坛帖、朋友圈长文：第一人称或轻松叙述皆可，可带一点幽默与碎碎念。
-- 避免「教材腔」和逐条清单；像邻居聊天一样自然。
+- 像论坛帖、群聊记录、备忘录：第一人称为主，可带时间碎片（昨晚/刚才/周末）、情绪词与轻度幽默。
+- 刻意避免「攻略」「必看」「N 个技巧」体；除非明显自嘲语气；允许略乱、有个人偏见。
+- 不要「教材腔」和逐条清单；像邻居或同事闲聊一样自然。
 """
 
 
@@ -660,13 +709,14 @@ STRICT OUTPUT RULES (all styles):
 1) Return ONLY a single JSON object. No markdown fences. No extra text.
 2) Keys: "title", "summary", "content" (all strings).
 3) Output language (every field): {lang_name} — fully, naturally, as a local cat parent would write (not translated English in the head).
-4) title: 40–90 characters (Unicode). Vary structure: sometimes a quiet observation, sometimes a question, sometimes a scene — NOT every day a "how to / tips" headline.
-5) summary: 120–220 characters. Like a forum teaser or neighbor chat — never a journal abstract or SEO description.
+4) title: 40–90 characters (Unicode). Prefer: 场景/情绪/疑问/一句吐槽 — 避免「攻略」「指南」「必看」「N个技巧」「最全」除非明显自嘲。
+5) summary: 120–220 characters. Like a repost caption + one line of vibe — 不要摘要腔、SEO 或论文式概括；可以口语、不完整。
 6) BANNED openings (title AND first 120 chars of body): "tips", "here are", "in this article", "today we", "ultimate guide",
-   "本文将", "以下几点", "你知道吗", "as a cat owner". Start with a specific, sensory moment at home.
+   "本文将", "以下几点", "你知道吗", "as a cat owner", "首先". Start with a specific, sensory moment at home.
 7) No drug names, dosages, or diagnoses. No "you must" medical commands. One gentle disclaimer sentence in-body that education ≠ vet care.
-8) Vary sentence rhythm; do not use the same sentence skeleton as generic AI templates.
+8) Vary sentence rhythm; do not use the same sentence skeleton as generic AI templates; imperfect, human rhythm is GOOD.
 9) content must be plain paragraphs separated by \\n\\n only (no markdown headings, no bullet lines starting with - or *).
+10) Personality: imagine one specific person typing — avoid neutral "brand voice"; mild quirks welcome.
 """
 
 
@@ -697,8 +747,9 @@ short_experience style says otherwise. Plain paragraphs only — no markdown hea
         return (
             base
             + """
-Write like a trusted community columnist: warm but clear. Cover in order (as paragraphs, not labels):
-hook from daily life → why it matters → practical tips → common mistakes → gentle vet-care disclaimer.
+Write like a knowledgeable friend DMing you after a long day: warm, specific, a bit chatty.
+Blend scene + takeaway in one flow (NOT a labeled outline). One small practical angle is enough; skip encyclopedic coverage.
+End with a soft vet disclaimer woven into the last paragraph, not a separate lecture block.
 """
         )
     if st == "cat_daily_story":
@@ -783,6 +834,7 @@ def _fallback_content(
                 f"像社区帖一样聊聊「{angle}」：先观察再微调，{breed}在家更自在。{fact[:80]}",
                 120,
                 220,
+                language=lang,
             )
             p1 = f"昨晚我又蹲在那儿看了五分钟——不是矫情，是{breed}喝水的方式变了点，我就想先把「{topic}」这件事理顺。"
             p2 = f"为什么我会在意：猫很少大喊不舒服，更多藏在食欲、如厕和躲藏里。{('参考：' + wiki[:200] + '…') if wiki else ''}"
@@ -797,6 +849,7 @@ def _fallback_content(
                 f"{breed}と暮らす日常に「{topic}」を社区っぽく。{fact[:60]}",
                 120,
                 220,
+                language=lang,
             )
             p1 = f"今日のメモから入るね。{breed}の「{topic}」、いきなり全部変えずに、まず観察から。"
             p2 = "小さな変化がサインになりやすい。リズムと環境が安定すると、行動のトラブルも減りやすい。"
@@ -811,6 +864,7 @@ def _fallback_content(
                 f"{breed}와의 일상에서 '{topic}'를 커뮤니티 글처럼 정리해봤어요. {fact[:60]}",
                 120,
                 220,
+                language=lang,
             )
             p1 = f"오늘 적어둔 메모로 시작할게요. {breed}의 '{topic}'는 한 번에 다 바꾸기보다 관찰부터."
             p2 = "작은 변화가 신호일 수 있어요. 루틴과 환경이 안정되면 스트레스도 줄어듭니다."
@@ -831,6 +885,7 @@ def _fallback_content(
                 f"A community-style note on {angle} for {breed}. Start with watching, then tweak one thing. {fact[:100]}",
                 120,
                 220,
+                language=lang,
             )
             p1 = f"I'll start with last night: I noticed something tiny about how my {breed} moves through the day—so let's talk {topic.replace('_', ' ')} without turning it into a lecture."
             p2 = (
@@ -850,6 +905,7 @@ def _fallback_content(
                 f"像帖子一样记录一个小片段，顺便聊聊「{angle}」。{seasonal_context[:60]}… {fact[:50]}",
                 120,
                 220,
+                language=lang,
             )
             p1 = f"今天家里有点像这样：{seed}。我看着{breed}，又想到「{topic}」其实就藏在细节里。"
             p2 = "我不会装专家，只是把最近试过的两件事写下来：一次只改一点点；把观察记成几句话，比凭感觉靠谱。"
@@ -862,6 +918,7 @@ def _fallback_content(
                 f"社区みたいな短い記録。{angle}。{fact[:50]}",
                 120,
                 220,
+                language=lang,
             )
             p1 = f"今日の空気はこんな感じ：{seed}。そんな日の{breed}と「{topic}」。"
             p2 = "大げさな結論は避けて、試せる小さなこと：一つずつ変える／短いメモを残す。"
@@ -874,6 +931,7 @@ def _fallback_content(
                 f"커뮤니티 글처럼 짧게. {angle}. {fact[:50]}",
                 120,
                 220,
+                language=lang,
             )
             p1 = f"오늘 집 분위기: {seed}. 그런 날의 {breed}와 '{topic}'."
             p2 = "한 번에 하나만 바꾸고, 짧게 메모 남기기."
@@ -892,6 +950,7 @@ def _fallback_content(
                 f"A community-style snippet about {angle} with {breed}. {fact[:100]}",
                 120,
                 220,
+                language=lang,
             )
             p1 = f"Scene: {seed}. If you share your home with a {breed}, {topic.replace('_', ' ')} often shows up in quiet moments like this."
             p2 = "Two habits that help me: change one thing at a time; keep a tiny log for a few days (food, water, litter, mood)."
@@ -934,7 +993,7 @@ async def _generate_with_gemini(
         import google.generativeai as genai
 
         genai.configure(api_key=GEMINI_API_KEY)
-        json_cfg: dict[str, Any] = {"response_mime_type": "application/json", "temperature": 0.55}
+        json_cfg: dict[str, Any] = {"response_mime_type": "application/json", "temperature": 0.78}
         try:
             model = genai.GenerativeModel(GEMINI_MODEL_ID, generation_config=json_cfg)
         except (TypeError, ValueError):
@@ -968,7 +1027,7 @@ Vary sentence openings; do not mirror phrasing from your previous outputs.
             lang = normalize_language(language)
             st = normalize_content_style(content_style)
             title = _clamp_title_chars(parsed.get("title", ""), st, lang, lo=40, hi=90)
-            summary = _clamp_summary_chars(parsed.get("summary", ""), 120, 220)
+            summary = _clamp_summary_chars(parsed.get("summary", ""), 120, 220, language=lang)
             content = _ensure_paragraphs(parsed.get("content", ""), min_p, max_p)
             if not title or not summary or not content:
                 return None
